@@ -249,6 +249,7 @@
             "dashboard": {
                 "title": "Builder",
                 "createPage": "Create page",
+                "refresh": "Refresh list",
                 "nav": {
                     "pages": "Pages",
                     "templates": "Templates",
@@ -1185,9 +1186,11 @@
                 "tooManyRequests": "Too many requests. Try again in a moment",
                 "serverBusy": "The server is busy. Try again",
                 "timeout": "No answer in time: the outcome is unknown, the list has been refreshed",
-                "createStillProcessing": "No answer in time. The account is not visible after the refresh attempt, but the request may still be running. Do not submit the form again now — check the list later",
-                "createReconcileFailed": "No answer in time and the list could not be refreshed. The request may still be running. Do not submit the form again now — refresh the list later",
-                "createOutcomeUnknown": "No answer in time. An account with this username is visible in the list, but it cannot be linked to this request. Do not create it again — inspect the account",
+                "createOutcomeUnknown": "No answer in time, so the outcome is not known yet. Press \"Create\" once more: the repeat is safe — it creates no second account and reports the outcome of the first submission",
+                "createInProgress": "The server is still working on this submission. Wait a few seconds and press \"Create\" again to learn the outcome",
+                "createResultGone": "This submission did create an account, and that account has been deleted. Close the window and create the account anew",
+                "createKeyReused": "The form data changed while the submission was in flight. Close the window and create the account anew",
+                "createKeyMissing": "The request went out without an operation identifier. Reload the page and try again",
                 "actionFailed": "The action failed. Try again"
             }
         },

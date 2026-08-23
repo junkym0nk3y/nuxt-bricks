@@ -7,7 +7,8 @@
  *   1. `npm pack` builds the tarball (prepack → nuxt-module-build).
  *   2. A clean consumer in a temporary directory installs the tarball (peers arrive
  *      automatically, npm >= 7) — package.json, exports and files are correct.
- *   3. The installed package carries dist, migrations/*.sql and the migration CLI bin.
+ *   3. The installed package carries dist, migrations/*.sql, the migration CLI bin and
+ *      LICENSE, and it still declares MIT.
  *   4. `nuxi build` of the consumer application passes without Postgres and PROXY_URL.
  *   5. The production server from .output comes up and holds the auth matrix: an own
  *      page answers 200, the editorial API and /bricks answer 401 to an anonymous
@@ -171,11 +172,22 @@ async function main() {
             join(installedRoot, 'docs', 'external-backend-contract.md'),
             'docs/external-backend-contract.md'
         );
+        // MIT is what package.json declares, so the text of the license has to travel in
+        // the tarball as well: whoever audits the dependency reads the file, not the field.
+        // The changelog travels with it for the same reason — an audit of an installed
+        // version should not need the repository.
+        for (const rootFile of ['LICENSE', 'CHANGELOG.md']) {
+            await assertFileExists(join(installedRoot, rootFile), rootFile);
+        }
 
         // The dependency contract: h3-proxy is gone, while sharp and the AWS SDK are
         // required dependencies — the media flow needs them at runtime
         const installedPkg = JSON.parse(
             await readFile(join(installedRoot, 'package.json'), 'utf8')
+        );
+        assertOk(
+            installedPkg.license === 'MIT',
+            `the package declares license "${installedPkg.license}" instead of MIT`
         );
         assertOk(
             !installedPkg.dependencies?.['h3-proxy'],

@@ -45,6 +45,14 @@ export {
 // these classes — a local class of the same name would give a 500 instead of a 409
 // with a machine-readable code. Without the re-export the contract's `@throws`
 // requirement would be impossible to satisfy.
+//
+// CREATING an account is the exception: it does not throw a taken login at all any
+// more. It goes through the operation protocol (`createUserForOperation`), where the
+// refusal has to be STORED in the operation and returned as `{ status: 'rejected' }`
+// — otherwise every repeat of that key would compute the password hash again to
+// arrive at the same refusal. `BricksUsernameTakenError` is thrown by the HANDLER out
+// of that status; an implementation throwing it from the adapter would be released by
+// the handler's catch and would lose the terminal outcome.
 export { BricksLastActiveAdminError, BricksUsernameTakenError } from './utils/authErrors';
 
 let storageAdapter: IStorageAdapter | null = null;

@@ -55,6 +55,7 @@ import BuilderPublishDetailsPanelSchema from './BuilderPublishDetailsPanelSchema
 const props = withDefaults(defineProps<IPublishDetailsPanelProps>(), {
     isDuplicating: false,
     isImporting: false,
+    isTogglingPublished: false,
 });
 // #endregion
 
@@ -120,6 +121,10 @@ function handleClose(): void {
 
 /**
  * Toggles the publication status (the optimistic patch lives in the controller).
+ *
+ * The switch is closed off while the write runs (`isTogglingPublished`): the
+ * controller refuses a second call anyway, and a switch latching back and forth
+ * with nothing going out would read as a broken control.
  *
  * @param value - The new publication flag.
  */
@@ -243,7 +248,7 @@ defineExpose({
                     :true-value="true"
                     :false-value="false"
                     false-label=""
-                    :disabled="!canEdit"
+                    :disabled="!canEdit || props.isTogglingPublished"
                     :true-label="t('bricks.publish.dashboard.details.published')"
                     @update:value="handleTogglePublished"
                 />

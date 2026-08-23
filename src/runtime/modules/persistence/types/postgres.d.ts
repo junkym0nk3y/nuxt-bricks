@@ -8,6 +8,7 @@
  * it), and the configuration's type must not drag its resolution along.
  */
 import type { IBricksUserSummary, TBricksUserRole } from '../../common/types/auth';
+import type { TAuthUserCreateRejection } from './authAdapters';
 
 /**
  * An account row out of `bricks_users` before the dates are normalized: node-postgres
@@ -19,6 +20,26 @@ export interface IBricksUserSummaryRow extends Omit<
 > {
     createdAt: string | Date;
     lastLoginAt: string | Date | null;
+}
+
+/**
+ * A row of `bricks_user_create_operations` — the account creation operation
+ * addressed by the client's Idempotency-Key.
+ *
+ * The dates are absent on purpose: the protocol compares the lease against `NOW()`
+ * inside SQL, so no moment of it ever crosses into the application, and a `Date` that
+ * nobody normalizes cannot leak into an answer.
+ */
+export interface IUserCreateOperationRow {
+    idempotencyKey: string;
+    requestFingerprint: string;
+    state: 'running' | 'completed' | 'rejected';
+    /** The fencing token of the current claim */
+    attempt: number;
+    /** The account the operation created; null — none yet, or it has been deleted */
+    createdUserId: number | null;
+    /** The stored reason of a terminal refusal */
+    rejectionCode: TAuthUserCreateRejection | null;
 }
 
 /**

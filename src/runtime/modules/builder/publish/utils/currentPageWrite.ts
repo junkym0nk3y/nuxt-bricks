@@ -29,11 +29,15 @@ function isInitiatorCurrent(options?: IPublishOperationOptions): boolean {
 }
 
 /**
- * Refreshes the shared page list after an attempt to create. Neither a refusal
- * nor a delay affects the result of the caller: on a successful answer the page is
- * in the list already (`syncPageInList` put it there), and on an abort by the
- * timeout the outcome is unknown — then this is the only attempt to see whether
- * the server applied the write.
+ * Re-reads the shared page list after an attempt to create was ABORTED BY THE
+ * TIMEOUT. Only after an abort: the outcome of the write is unknown then, and this
+ * request is the only chance to see whether the server applied the creation. A
+ * successful answer needs nothing of the kind — the page is in the list already,
+ * `syncPageInList` put it there out of that very answer.
+ *
+ * Neither a refusal nor a delay of the re-read affects the result of the caller,
+ * hence the swallowed error: the message about the abort has to reach the person at
+ * once, and the outcome of the creation does not depend on this list.
  *
  * @param store - Narrow contract of the store.
  */
@@ -46,8 +50,7 @@ async function refreshPagesAfterPublish(store: ICurrentPageWriteStoreDeps): Prom
 }
 
 /**
- * Creates a page through the API, puts it into the local list right away and
- * starts a refresh of the whole list.
+ * Creates a page through the API and puts the answer into the local list.
  *
  * Synchronizing by the response is mandatory rather than a safety net:
  * `loadAllPages` may be devalued by a parallel local write, and then the created
@@ -57,21 +60,11 @@ async function refreshPagesAfterPublish(store: ICurrentPageWriteStoreDeps): Prom
  * dashboard would give an empty draft on top of an existing page (the guard of the
  * list is what opened this hole in the first place).
  *
- * The list refresh is **not part of the result of the operation**: it is started
- * and let go. At first its refusal flew out as a refusal to create — the builder
- * showed "the save did not work out", and the retry ran into its own slug as into
- * a taken one; the creation modal did not close; the duplication bred an extra
- * copy. But an `await` with the error caught is not enough either: the write
- * operation counts as unfinished until the return from here, that is, a slow GET
- * would keep the save button blocked and forbid the next write. The request does
- * have a waiting ceiling (the transport policy), but it is an order of magnitude
- * above the write itself — waiting for it here means paying with a blocked button
- * for data the result of the creation does not need.
- *
- * The order is mandatory: `syncPageInList` strictly before the refresh is started.
- * Otherwise the GET starts before the local write, that write devalues it with its
- * own number — and the created page disappears from the list along with the
- * discarded answer.
+ * A successful creation starts NO re-read of the list: the answer of the POST is
+ * the whole created page, `syncPageInList` puts it in, and a GET on top of that
+ * would only ask the server for what has just arrived. Pages created by another
+ * editor are picked up by the refresh of the list in the dashboard — a deliberate
+ * action instead of a request on every publication.
  *
  * @param store - Narrow contract of the store.
  * @param schema - Landing schema.
@@ -107,11 +100,6 @@ export async function runPublishPage(
     }
 
     store.syncPageInList(created);
-
-    // The promise is deliberately not awaited: the errors are swallowed inside,
-    // and the result of the creation does not depend on the refresh. No `void`
-    // here — the `no-void` rule
-    refreshPagesAfterPublish(store);
 
     return created.id;
 }

@@ -37,9 +37,11 @@ const PAGES_LOAD_ATTEMPTS = 3;
  * writing there used to carry the text of one page into the open one. The list
  * request goes out of the session bootstrap, so a failed load on an abandoned page
  * used to light an error up in the sidebar of the page already open. Every caller
- * handles the refusal itself: the dashboard with a toast of its own, the session
- * bootstrap with a blocking screen, `toPageWriteError` with the revision conflict,
- * and the refresh after a creation (`runPublishPage`) with a console warning.
+ * handles the refusal itself: the dashboard with a toast of its own (the refresh
+ * control included), the session bootstrap with a blocking screen,
+ * `toPageWriteError` with the revision conflict, and the re-read after a creation
+ * ABORTED BY THE TIMEOUT (`runPublishPage`) with a console warning — a successful
+ * creation starts no re-read at all, the answer of the POST carries the page.
  *
  * @param store - Narrow contract of the store.
  */

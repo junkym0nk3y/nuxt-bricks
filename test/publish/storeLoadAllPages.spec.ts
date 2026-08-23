@@ -77,12 +77,12 @@ describe('usePublishStore.loadAllPages: общий кеш списка', () => {
         expect(store.getPageById(3)?.pagename).toBe('original-copy');
     });
 
-    it('созданная страница попадает в список, даже если GET обесценен параллельной записью', async () => {
+    it('созданная страница попадает в список, даже если летящий GET её не знает', async () => {
         const store = usePublishStore();
 
-        // POST создания отвечает сразу, следующий за ним GET списка — отложен
+        // Список читает кто-то другой — обновление в дашборде или bootstrap
+        // соседней сессии, — и его GET уже в полёте, когда уходит POST создания
         let resolveList: ((pages: unknown) => void) | undefined;
-        apiFetcherMock.mockResolvedValueOnce(buildPage({ id: 11, pagename: 'fresh-page' }));
         apiFetcherMock.mockImplementationOnce(
             () =>
                 new Promise((resolve) => {
@@ -90,25 +90,23 @@ describe('usePublishStore.loadAllPages: общий кеш списка', () => {
                 })
         );
 
-        const publishing = store.publishPage(
+        const listing = store.loadAllPages();
+
+        apiFetcherMock.mockResolvedValueOnce(buildPage({ id: 11, pagename: 'fresh-page' }));
+
+        const createdId = await store.publishPage(
             { components: [] },
             buildFormState({ pagename: 'fresh-page' })
         );
 
-        // Ждём, пока POST отработает и GET списка уйдёт в полёт
-        await vi.waitFor(() => {
-            expect(resolveList).toBeDefined();
-        });
-
-        // Пока GET в полёте, приземляется другая локальная запись (например, PATCH
-        // превью прежней страницы) и обесценивает его
-        store.syncPageInList(buildPage({ id: 2, pagename: 'other', revision: 9 }));
-
+        // Ответ GET создания не знает: он ушёл раньше. Локальная запись его
+        // обесценила, и вернуть список к состоянию до создания он не вправе
         resolveList?.([buildPage({ id: 2, pagename: 'other', revision: 9 })]);
-        const createdId = await publishing;
+        await listing;
 
-        // Без синхронизации ответом POST страница потерялась бы вместе с GET, и
-        // startEditingPage оставил бы editingPageId === null
+        // Без синхронизации ответом POST страница потерялась бы вместе с этим
+        // ответом, и startEditingPage оставил бы editingPageId === null: следующее
+        // сохранение ушло бы вторым созданием вместо обновления
         expect(createdId).toBe(11);
         expect(store.getPageById(11)?.pagename).toBe('fresh-page');
 
@@ -116,54 +114,32 @@ describe('usePublishStore.loadAllPages: общий кеш списка', () => {
         expect(store.editingPageId).toBe(11);
     });
 
-    it('отказ обновления списка после успешного POST не проваливает создание', async () => {
+    it('отказ параллельного чтения списка не проваливает создание', async () => {
         const store = usePublishStore();
 
-        apiFetcherMock.mockResolvedValueOnce(buildPage({ id: 12, pagename: 'created-page' }));
+        // Чтение списка отказано (503) — соседним обновлением в дашборде, не
+        // созданием: успешная публикация список не перечитывает вовсе
         apiFetcherMock.mockRejectedValueOnce(new Error('GET /api/bricks/: 503'));
 
-        // Страница создана на сервере; отказ последующего GET — это неудачное
-        // освежение списка, а не неудачное создание. Иначе билдер показал бы
-        // «сохранить не удалось», а повтор упёрся бы в собственный slug как занятый
+        const listing = store.loadAllPages().catch(() => undefined);
+
+        apiFetcherMock.mockResolvedValueOnce(buildPage({ id: 12, pagename: 'created-page' }));
+
+        // Страница создана на сервере, и отказ чужого чтения к этому отношения не
+        // имеет. Иначе билдер показал бы «сохранить не удалось», а повтор упёрся бы
+        // в собственный slug как занятый
         const createdId = await store.publishPage(
             { components: [] },
             buildFormState({ pagename: 'created-page' })
         );
+
+        await listing;
 
         expect(createdId).toBe(12);
         expect(store.getPageById(12)?.pagename).toBe('created-page');
         expect(store.isAddressAvailable({ pagename: 'created-page', urlPrefix: null }, 12)).toBe(
             true
         );
-    });
-
-    it('зависшее обновление списка не задерживает создание', async () => {
-        const store = usePublishStore();
-
-        let resolveHungList: ((pages: unknown) => void) | undefined;
-        apiFetcherMock.mockResolvedValueOnce(buildPage({ id: 13, pagename: 'hung-refresh' }));
-        apiFetcherMock.mockImplementationOnce(
-            () =>
-                new Promise((resolve) => {
-                    resolveHungList = resolve;
-                })
-        );
-
-        try {
-            // GET списка не отвечает и не падает. `await` держал бы `isSubmitting`
-            // поднятым до его собственного потолка — а флаг общий и
-            // блокирует сохранение в той сессии, куда пользователь успел уйти
-            const createdId = await store.publishPage(
-                { components: [] },
-                buildFormState({ pagename: 'hung-refresh' })
-            );
-
-            expect(createdId).toBe(13);
-            expect(store.getPageById(13)?.pagename).toBe('hung-refresh');
-            expect(resolveHungList).toBeDefined();
-        } finally {
-            resolveHungList?.([]);
-        }
     });
 
     it('обрыв удаления по таймауту освежает список', async () => {

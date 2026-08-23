@@ -48,10 +48,15 @@ function makeCreatePayload(): ICreateTemplatePayload {
  * Ошибка pg с заданным SQLSTATE.
  *
  * @param code - Код SQLSTATE.
+ * @param constraint - Имя нарушенного ограничения; не передан — драйвер имени не
+ * прислал.
  * @returns Ошибка драйвера.
  */
-function makePgError(code: string): Error & { code: string } {
-    return Object.assign(new Error(`pg error ${code}`), { code });
+function makePgError(code: string, constraint?: string): Error & { code: string } {
+    return Object.assign(new Error(`pg error ${code}`), {
+        code,
+        ...(constraint === undefined ? {} : { constraint }),
+    });
 }
 // #endregion
 
@@ -69,6 +74,29 @@ describe('postgresTemplateMethods: исход вставки шаблона', ()
         await expect(
             createPostgresTemplateMethods().createTemplate(makeCreatePayload())
         ).rejects.toBeInstanceOf(BricksTemplateNameConflictError);
+    });
+
+    it('нарушение индекса имени — тот же доменный конфликт', async () => {
+        queryOneMock.mockRejectedValueOnce(makePgError('23505', 'bricks_templates_name_key'));
+
+        await expect(
+            createPostgresTemplateMethods().createTemplate(makeCreatePayload())
+        ).rejects.toBeInstanceOf(BricksTemplateNameConflictError);
+    });
+
+    // Отставшая после восстановления дампа SERIAL-sequence упирает вставку в
+    // первичный ключ. Имя при этом свободно, и конфликт имени показал бы форме
+    // красное поле там, где чинить нужно базу. Строки нет — значит это доказанный
+    // отказ, и скопированное превью ручка вправе удалить
+    it('нарушение первичного ключа — доказанный отказ, а не занятое имя', async () => {
+        queryOneMock.mockRejectedValueOnce(makePgError('23505', 'bricks_templates_pkey'));
+
+        const thrown = await createPostgresTemplateMethods()
+            .createTemplate(makeCreatePayload())
+            .catch((error: unknown) => error);
+
+        expect(thrown).toBeInstanceOf(BricksStorageWriteRejectedError);
+        expect(thrown).not.toBeInstanceOf(BricksTemplateNameConflictError);
     });
 
     it('неотправленный запрос — доказанный отказ', async () => {

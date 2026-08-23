@@ -59,7 +59,8 @@ describe('Операции записи лендинга принадлежат 
                 return deferred.handle(url);
             }
 
-            // GET списка — освежение после создания, ответ не важен
+            // GET списка: на успешном создании его больше нет, остался только
+            // разбор обрыва по потолку ожидания. Ответ не важен
             return Promise.resolve([]);
         });
     });
@@ -165,6 +166,43 @@ describe('Операции записи лендинга принадлежат 
         // то есть следующее сохранение ушло бы созданием второй страницы
         expect(store.currentFormState.pagename).toBe('landing-page');
         expect(store.editingPageId).toBe(1);
+    });
+
+    // Копия могла быть создана: обрыв по потолку ожидания оставляет исход
+    // неизвестным, и перечитывание списка — единственный способ его увидеть. Ждать
+    // этот GET нельзя: пока он в воздухе, `isSubmitting` держал бы кнопку записи
+    // заблокированной, а флаг общий на сессию
+    it('обрыв копии перечитывает список, но записи собой не задерживает', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        const store = usePublishStore();
+        store.editingPageId = 1;
+        store.publishedPages = [buildPage({ id: 1 })];
+        store.setCurrentFormState(buildFormState());
+
+        // Присваивается синхронно в моке ниже — до первого использования
+        let finishHungList!: (pages: unknown[]) => void;
+
+        apiFetcherMock.mockReset();
+        apiFetcherMock.mockImplementation((_url: string, options?: { method?: string }) => {
+            if (options?.method === 'POST') {
+                return Promise.reject(
+                    Object.assign(new Error('timeout'), { name: 'TimeoutError' })
+                );
+            }
+
+            return new Promise((resolve) => {
+                finishHungList = resolve;
+            });
+        });
+
+        await expect(store.saveCurrentPageAsCopy({ components: [] })).resolves.toBeNull();
+
+        expect(store.isSubmitting).toBe(false);
+        expect(store.generalError).not.toBe('');
+        expect(finishHungList).toBeDefined();
+
+        finishHungList([]);
     });
 
     it('запись покинутой страницы не держит индикатор и не блокирует запись новой', async () => {

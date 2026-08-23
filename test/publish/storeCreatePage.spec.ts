@@ -53,7 +53,8 @@ describe('usePublishStore: создание страницы и URL превью
                 if (options?.method === 'POST') {
                     return Promise.resolve({ id: 42, pagename: options.body?.pagename });
                 }
-                // GET /api/bricks/ после publishPage (loadAllPages)
+                // GET /api/bricks/ — на успешной публикации его быть не должно
+                // (см. кейс ниже); мок держит ответ для остальных путей
                 return Promise.resolve([]);
             }
         );
@@ -107,6 +108,59 @@ describe('usePublishStore: создание страницы и URL превью
         // плюс PATCH: второй запрос оставлял бы окно, в котором страница пустая
         expect(body.body.schema).toEqual(schema);
         expect(body.body.published).toBe(false);
+    });
+
+    // Ответ POST — это вся созданная страница, и её кладёт в список
+    // `syncPageInList`. Перечитывание сверху спрашивало у сервера то, что только
+    // что приехало: страницы соседнего редактора подхватывает кнопка обновления в
+    // дашборде, а не запрос на каждую публикацию
+    it('успешная публикация списка не перечитывает', async () => {
+        const store = usePublishStore();
+
+        await store.publishPage({ components: [] }, buildFormState());
+
+        const methods = apiFetcherMock.mock.calls.map(
+            ([, options]) => (options as { method?: string } | undefined)?.method
+        );
+
+        expect(methods).toEqual(['POST']);
+        expect(store.publishedPages.map((page) => page.id)).toEqual([42]);
+    });
+
+    // Обрыв по потолку ожидания — исход записи неизвестен, и этот GET единственный
+    // способ увидеть, применил ли сервер создание. Ответа его при этом НЕ ждут:
+    // сообщение об исходе обязано приехать сразу, а `await` держал бы поднятым общий
+    // флаг записи — он блокирует сохранение в той сессии, куда человек успел уйти
+    it('обрыв по потолку ожидания перечитывает список, но результата не ждёт', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        const store = usePublishStore();
+
+        apiFetcherMock.mockImplementationOnce(() =>
+            Promise.reject(Object.assign(new Error('timeout'), { name: 'TimeoutError' }))
+        );
+
+        // Присваивается синхронно в моке ниже — до первого использования
+        let finishHungList!: (pages: unknown[]) => void;
+
+        apiFetcherMock.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finishHungList = resolve;
+                })
+        );
+
+        // Отказ создания приезжает, пока GET висит: с `await` внутри ветки обрыва
+        // это ожидание не завершилось бы вовсе
+        await expect(store.publishPage({ components: [] }, buildFormState())).rejects.toThrow();
+
+        const listCalls = apiFetcherMock.mock.calls.filter(
+            ([, options]) => (options as { method?: string } | undefined)?.method !== 'POST'
+        );
+
+        expect(listCalls).toHaveLength(1);
+
+        finishHungList([]);
     });
 
     it('generatePreviewUrl ведёт на превью-роут <previewPrefix>/<адрес> без query', () => {

@@ -102,7 +102,7 @@ const publishStore = usePublishStore();
 
 // The toast is a module singleton (useBuilderToast): useBuilderSession needs it
 // before useBuilderPage does, and useBuilderPage needs switchToSavedPage in turn
-const { showToast, showActionToast, hideToast } = useBuilderToast();
+const { toastDuration, showToast, showActionToast, hideToast } = useBuilderToast();
 
 // The rights and the profile of the session. One request covers both states: the
 // role of `ensureRole` is taken out of the profile already received (why there is a
@@ -282,7 +282,6 @@ usePropertiesPanelAvailability(canEdit);
 // #endregion
 
 // #region Computed
-const toastDuration = computed<number>(() => toast.duration ?? 4000);
 
 // The interface is closed while the session is inconsistent OR while the loader is
 // on the screen: the loader promises that work is not possible yet, and the promise

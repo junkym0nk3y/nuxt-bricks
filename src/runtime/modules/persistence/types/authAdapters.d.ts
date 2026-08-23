@@ -107,6 +107,97 @@ export interface ICreateAuthUserPayload {
 }
 
 /**
+ * The claim of an account creation operation addressed by the client's key.
+ *
+ * The key is claimed BEFORE the password hash is computed, and that order is the
+ * whole point: the derivation is slow and runs under the process-wide semaphore, so
+ * a repeat sent during the first attempt must be recognized before it starts paying
+ * for a second one.
+ */
+export interface IAuthUserCreateClaimInput {
+    /** The key the client generated and sent with its very first request */
+    idempotencyKey: string;
+    /**
+     * The digest of the request's meaningful fields. It answers "the same key with a
+     * different body" — such a request must be refused rather than served with the
+     * result of another operation. The password is not part of it (see the column
+     * comment in the base migration).
+     */
+    requestFingerprint: string;
+    /**
+     * How long the claim stays trusted. NOT the client's waiting ceiling: the
+     * ceiling says the client stopped waiting, while the derivation may legitimately
+     * still be queued. An expired claim may be taken over — the fencing token keeps
+     * the previous owner from writing afterwards.
+     */
+    leaseMs: number;
+}
+
+/**
+ * The reasons an attempt is refused for good — a repeat would run into the same one,
+ * so the refusal is stored and replayed instead of paying for a second derivation.
+ */
+export type TAuthUserCreateRejection = 'USERNAME_TAKEN';
+
+/**
+ * The outcome of a claim.
+ *
+ * `claimed` — the caller owns the operation and must finish it with
+ * `createUserForOperation`, passing `attempt` back.
+ * `running` — somebody else owns it and the lease is alive; the answer of the first
+ * attempt is not known yet.
+ * `completed` — the operation already created this account; the caller answers with
+ * it and creates nothing.
+ * `completedUserGone` — the operation created an account, and that account has since
+ * been deleted. Creating it anew under the same key is exactly what the key
+ * forbids.
+ * `rejected` — the first attempt was refused for good; the refusal is replayed.
+ * `payloadMismatch` — the key is known but the body differs.
+ */
+export type TAuthUserCreateClaim =
+    | { status: 'claimed'; attempt: number }
+    | { status: 'running' }
+    | { status: 'completed'; user: IBricksUserSummary }
+    | { status: 'completedUserGone' }
+    | { status: 'rejected'; code: TAuthUserCreateRejection }
+    | { status: 'payloadMismatch' };
+
+/**
+ * The write of an account under an owned claim: the payload plus the claim it was
+ * issued under.
+ */
+export interface IAuthUserCreateFinalizeInput {
+    idempotencyKey: string;
+    /** The number `claimUserCreateOperation` returned; the write is conditional on it */
+    attempt: number;
+    payload: ICreateAuthUserPayload;
+}
+
+/**
+ * The outcome of the write.
+ *
+ * `created` — the account exists and the operation is closed by it.
+ * `rejected` — the write was refused for good, and the operation carries that
+ * refusal now.
+ * `staleClaim` — the claim was taken over while the hash was being computed (the
+ * lease had expired). Nothing was written: the account belongs to whoever holds the
+ * claim now.
+ */
+export type TAuthUserCreateOutcome =
+    | { status: 'created'; user: IBricksUserSummary }
+    | { status: 'rejected'; code: TAuthUserCreateRejection }
+    | { status: 'staleClaim' };
+
+/**
+ * Giving up an owned claim without a write — the attempt broke off before the
+ * account could be created (the derivation queue overflowed, for one).
+ */
+export interface IAuthUserCreateReleaseInput {
+    idempotencyKey: string;
+    attempt: number;
+}
+
+/**
  * An edit to somebody else's account state: role and/or activity. `undefined` —
  * the field was not passed and keeps its current value.
  *
@@ -242,12 +333,50 @@ export interface IAuthAdapter {
     /** Every account for the management section, in a stable order (by id). */
     listUsers(): Promise<IBricksUserSummary[]>;
     /**
-     * Creates an account.
+     * Claims an account creation operation by the client's key — the step that has to
+     * happen BEFORE the password hash is computed.
      *
-     * @throws BricksUsernameTakenError - The username is taken (the comparison is
-     * case-insensitive — as it is at login).
+     * A TERMINAL operation (created an account or was refused for good) is kept
+     * INDEFINITELY. Any cleanup of those rows returns the defect the key closes: a
+     * repeat arriving after the row was deleted would create a second account. Should
+     * the volume ever have to be bounded, that is a deliberate weakening of the
+     * guarantee and belongs in the documentation of the installation, not in a silent
+     * job.
+     *
+     * The claim is obliged to be atomic: two parallel repeats of one intention must
+     * settle so that exactly one of them owns the operation, while the other is told
+     * what the first one is doing. An implementation that reads and then writes
+     * leaves the window this key exists to close.
+     *
+     * @param input - The key, the digest of the body and the lease of the claim.
      */
-    createUser(payload: ICreateAuthUserPayload): Promise<IBricksUserSummary>;
+    claimUserCreateOperation(input: IAuthUserCreateClaimInput): Promise<TAuthUserCreateClaim>;
+    /**
+     * Creates the account of an owned claim and closes the operation by it.
+     *
+     * Both writes are obliged to be applied TOGETHER: an implementation that inserts
+     * the account and then marks the operation in a second step reintroduces the
+     * very defect the key closes — a process dying between the two leaves an account
+     * nobody can connect to the request, and the operation stuck as running.
+     *
+     * A refusal a repeat would run into again (a taken login) has to be stored in
+     * the operation, so the repeat replays it instead of paying for a second
+     * derivation.
+     *
+     * @param input - The key, the claim number and the account payload.
+     */
+    createUserForOperation(input: IAuthUserCreateFinalizeInput): Promise<TAuthUserCreateOutcome>;
+    /**
+     * Gives up an owned claim without a write, so a repeat may take the operation
+     * over at once instead of waiting out the lease.
+     *
+     * The row is KEPT rather than deleted: the key stays bound to the digest of its
+     * body, so the same key arriving with a different body is still recognized as a
+     * different request.
+     *
+     * @param input - The key and the claim number.
+     */
+    releaseUserCreateOperation(input: IAuthUserCreateReleaseInput): Promise<void>;
     /**
      * Changes the account's role and/or activity in a single transaction and
      * revokes its sessions: otherwise a stolen cookie would gain the new powers
@@ -322,6 +451,16 @@ export interface IAuthAdapter {
 }
 
 /**
+ * The account creation operations addressed by the client's key. A part of its own
+ * rather than of `TAuthUserMethods`: this half owns a table and a protocol (a claim,
+ * a fencing token, a lease) that the plain row mutations know nothing about.
+ */
+export type TAuthUserCreateOperationMethods = Pick<
+    IAuthAdapter,
+    'claimUserCreateOperation' | 'createUserForOperation' | 'releaseUserCreateOperation'
+>;
+
+/**
  * The mutating half of the account contract: everything that changes a
  * `bricks_users` row.
  *
@@ -333,7 +472,6 @@ export interface IAuthAdapter {
 export type TAuthUserMethods = Pick<
     IAuthAdapter,
     | 'listUsers'
-    | 'createUser'
     | 'updateUserState'
     | 'updateUserPassword'
     | 'updateUserProfile'

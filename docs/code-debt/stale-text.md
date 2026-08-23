@@ -170,25 +170,7 @@ UTC. Файла с таким именем нет; читатель ищет н�
 
 ---
 
-## 9. Запись в `AGENTS.md` про красный `knip:check` устарела
-
-**Файл:** `AGENTS.md`, раздел «Проверки», строка 264
-
-`AGENTS.md` предупреждает: «`knip:check` красный и на чистом HEAD — держит unused
-exports в `layouts-blocks/utils/inlineContent.ts` и `slotContent.ts`. По exit-коду
-`lint:check` свою регрессию от этого долга не отличить».
-
-Сейчас `npm run knip:check` зелёный (проверено прогоном, exit 0), а оба экспорта
-используются: `applyColorToSvgContent` — `BlockSvg.vue:11`, `countSlotContent` —
-`BlockGrid.vue:23` и спека `test/layouts-blocks/gridDeclaredRows.spec.ts`.
-
-То есть долг закрыт, а инструкция продолжает учить не верить exit-коду
-`lint:check` — из-за неё настоящая регрессия knip может быть списана как известный
-шум. **Снять абзац.**
-
----
-
-## 10. Рационал `--bricks-workspace-fg` скопирован в потребителя переменной
+## 9. Рационал `--bricks-workspace-fg` скопирован в потребителя переменной
 
 **Файл:** `builder/canvas/viewport/components/BuilderCanvasViewport.vue:299-300`
 
@@ -202,7 +184,7 @@ exports в `layouts-blocks/utils/inlineContent.ts` и `slotContent.ts`. По exi
 
 ---
 
-## 11. Самоссылочный комментарий-путь в шапке `vue-icons.ts`
+## 10. Самоссылочный комментарий-путь в шапке `vue-icons.ts`
 
 **Файл:** `src/runtime/plugins/vue-icons.ts:1`
 
@@ -211,7 +193,7 @@ exports в `layouts-blocks/utils/inlineContent.ts` и `slotContent.ts`. По exi
 
 ---
 
-## 12. Шапка файла приклеена к JSDoc константы
+## 11. Шапка файла приклеена к JSDoc константы
 
 **Файл:** `vitest.config.ts:5-17`
 
@@ -225,7 +207,7 @@ SFC-transform и алиас `#imports`), второй — константу `CL
 
 ---
 
-## 13. Раздел «Правила» в `common/composables/README.md` дублирует `.claude/rules`
+## 12. Раздел «Правила» в `common/composables/README.md` дублирует `.claude/rules`
 
 **Файл:** `src/runtime/modules/common/composables/README.md` (раздел «Правила»)
 
@@ -249,7 +231,7 @@ SFC-transform и алиас `#imports`), второй — константу `CL
 
 ---
 
-## 14. Строки-абзацы: `common/utils/README.md` пересказывает шапку файла
+## 13. Строки-абзацы: `common/utils/README.md` пересказывает шапку файла
 
 **Файл:** `src/runtime/modules/common/utils/README.md` (строки
 `bricks/routePaths.ts`, `apiRequestPolicy.ts`, `bricks/pageAddress.ts`,
@@ -267,6 +249,27 @@ SFC-transform и алиас `#imports`), второй — константу `CL
 **Предложение:** держать в таблице одну строку назначения (что это и когда сюда
 идти), а рационал оставлять шапке файла. Правка текстовая, но объёмная и меняет
 договорённость о формате README.
+
+---
+
+## 14. Warning резолвера backend обещает отказ всего `/api/bricks/**`
+
+**Файл:** `src/module-backend-config.ts:50-53, 81-85`
+
+Оба warning-а заканчиваются одинаково: без URL «`/api/bricks/**` will answer with an
+error». Это шире правды. Liveness-проба не зависит от backend данных вовсе
+(`server/api/bricks/health/index.get.ts:5` — «It checks no dependencies»), и ручка
+манифеста компонентов (`server/api/bricks/components.get.ts`) читает server asset.
+Отказ касается data-backed и editorial-операций плюс readiness.
+
+**Решение владельца: сузить до правды.** Формулировка выбрана такая: отказывают
+data-backed и editorial-маршруты, readiness сообщает об отсутствующем backend, а
+liveness и манифест компонентов продолжают работать.
+
+Это **сообщение, которое читает интегрирующий разработчик**, а не комментарий, —
+поэтому правка текстовая, но не косметическая. Связанная формулировка в
+`src/types/module.d.ts` была комментарием и уже исправлена, то есть сейчас тип и
+сообщение говорят разное.
 
 ---
 

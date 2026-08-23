@@ -11,21 +11,17 @@
  * 2. Занятый логин встаёт ПОД ПОЛЕ, а не в общий текст ошибки: исправлять нужно
  *    именно его.
  * 3. Обрыв по потолку ожидания — не отказ: сервер мог создать учётку и не успеть
- *    ответить, а мог и отклонить её занятым логином, и обработчик его вообще не
- *    обязан был остановиться. Поэтому список перечитывается — но только чтобы
- *    сказать человеку, что видно, а не чтобы объявить исход.
- * 4. Успех объявляет ТОЛЬКО ответ POST. Найденная после обрыва строка успеха не
- *    доказывает: список мог отстать от базы задолго до отправки, и тогда чужая
- *    учётка выглядела бы новой — форма закрылась бы тостом успеха о посторонней
- *    записи, с её ролью и без заданного здесь пароля. Поэтому ветка обрыва только
- *    сообщает наблюдаемое состояние, различая три исхода: строка видна, строки не
- *    видно, список перечитать не удалось.
- * 5. После обрыва отправка закрыта до сброса формы: текст просит не повторять, а
- *    просьба без запрета ничего не стоит — обработчик на сервере клиентским
- *    потолком не останавливается, и повтор упёрся бы в логин, занятый первой же
- *    отправкой.
- * 6. Сброс формы обесценивает прежнюю отправку целиком: окно закрывают и во
- *    время запроса, и его исход к новой, чистой форме уже не относится.
+ *    ответить, а мог и отклонить её занятым логином. Разница с прежним поведением в
+ *    том, что теперь исход есть чем узнать — у операции есть имя (ключ, который
+ *    клиент прислал с первой же отправкой), и повтор той же отправки спрашивает про
+ *    первую попытку, а не создаёт вторую учётку.
+ * 4. Ключ живёт на одно НАМЕРЕНИЕ: повтор неизменённых значений уходит тем же
+ *    ключом, правка любого поля и сброс формы выдают новый. Иначе сервер встретил бы
+ *    один ключ с двумя разными телами — и обязан был бы отказать.
+ * 5. Успех объявляет только ответ сервера — им же объявляется и повтор, которому
+ *    сервер отдал результат первой операции.
+ * 6. Сброс формы обесценивает прежнюю отправку целиком: окно закрывают и во время
+ *    запроса, и её исход к новой, чистой форме уже не относится.
  */
 
 // #region Imports
@@ -58,7 +54,6 @@ import { defineComponent, h, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { resetNuxtStateStub } from '../stubs/nuxt-imports';
 import { useUsersCreateForm } from '../../src/runtime/modules/builder/users/composables/useUsersCreateForm';
-import { useUsersData } from '../../src/runtime/modules/builder/users/composables/useUsersData';
 import type { IBricksUserSummary } from '../../src/runtime/modules/common/types/auth';
 
 /**
@@ -105,27 +100,6 @@ function mountForm(onCreated = vi.fn()) {
     }
 
     return { form, wrapper, onCreated };
-}
-
-/**
- * Приводит список раздела в `ready` с заданными учётками.
- *
- * Нужен там, где кейс различает исходы ПО СПИСКУ: без посева состояние остаётся
- * непрочитанным, и ветка ушла бы в «список перечитать не удалось» независимо от
- * того, что вернул GET.
- *
- * @param users - Учётки списка до отправки формы.
- */
-async function seedReadyList(users: IBricksUserSummary[]): Promise<void> {
-    apiFetcherMock.mockResolvedValueOnce({ users });
-
-    const { ensureUsers, status } = useUsersData();
-
-    await ensureUsers();
-
-    if (status.value !== 'ready') {
-        throw new Error('Список не пришёл в ready — посев состояния не удался');
-    }
 }
 
 /**
@@ -231,14 +205,12 @@ describe('useUsersCreateForm: создание учётки', () => {
     });
 
     describe('обрыв по потолку ожидания', () => {
-        // Ветка обрыва не различает «создал я» и «создал кто-то другой», поэтому
-        // не различает и успех: чужую строку она объявила бы созданной здесь
-        it('строка видна в списке — успех всё равно не объявляется', async () => {
-            await seedReadyList([]);
+        // Ровно то, ради чего заведён ключ операции: исход неизвестен, но узнать его
+        // теперь есть чем — повтор той же отправки спрашивает про первую попытку.
+        // Раньше ветка перечитывала список и говорила о наблюдаемом, потому что
+        // связать строку со своим запросом было нечем
+        it('форма просит повторить отправку, а не проверять список', async () => {
             apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
-            apiFetcherMock.mockResolvedValueOnce({
-                users: [makeUser({ createdAt: '2026-04-02T09:00:00.000Z' })],
-            });
 
             const { form, onCreated } = mountForm();
 
@@ -250,14 +222,15 @@ describe('useUsersCreateForm: создание учётки', () => {
 
             expect(onCreated).not.toHaveBeenCalled();
             expect(form.generalError.value).toBe('bricks.users.errors.createOutcomeUnknown');
+            // Отправка не запечатана: повтор безопасен по построению
+            expect(form.isSubmitting.value).toBe(false);
         });
 
-        // Серверный обработчик клиентским потолком не останавливается: «не видно»
-        // означает «пока не видно», и текст обязан отличаться от «учётки нет»
-        it('строки пока не видно — исход остаётся незавершённым', async () => {
-            await seedReadyList([]);
+        // Ключ живёт на одно НАМЕРЕНИЕ: повтор неизменённых значений обязан прийти
+        // тем же ключом, иначе сервер примет его за второе создание
+        it('повтор после обрыва уходит тем же ключом операции', async () => {
             apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
-            apiFetcherMock.mockResolvedValueOnce({ users: [] });
+            apiFetcherMock.mockResolvedValueOnce({ user: makeUser() });
 
             const { form, onCreated } = mountForm();
 
@@ -266,38 +239,29 @@ describe('useUsersCreateForm: создание учётки', () => {
             await nextTick();
 
             await form.submitForm();
-
-            expect(onCreated).not.toHaveBeenCalled();
-            expect(form.generalError.value).toBe('bricks.users.errors.createStillProcessing');
-        });
-
-        // Перечитывание отказ не бросает по построению: упавший GET оставляет
-        // прежний кеш, и говорить по нему о списке нельзя вовсе
-        it('перечитывание списка упало — о списке не говорится ничего', async () => {
-            await seedReadyList([makeUser({ id: 9, username: 'ivan.admin' })]);
-            apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
-            apiFetcherMock.mockRejectedValueOnce(new Error('network down'));
-
-            const { form, onCreated } = mountForm();
-
-            form.username.value = 'anna.editor';
-            form.password.value = 'sixteen-char-pass';
-            await nextTick();
-
             await form.submitForm();
 
-            expect(onCreated).not.toHaveBeenCalled();
-            expect(form.generalError.value).toBe('bricks.users.errors.createReconcileFailed');
+            const keys = apiFetcherMock.mock.calls.map(
+                ([, options]) =>
+                    (options as { headers?: Record<string, string> } | undefined)?.headers?.[
+                        'Idempotency-Key'
+                    ]
+            );
+
+            expect(keys).toHaveLength(2);
+            expect(keys[0]).toMatch(/^[0-9a-f]{32}$/);
+            expect(keys[1]).toBe(keys[0]);
+            // Ответ второй отправки — это результат ПЕРВОЙ операции: сервер отдаёт
+            // созданную учётку, а не создаёт вторую
+            expect(onCreated).toHaveBeenCalledTimes(1);
         });
 
-        // Просьба «не отправляйте форму повторно» обязана быть подкреплена:
-        // серверный обработчик потолком клиента не останавливается, и повтор
-        // запустил бы второй scrypt, чтобы упереться в занятый первой отправкой
-        // логин. Сброс формы признак снимает — другую учётку создают из чистой
-        it('повторная отправка после обрыва до сброса формы на сервер не уходит', async () => {
-            await seedReadyList([]);
+        // Изменённые значения — другое намерение. Отправить их под прежним ключом
+        // значило бы получить отказ «тот же ключ с другим телом», а при правке
+        // одного пароля — учётку, созданную с ПЕРВЫМ паролем
+        it('правка поля выдаёт новый ключ операции', async () => {
             apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
-            apiFetcherMock.mockResolvedValueOnce({ users: [] });
+            apiFetcherMock.mockResolvedValueOnce({ user: makeUser() });
 
             const { form } = mountForm();
 
@@ -307,30 +271,48 @@ describe('useUsersCreateForm: создание учётки', () => {
 
             await form.submitForm();
 
-            const callsAfterTimeout = apiFetcherMock.mock.calls.length;
+            form.password.value = 'another-sixteen-pass';
+            await nextTick();
 
             await form.submitForm();
 
-            expect(apiFetcherMock.mock.calls.length).toBe(callsAfterTimeout);
+            const keys = apiFetcherMock.mock.calls.map(
+                ([, options]) =>
+                    (options as { headers?: Record<string, string> } | undefined)?.headers?.[
+                        'Idempotency-Key'
+                    ]
+            );
 
-            form.resetToEmpty();
+            expect(keys[1]).not.toBe(keys[0]);
+        });
+
+        // «Сервер ещё считает» — не отказ и не успех: у операции есть имя, поэтому
+        // ответ честно говорит подождать и спросить снова
+        it('идущая первая попытка показывается своим текстом', async () => {
+            apiFetcherMock.mockRejectedValueOnce(
+                Object.assign(new Error('409'), {
+                    statusCode: 409,
+                    data: { data: { code: 'USER_CREATE_IN_PROGRESS' } },
+                })
+            );
+
+            const { form, onCreated } = mountForm();
+
             form.username.value = 'anna.editor';
             form.password.value = 'sixteen-char-pass';
             await nextTick();
-            apiFetcherMock.mockResolvedValueOnce({ users: [makeUser()] });
 
             await form.submitForm();
 
-            expect(apiFetcherMock.mock.calls.length).toBe(callsAfterTimeout + 1);
+            expect(onCreated).not.toHaveBeenCalled();
+            expect(form.generalError.value).toBe('bricks.users.errors.createInProgress');
         });
 
         // Окно закрывают и во время запроса — ни крестик, ни Esc этого не
         // запрещают, — а следующее открытие сбрасывает форму. Прежняя отправка к
-        // ней уже не относится: без этого её обрыв запечатывал бы чистую форму и
-        // показывал ошибку о логине, которого человек больше не вводит
-        it('обрыв прежней отправки не запечатывает сброшенную форму', async () => {
-            await seedReadyList([]);
-
+        // ней уже не относится: без этого её обрыв показывал бы на чистой форме
+        // ошибку о логине, которого человек больше не вводит
+        it('обрыв прежней отправки не пишет в сброшенную форму', async () => {
             // Присваивается синхронно в моке ниже — до первого использования
             let breakFirstSubmit!: (error: Error) => void;
 
@@ -352,19 +334,48 @@ describe('useUsersCreateForm: создание учётки', () => {
             // Дождаться СТАРТА запроса обязательно: submitForm сперва проходит
             // валидацию, и сброс до её конца отменил бы отправку вовсе — кейс
             // проверял бы тогда пустую форму, а не брошенный запрос
-            await vi.waitFor(() => expect(apiFetcherMock).toHaveBeenCalledTimes(2));
+            await vi.waitFor(() => expect(apiFetcherMock).toHaveBeenCalledTimes(1));
 
             // Модалку закрыли и открыли снова: форма чистая, отправка свободна
             form.resetToEmpty();
 
             // Прежний запрос обрывается уже после этого
-            apiFetcherMock.mockResolvedValueOnce({ users: [] });
             breakFirstSubmit(makeTimeoutError());
             await abandoned;
 
             expect(form.generalError.value).toBe('');
-            expect(form.isSubmitSealed.value).toBe(false);
             expect(form.isSubmitting.value).toBe(false);
+        });
+
+        // Сброс формы — конец намерения: следующая учётка создаётся своим ключом,
+        // иначе её отправка пришла бы под ключом прошлой и получила бы отказ
+        it('сброс формы выдаёт новый ключ следующей отправке', async () => {
+            apiFetcherMock.mockRejectedValueOnce(makeTimeoutError());
+            apiFetcherMock.mockResolvedValueOnce({ user: makeUser() });
+
+            const { form } = mountForm();
+
+            form.username.value = 'anna.editor';
+            form.password.value = 'sixteen-char-pass';
+            await nextTick();
+
+            await form.submitForm();
+
+            form.resetToEmpty();
+            form.username.value = 'anna.editor';
+            form.password.value = 'sixteen-char-pass';
+            await nextTick();
+
+            await form.submitForm();
+
+            const keys = apiFetcherMock.mock.calls.map(
+                ([, options]) =>
+                    (options as { headers?: Record<string, string> } | undefined)?.headers?.[
+                        'Idempotency-Key'
+                    ]
+            );
+
+            expect(keys[1]).not.toBe(keys[0]);
         });
     });
 });

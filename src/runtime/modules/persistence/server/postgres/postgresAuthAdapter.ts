@@ -11,6 +11,7 @@
  */
 import { query, queryOne } from './client';
 import { createPostgresAuthUserMethods } from './postgresAuthUserMethods';
+import { createPostgresUserCreateOperations } from './postgresUserCreateOperations';
 import { BRICKS_DEFAULT_ADMIN_PASSWORD_HASH } from '../utils/defaultAdmin';
 import type {
     IAuthAdapter,
@@ -180,5 +181,6 @@ export function createPostgresAuthAdapter(): IAuthAdapter {
         },
 
         ...createPostgresAuthUserMethods(),
+        ...createPostgresUserCreateOperations(),
     };
 }

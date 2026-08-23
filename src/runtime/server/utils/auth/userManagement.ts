@@ -44,6 +44,7 @@ import type {
     IAuthUserStateChange,
     ICreateAuthUserPayload,
 } from '../../../modules/persistence/types/authAdapters';
+import type { IAuthUserCreateInput } from './types';
 
 /** Keys allowed in the account creation body */
 const CREATE_USER_KEYS: ReadonlySet<string> = new Set([
@@ -289,8 +290,10 @@ export function assertNotSelfTarget(event: H3Event, targetUserId: number): void 
 }
 
 /**
- * Validates the account creation body and hashes the password: the adapter never
- * sees the plaintext at all.
+ * Validates the account creation body. The password stays plaintext here: hashing is
+ * the slow step, and it must not start before the operation key has been claimed —
+ * otherwise a repeat sent during the first attempt pays for a second derivation
+ * exactly when the server is already busy with the first.
  *
  * The display name and the activity flag are optional and are resolved here
  * rather than in the adapter: `undefined` would reach the INSERT as NULL, and
@@ -305,11 +308,9 @@ export function assertNotSelfTarget(event: H3Event, targetUserId: number): void 
  * afterwards.
  *
  * @param body - Normalized request body.
- * @returns Data for the adapter.
+ * @returns The validated fields of the creation.
  */
-export async function buildCreateUserPayload(
-    body: Record<string, unknown>
-): Promise<ICreateAuthUserPayload> {
+export function validateCreateUserInput(body: Record<string, unknown>): IAuthUserCreateInput {
     assertKnownKeys(body, CREATE_USER_KEYS);
 
     const username = requireUsername(body.username);
@@ -323,10 +324,29 @@ export async function buildCreateUserPayload(
 
     return {
         username,
+        password,
         role,
         displayName: displayName ?? null,
         isActive: optionalBoolean(body.isActive, 'isActive') ?? true,
-        passwordHash: await hashPasswordUnderGate(password),
+    };
+}
+
+/**
+ * Turns the validated fields into the adapter's payload: the plaintext password is
+ * replaced by its hash, and the adapter never sees the plaintext at all.
+ *
+ * @param input - The validated creation fields.
+ * @returns Data for the adapter.
+ */
+export async function buildCreateUserPayload(
+    input: IAuthUserCreateInput
+): Promise<ICreateAuthUserPayload> {
+    return {
+        username: input.username,
+        role: input.role,
+        displayName: input.displayName,
+        isActive: input.isActive,
+        passwordHash: await hashPasswordUnderGate(input.password),
     };
 }
 

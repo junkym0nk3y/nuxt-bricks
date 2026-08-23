@@ -11,6 +11,15 @@
  * is the same element. The rows are recreated by that, but they carry no state worth
  * keeping between the sets.
  *
+ * The refresh control stands OUTSIDE the transition, next to the filter bar: it has
+ * to be reachable from every state of the list — an empty one and a filtered-out one
+ * included, which is exactly where a person needs to ask whether anything has
+ * changed. Inside the transition it would leave with the rows. While the request is
+ * in flight the control reports it by being disabled and nothing else — the same way
+ * the row reports a duplication in progress; the rows themselves stay in place,
+ * because the question asked was whether anything had changed, not to have the list
+ * taken away.
+ *
  * One decision is held by the style section: the padding of an empty state is dictated
  * by the section, and for the list it is a tall band in the middle.
  */
@@ -87,6 +96,15 @@ function handleSelectFilter(value: string): void {
  */
 function handleCreatePage(): void {
     emit('create-page');
+}
+
+/**
+ * Asks for the list to be re-read. The guard against a repeat lives with the owner
+ * of the request, not here: `disabled` closes the button off for the pointer and the
+ * keyboard, and it is not protection against a second event.
+ */
+function handleRefresh(): void {
+    emit('refresh');
 }
 
 /**
@@ -168,13 +186,24 @@ function onViewLeave(element: Element): void {
 
 <template>
     <div :class="$style.BuilderPublishPagesList">
-        <BricksTabBar
-            :class="$style.filterBar"
-            :model-value="props.activeFilter"
-            :items="filterItems"
-            :group-label="t('bricks.publish.dashboard.filtersLabel')"
-            @update:model-value="handleSelectFilter"
-        />
+        <div :class="$style.toolbar">
+            <BricksTabBar
+                :class="$style.filterBar"
+                :model-value="props.activeFilter"
+                :items="filterItems"
+                :group-label="t('bricks.publish.dashboard.filtersLabel')"
+                @update:model-value="handleSelectFilter"
+            />
+
+            <BricksButton
+                size="sm"
+                variant="secondary"
+                :disabled="props.isLoading || props.isRefreshing"
+                @click="handleRefresh"
+            >
+                {{ t('bricks.publish.dashboard.refresh') }}
+            </BricksButton>
+        </div>
 
         <Transition name="bricks-view-switch" mode="out-in" @leave="onViewLeave">
             <div v-if="props.isLoading" key="loading" :class="$style.loading">
@@ -209,7 +238,7 @@ function onViewLeave(element: Element): void {
                     v-for="page in props.pages"
                     :key="page.id"
                     :page="page"
-                    :is-duplicating="props.duplicatingPageId === String(page.id)"
+                    :is-duplicating="props.duplicatingPageIds.has(String(page.id))"
                     :is-preparing-template="props.templateSourcePageId === String(page.id)"
                     :is-selected="props.selectedPageId === String(page.id)"
                     @select="handleSelect"
@@ -229,6 +258,13 @@ function onViewLeave(element: Element): void {
 .BuilderPublishPagesList {
     display: flex;
     flex-direction: column;
+    gap: 1.6rem;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 1.6rem;
 }
 

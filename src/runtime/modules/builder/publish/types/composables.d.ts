@@ -162,8 +162,21 @@ export interface IUsePublishPageActionsOptions {
  * details panel that need no confirmation.
  */
 export interface IUsePublishPageActionsReturn {
-    /** The identifier of the page being duplicated; `null` — no copying is running */
-    duplicatingPageId: Ref<string | null>;
+    /**
+     * The identifiers of the pages being copied right now; a consumer asks about its
+     * own row (`has(String(page.id))`). A set rather than one identifier: copies of
+     * different pages are independent, and a shared flag would silently drop a click
+     * on the button of another row.
+     */
+    duplicatingPageIds: Ref<Set<string>>;
+    /**
+     * The identifiers of the pages whose publication flag is being written. One
+     * write per page: two parallel PATCHes of the flag settle by the order their
+     * answers arrive in rather than by the last intention of the person, while
+     * toggles of DIFFERENT pages are independent and are not held back by one
+     * another.
+     */
+    togglingPageIds: Ref<Set<string>>;
     /** The thumbnail open in the lightbox; `null` — the lightbox is closed */
     thumbnailPreviewItem: Ref<TMediaLightboxItem | null>;
     togglePublished: (page: TPublishedPageSummary, published: boolean) => Promise<void>;
@@ -230,6 +243,16 @@ export interface IUsePublishPagesDataOptions {
  */
 export interface IUsePublishPagesDataReturn {
     isLoadingPages: ComputedRef<boolean>;
+    /**
+     * A re-read requested by a person is running. Apart from `isLoadingPages`: the
+     * list on screen stays on screen and keeps its rows, and only the control that
+     * started the request reports the waiting — replacing the rows with the initial
+     * spinner would take the list away from someone who merely asked whether
+     * anything had changed.
+     */
+    isRefreshingPages: Ref<boolean>;
+    /** Re-reads the list on request; a repeat while one is in flight does nothing */
+    refreshPages: () => Promise<void>;
 }
 // #endregion
 

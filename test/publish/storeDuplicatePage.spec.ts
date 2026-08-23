@@ -67,7 +67,8 @@ describe('usePublishStore: дублирование страницы', () => {
                     );
                 }
 
-                // GET /api/bricks/ после publishPage (loadAllPages)
+                // GET /api/bricks/ — на успешном создании его нет, мок держит
+                // ответ для разбора обрыва по потолку ожидания
                 return Promise.resolve([]);
             }
         );

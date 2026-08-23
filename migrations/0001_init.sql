@@ -57,7 +57,13 @@ CREATE TABLE IF NOT EXISTS bricks_pages (
 -- prefixless branch is served by the smaller index.
 --
 -- A violation of either arrives as the same SQLSTATE 23505 the adapter uses to tell an
--- address conflict apart — the name of the constraint takes no part in the detection.
+-- address conflict apart. PostgreSQL does report the name of the violated index in that
+-- error, and the adapter reads it for one purpose only: to exclude bricks_pages_pkey — a
+-- primary key conflict (a sequence left behind by a dump restore) is not a taken address
+-- and must not be answered as one. Either address index, and an error carrying no name at
+-- all, count as an address conflict; a NEW unique index unrelated to the address would
+-- have to be excluded there too (isPossiblePageAddressConflict in
+-- postgresStorageAdapter.ts).
 CREATE UNIQUE INDEX IF NOT EXISTS uq_bricks_pages_address
     ON bricks_pages(pagename, url_prefix)
     WHERE url_prefix IS NOT NULL;
@@ -194,6 +200,82 @@ CREATE TABLE IF NOT EXISTS bricks_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_bricks_sessions_user_id ON bricks_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_bricks_sessions_expires_at ON bricks_sessions(expires_at);
+
+-- The account creation operations of the administrator interface, addressed by the
+-- Idempotency-Key the CLIENT sends with its very first POST /api/bricks/users.
+--
+-- Why a table at all. Computing the password hash is deliberately slow (scrypt under the
+-- process-wide semaphore), so the answer may fail to arrive within the client's waiting
+-- ceiling while the account HAS been created. From the list alone the client cannot tell
+-- whether its own request went through: a row carrying that login could belong to another
+-- administrator, the local list could have fallen behind the database long before the
+-- submission, and the password set in the form is not part of the list projection at all.
+-- The key gives the request a name, so a repeat asks about ITS operation instead of
+-- guessing by the login.
+--
+-- Why a table of its own rather than a column in bricks_users: the state "the operation is
+-- RUNNING" has to exist before there is any row to hang it on — that is the whole point,
+-- since the key must be reserved BEFORE the hash is computed. Otherwise a repeat sent
+-- during the first attempt would start a second expensive derivation exactly when the
+-- server is already busy.
+CREATE TABLE IF NOT EXISTS bricks_user_create_operations (
+    -- The client's key, as it arrived (case-sensitive). The primary key is what makes the
+    -- claim atomic: two parallel repeats of one intention race on one INSERT, and exactly
+    -- one of them wins.
+    idempotency_key VARCHAR(64) PRIMARY KEY,
+    -- SHA-256 hex of the request's meaningful fields (login, role, display name, activity
+    -- flag). It answers "the same key with a different body": such a request is refused
+    -- rather than served with the result of another operation.
+    --
+    -- The PASSWORD is deliberately absent from the digest. A plain digest including it
+    -- would turn this table into a fast offline oracle for guessing passwords out of a
+    -- stolen dump, and a keyed one would demand a server secret in the module options.
+    -- The case it would catch does not arise in the interface: the form keeps its key for
+    -- one intention, and an edit of any field — the password included — issues a new one,
+    -- so a repeat carrying a different password is a different key.
+    request_fingerprint CHAR(64) NOT NULL,
+    -- running — the hash is being computed or the write is in flight; completed — the
+    -- account was created (created_user_id points at it); rejected — the attempt was
+    -- refused for a reason a repeat would run into again (rejection_code), so the repeat
+    -- replays the refusal instead of paying for a second derivation.
+    state VARCHAR(16) NOT NULL
+        CONSTRAINT bricks_user_create_operations_state_check
+        CHECK (state IN ('running', 'completed', 'rejected')),
+    -- The fencing token of the claim. A process that died between the claim and the write
+    -- leaves the row `running` forever, so an expired lease may be claimed again — and the
+    -- claim raises this number. The write is conditional on it, which means the OLD
+    -- process, if it is still alive, cannot create an account under a claim that has
+    -- already been taken away from it.
+    attempt INTEGER NOT NULL DEFAULT 1,
+    -- The moment the current claim stops being trusted; NULL in a terminal state. It is
+    -- NOT tied to the client's waiting ceiling: the ceiling only says the client stopped
+    -- waiting, while the server-side derivation may legitimately still be queued behind
+    -- the semaphore.
+    lease_expires_at TIMESTAMPTZ,
+    -- The account the operation created. ON DELETE SET NULL rather than CASCADE: the
+    -- operation must outlive the account. A late repeat has to be told "this key already
+    -- created an account, and that account is gone" instead of quietly creating it anew.
+    created_user_id INTEGER REFERENCES bricks_users(id) ON DELETE SET NULL,
+    -- The machine-readable reason of a terminal refusal (a taken login, for one).
+    rejection_code VARCHAR(64),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- The lookup of claims whose lease has run out. Partial: terminal rows are never scanned
+-- by it, and it is they that accumulate — completed operations are kept indefinitely,
+-- because a cleanup would return the very defect the key closes (a repeat arriving after
+-- the row was deleted would create a second account).
+CREATE INDEX IF NOT EXISTS idx_bricks_user_create_operations_lease
+    ON bricks_user_create_operations(lease_expires_at)
+    WHERE state = 'running';
+
+DROP TRIGGER IF EXISTS update_bricks_user_create_operations_updated_at
+    ON bricks_user_create_operations;
+CREATE TRIGGER update_bricks_user_create_operations_updated_at
+    BEFORE UPDATE ON bricks_user_create_operations
+    FOR EACH ROW
+    EXECUTE FUNCTION bricks_update_updated_at_column();
 
 -- The categories of the media gallery. The set used to be hardcoded in a UI constant,
 -- which left the server accepting any string while the user could not create a category

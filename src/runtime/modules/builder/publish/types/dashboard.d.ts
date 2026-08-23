@@ -117,8 +117,15 @@ export interface IPublishPagesListProps {
     activeFilter: TPublishPagesFilter;
     counts: IPublishPagesFilterCounts;
     isLoading: boolean;
+    /**
+     * A re-read on request is running. Apart from `isLoading`: the rows stay on
+     * screen and only the control reports the waiting — a person asked whether
+     * anything had changed, not to have the list replaced by a spinner.
+     */
+    isRefreshing: boolean;
     hasAnyPages: boolean;
-    duplicatingPageId: string | null;
+    /** The pages being copied right now; the row asks about itself */
+    duplicatingPageIds: Set<string>;
     /**
      * The page whose schema is being read to save a template; `null` — every row
      * is free. The row waits meanwhile: a list summary carries no schema, and
@@ -131,6 +138,8 @@ export interface IPublishPagesListProps {
 export interface IPublishPagesListEmits {
     'update:activeFilter': [filter: TPublishPagesFilter];
     'create-page': [];
+    /** Re-read the list: pages created by another editor are picked up by it */
+    refresh: [];
     'preview-thumbnail': [page: TPublishedPageSummary];
     select: [page: TPublishedPageSummary];
     edit: [page: TPublishedPageSummary];
@@ -253,6 +262,13 @@ export interface IPublishCreatePageModalEmits {
 export interface IPublishDetailsPanelProps {
     page: TPublishedPageSummary;
     isDuplicating?: boolean;
+    /**
+     * The publication flag of this page is being written. The switch is closed off
+     * for the duration: the guard in the controller keeps the second PATCH from
+     * going out anyway, but without `disabled` the switch would answer a click by
+     * doing nothing visible at all.
+     */
+    isTogglingPublished?: boolean;
     /** A schema import is running (its coordinator lives in the dashboard controller) */
     isImporting?: boolean;
 }

@@ -106,7 +106,7 @@ const publishStore = usePublishStore();
 // The row of categories is read by the section and shown by the details panel as
 // well — there is one source, the store
 const mediaCategoriesStore = useMediaCategoriesStore();
-const { toast, showToast } = useBuilderToast();
+const { toast, toastDuration, showToast } = useBuilderToast();
 const { logout } = useAuthSession();
 // The composable is created here, synchronously: `useState`/`useRequestEvent` live
 // inside it, and those are obliged to be called before the first `await` of this
@@ -119,7 +119,8 @@ const { searchQuery, activeFilter, filterCounts, filteredPages, hasAnyPages } = 
     computed(() => publishStore.publishedPages)
 );
 const {
-    duplicatingPageId,
+    duplicatingPageIds,
+    togglingPageIds,
     thumbnailPreviewItem,
     togglePublished,
     duplicatePage,
@@ -192,7 +193,6 @@ const schemaImport = usePublishSchemaImport({
 // #region Computed
 const pagesCount = computed<number>(() => publishStore.publishedPages.length);
 const mediaCategories = computed<IMediaCategory[]>(() => mediaCategoriesStore.categories);
-const toastDuration = computed<number>(() => toast.duration ?? 4000);
 
 /**
  * The selected page comes from the store, so that the panel sees the result of a
@@ -491,7 +491,7 @@ await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
 // in the first frame, and a refused load stays a state of its own section instead of
 // carrying the dashboard away. Neither of those two waits for the role (any role may
 // read them), and neither starts a queue of its own
-const [{ isLoadingPages }] = await Promise.all([
+const [{ isLoadingPages, isRefreshingPages, refreshPages }] = await Promise.all([
     pagesDataPromise,
     ensureUsers(),
     ensureTemplates(),
@@ -548,12 +548,14 @@ const [{ isLoadingPages }] = await Promise.all([
                     :active-filter="activeFilter"
                     :counts="filterCounts"
                     :is-loading="isLoadingPages"
+                    :is-refreshing="isRefreshingPages"
                     :has-any-pages="hasAnyPages"
-                    :duplicating-page-id="duplicatingPageId"
+                    :duplicating-page-ids="duplicatingPageIds"
                     :template-source-page-id="templates.preparingPageId.value"
                     :selected-page-id="selectedPageId"
                     @update:active-filter="activeFilter = $event"
                     @create-page="handleCreatePage"
+                    @refresh="refreshPages"
                     @select="handleSelectPage"
                     @preview-thumbnail="previewThumbnail"
                     @edit="handleEditPage"
@@ -623,7 +625,8 @@ const [{ isLoadingPages }] = await Promise.all([
                 <BuilderPublishDetailsPanel
                     ref="detailsPanelRef"
                     :page="selectedPage"
-                    :is-duplicating="duplicatingPageId === String(selectedPage.id)"
+                    :is-duplicating="duplicatingPageIds.has(String(selectedPage.id))"
+                    :is-toggling-published="togglingPageIds.has(String(selectedPage.id))"
                     :is-importing="schemaImport.isImporting.value"
                     @close="handleCloseDetails"
                     @edit="handleEditPage"

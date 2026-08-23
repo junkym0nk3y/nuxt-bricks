@@ -22,6 +22,10 @@ import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
  */
 const USER_ACTION_ERROR_KEYS: Record<string, string> = {
     [BRICKS_API_ERROR_CODES.lastActiveAdmin]: 'bricks.users.errors.lastActiveAdmin',
+    [BRICKS_API_ERROR_CODES.userCreateInProgress]: 'bricks.users.errors.createInProgress',
+    [BRICKS_API_ERROR_CODES.userCreateResultGone]: 'bricks.users.errors.createResultGone',
+    [BRICKS_API_ERROR_CODES.idempotencyKeyReused]: 'bricks.users.errors.createKeyReused',
+    [BRICKS_API_ERROR_CODES.idempotencyKeyRequired]: 'bricks.users.errors.createKeyMissing',
     [BRICKS_API_ERROR_CODES.selfTargetForbidden]: 'bricks.users.errors.selfTarget',
     [BRICKS_API_ERROR_CODES.passwordChangeDisabled]: 'bricks.users.errors.passwordChangeDisabled',
     [BRICKS_API_ERROR_CODES.insufficientRole]: 'bricks.users.errors.insufficientRole',
@@ -97,8 +101,10 @@ export function isStaleListError(error: unknown): boolean {
  *
  * An abort by the waiting ceiling gets a text of its own: under it the outcome of
  * the operation is unknown — the server may have applied it and failed to answer in
- * time — so "it did not work out, try again" would be untrue. The caller re-reads
- * the list in that case, and a person sees the actual state.
+ * time — so "it did not work out, try again" would be untrue. What follows differs by
+ * operation: the creation form asks for the very same submission again (its operation
+ * key makes a repeat safe and turns it into a question about the first attempt),
+ * while the other operations re-read the list, and a person sees the actual state.
  *
  * @param error - Request error.
  * @returns The i18n key of the message.

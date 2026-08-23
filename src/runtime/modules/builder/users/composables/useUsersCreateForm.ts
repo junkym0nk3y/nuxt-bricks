@@ -10,11 +10,12 @@ import type {
 // Utils
 import { createUsersCreateValidationSchema } from '../utils/validationSchema';
 import { generateUserPassword } from '../utils/passwordGenerator';
+import { generateOperationKey } from '../utils/operationKey';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { isUsernameTakenError, resolveUserActionErrorKey } from '../utils/userErrors';
 
 // Vue
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Composables
@@ -23,6 +24,7 @@ import { useUsersData } from './useUsersData';
 
 // Constants
 import { BRICKS_API_WRITE_TIMEOUT_MS } from '../../../common/constants/apiTimeouts';
+import { BRICKS_IDEMPOTENCY_KEY_HEADER } from '../../../common/constants/auth';
 
 // Vee-validate
 import { useForm } from 'vee-validate';
@@ -57,6 +59,14 @@ function buildEmptyFormValues(): IUsersCreateFormValues {
  * semaphore of the process, and on a busy server ten seconds are not enough for it —
  * an aborted request would look like a refusal while the account had been created.
  *
+ * Every submission of one intention carries the same operation key
+ * (`Idempotency-Key`), and that is what makes an abort recoverable: the repeat is not
+ * a second creation but a question about the first attempt, and the server answers it
+ * with the account it created, with "still running", or with the refusal the first
+ * attempt got. Before the key the form could only report what it could see in the
+ * list — and a row carrying that login proved nothing, because it could belong to
+ * another administrator.
+ *
  * @param options - The callback of a successful creation (the caller closes the
  * modal).
  * @returns The fields of the form, the submission state and the operations.
@@ -65,7 +75,7 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     // #region Data
     const { t } = useI18n();
     const { apiFetcher } = useApiClient();
-    const { users, status, upsertUser, refreshUsers } = useUsersData();
+    const { upsertUser } = useUsersData();
 
     const validationSchema = createUsersCreateValidationSchema({
         t: (key, params) => t(key, params ?? {}),
@@ -85,21 +95,16 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
 
     const isSubmitting = ref(false);
     /**
-     * Submission is sealed after an abort by the waiting ceiling — until the form is
-     * reset.
+     * The key of the operation the current values are being submitted under.
      *
-     * The text about the abort asks a person not to submit the form again, and that
-     * request has to be backed: the server handler is not stopped by a client ceiling,
-     * so a repeat starts a SECOND scrypt under the same semaphore and runs into
-     * "the username is taken" from its own first submission — precisely the
-     * contradiction that made the outcome worth taking apart at all. The form has no
-     * safe repeat until the operation gets an identifier sent along with the first POST.
-     *
-     * It is the submission that is sealed rather than the form as a whole: cancelling
-     * and closing keep working, while the next opening of the modal clears the flag
-     * together with the values — another account is created from a clean form.
+     * One key per INTENTION rather than per request: every repeat of the same values
+     * carries it unchanged, and that is what makes the repeat a question about the
+     * first attempt instead of a second creation. An edit of any field — the password
+     * included — drops the key, because the changed values are a different intention;
+     * that is also what keeps the server from ever meeting one key with two different
+     * bodies, which it would have to refuse.
      */
-    const isSubmitSealed = ref(false);
+    const idempotencyKey = ref<string | null>(null);
     /**
      * The generation of a submission. The modal is closed during a request too (the
      * cross, Esc and a click on the backdrop do not forbid it), while the next opening
@@ -108,10 +113,11 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
      * this counter an abort of the old submission would seal the new one and would show
      * an error about a username the person is no longer typing.
      *
-     * The counter is read once per outcome, right after the response, and the tail of
-     * the timeout branch does not read it again: `reconcileTimedOutCreate` waits for a
-     * GET of its own, so a reopening during that GET still ends with the message of the
-     * previous attempt standing on a clean form.
+     * Every asynchronous tail checks the counter after its LAST await and before it
+     * writes into the state of the form — reading it once per outcome is not enough:
+     * a tail that awaits anything after the response of the request would otherwise
+     * write the outcome of an abandoned attempt over a form the person may already be
+     * filling in.
      */
     const submissionGeneration = ref(0);
     const generalError = ref('');
@@ -131,55 +137,6 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
     }
 
     /**
-     * Takes apart the outcome of a creation aborted by the waiting ceiling.
-     *
-     * An abort is neither a refusal nor a success: the server may have created the
-     * account and failed to answer in time, and it may just as well have rejected it
-     * over a taken username. That is why the branch ONLY re-reads the list and reports
-     * the observable state; success is declared exclusively by the response of the POST
-     * itself.
-     *
-     * A row that was found proves no success. There is nothing in the list to check it
-     * by: neither a snapshot of the usernames taken before the submission (the list
-     * lives in the application state and could have fallen behind the database long
-     * before this submission — and then somebody else's account would look new), nor
-     * the creation time (a drift between the clocks of the browser and the server moves
-     * the border either way), nor a match of the role, the name and the activity (they
-     * could have been sent by another administrator, while the password set here is not
-     * visible in the list). Declaring such a row one's own would mean closing the form
-     * with a success toast about an unrelated account. A proof requires an identifier of
-     * the operation, sent along with the first POST and registered by the server.
-     *
-     * The outcome of the re-read is taken into account: `refreshUsers` throws no refusal
-     * (otherwise it would take the dashboard away), and a read that fell leaves the
-     * previous cache in place — there is nothing in it to speak about the list by at
-     * all.
-     *
-     * Apart from the outcome: the server handler is not stopped by a client ceiling, so
-     * "the row is not visible yet" does not mean it will not be there — which is what
-     * the texts warn about instead of offering an immediate repeat.
-     *
-     * @param canonicalUsername - The username in the form the server would have stored
-     * it.
-     */
-    async function reconcileTimedOutCreate(canonicalUsername: string): Promise<void> {
-        await refreshUsers();
-
-        if (status.value !== 'ready') {
-            generalError.value = t('bricks.users.errors.createReconcileFailed');
-            return;
-        }
-
-        const isVisible = users.value.some((user) => user.username === canonicalUsername);
-
-        generalError.value = t(
-            isVisible
-                ? 'bricks.users.errors.createOutcomeUnknown'
-                : 'bricks.users.errors.createStillProcessing'
-        );
-    }
-
-    /**
      * Validates the form and creates the account.
      *
      * A taken username goes under the field rather than into the general error text: it
@@ -187,9 +144,16 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
      * field a person has to fix. Being taken cannot be checked in advance — the list in
      * the browser is only a copy, and between reading it and the submission the
      * username could have been taken by another administrator.
+     *
+     * The operation key is generated once for the values as they are and kept until
+     * they change (`watch` below): a repeat of the same submission therefore reaches
+     * the server as the SAME operation, which answers it with the outcome of the first
+     * attempt instead of creating a second account. That is what makes an abort by the
+     * waiting ceiling recoverable — the form asks a person to submit once more rather
+     * than sending them to check the list by hand.
      */
     const submitForm = handleSubmit(async (values) => {
-        if (isSubmitting.value || isSubmitSealed.value) {
+        if (isSubmitting.value) {
             return;
         }
 
@@ -201,9 +165,12 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
         const generation = submissionGeneration.value;
         const canonicalUsername = values.username.trim().toLowerCase();
 
+        idempotencyKey.value = idempotencyKey.value ?? generateOperationKey();
+
         try {
             const response = await apiFetcher<IUserResponse>('/api/bricks/users', {
                 method: 'POST',
+                headers: { [BRICKS_IDEMPOTENCY_KEY_HEADER]: idempotencyKey.value },
                 body: {
                     username: canonicalUsername,
                     password: values.password,
@@ -235,9 +202,13 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
                 return;
             }
 
+            // An abort leaves the outcome unknown, and the key is what turns that into
+            // a question with an answer: the same submission repeated asks the server
+            // about the first attempt. The values are kept and the form stays
+            // submittable — precisely what used to be forbidden while a repeat risked
+            // creating a second account
             if (isRequestTimeoutError(error)) {
-                isSubmitSealed.value = true;
-                await reconcileTimedOutCreate(canonicalUsername);
+                generalError.value = t('bricks.users.errors.createOutcomeUnknown');
                 return;
             }
 
@@ -261,9 +232,21 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
 
         resetForm({ values: buildEmptyFormValues() });
         generalError.value = '';
-        isSubmitSealed.value = false;
         isSubmitting.value = false;
+        idempotencyKey.value = null;
     }
+    // #endregion
+
+    // #region Watchers
+    // An edit of ANY field is a different intention, so the key of the previous one is
+    // dropped: keeping it would send the changed values under the key of the old ones,
+    // and the server — which cannot tell whether the change was deliberate — would
+    // either refuse them as "the same key with a different body" or, if only the
+    // password changed (it is deliberately absent from the digest), answer with the
+    // account created under the FIRST password
+    watch([username, displayName, password, role, isActive], () => {
+        idempotencyKey.value = null;
+    });
     // #endregion
 
     return {
@@ -275,7 +258,6 @@ export function useUsersCreateForm(options: IUseUsersCreateFormOptions) {
         errors,
         generalError,
         isSubmitting,
-        isSubmitSealed,
         generatePassword,
         submitForm,
         resetToEmpty,

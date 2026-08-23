@@ -17,29 +17,8 @@ vi.mock('../../src/runtime/modules/persistence/server/postgres/client', () => ({
 }));
 
 import { createPostgresAuthAdapter } from '../../src/runtime/modules/persistence/server/postgres/postgresAuthAdapter';
-import { BricksUsernameTakenError } from '../../src/runtime/modules/persistence/server/utils/authErrors';
 import { BRICKS_DEFAULT_ADMIN_PASSWORD_HASH } from '../../src/runtime/modules/persistence/server/utils/defaultAdmin';
-import type { ICreateAuthUserPayload } from '../../src/runtime/modules/persistence/types/authAdapters';
 // #endregion
-
-/**
- * Ошибка pg с SQLSTATE unique_violation и именем нарушенного ограничения.
- *
- * @param constraint - Имя ограничения (undefined — драйвер имени не прислал).
- * @returns Ошибка драйвера.
- */
-function makeUniqueViolation(constraint: string | undefined): Error {
-    return Object.assign(new Error('duplicate key value'), { code: '23505', constraint });
-}
-
-/** Данные создания учётки: имя и активность разрешает ручка, адаптер их не угадывает. */
-const CREATE_PAYLOAD: ICreateAuthUserPayload = {
-    username: 'ivan',
-    passwordHash: 'scrypt:1:1:1:salt:hash',
-    role: 'editor',
-    displayName: null,
-    isActive: true,
-};
 
 /**
  * Доставка полей сессии из SQL. Проверяется именно алиас колонки: TypeScript его
@@ -112,56 +91,6 @@ describe('postgresAuthAdapter: сессия с пользователем', () =
         queryOneMock.mockResolvedValueOnce(null);
 
         expect(await createPostgresAuthAdapter().getSessionWithUser('b'.repeat(64))).toBeNull();
-    });
-});
-
-describe('postgresAuthAdapter: конфликт уникальности при создании учётки', () => {
-    beforeEach(() => {
-        queryMock.mockReset();
-        queryOneMock.mockReset();
-        withTransactionMock.mockReset();
-    });
-
-    it('называет занятым логином конфликт по индексам логина', async () => {
-        for (const constraint of ['bricks_users_username_key', 'uq_bricks_users_username_lower']) {
-            queryMock.mockRejectedValueOnce(makeUniqueViolation(constraint));
-
-            await expect(
-                createPostgresAuthAdapter().createUser(CREATE_PAYLOAD),
-                constraint
-            ).rejects.toBeInstanceOf(BricksUsernameTakenError);
-        }
-    });
-
-    it('не выдаёт конфликт первичного ключа за занятый логин', async () => {
-        // Отставшая bricks_users_id_seq (обычное состояние после восстановления
-        // дампа): логин свободен, а ответ «занят» отправил бы администратора
-        // придумывать другой — и поломка базы осталась бы ненайденной
-        queryMock.mockRejectedValueOnce(makeUniqueViolation('bricks_users_pkey'));
-
-        await expect(
-            createPostgresAuthAdapter().createUser(CREATE_PAYLOAD)
-        ).rejects.not.toBeInstanceOf(BricksUsernameTakenError);
-    });
-
-    it('трактует конфликт без имени ограничения как занятый логин', async () => {
-        // Имя может не дойти (совместимый сервер, прокси), а занятый логин —
-        // обычное состояние формы: пятисотый вместо него был бы хуже
-        queryMock.mockRejectedValueOnce(makeUniqueViolation(undefined));
-
-        await expect(createPostgresAuthAdapter().createUser(CREATE_PAYLOAD)).rejects.toBeInstanceOf(
-            BricksUsernameTakenError
-        );
-    });
-
-    it('пропускает наружу ошибку другого SQLSTATE', async () => {
-        queryMock.mockRejectedValueOnce(
-            Object.assign(new Error('null value in column'), { code: '23502' })
-        );
-
-        await expect(
-            createPostgresAuthAdapter().createUser(CREATE_PAYLOAD)
-        ).rejects.not.toBeInstanceOf(BricksUsernameTakenError);
     });
 });
 
@@ -255,41 +184,5 @@ describe('postgresAuthAdapter: проекция учётки', () => {
         expect(users[0].lastLoginAt).toBe('2026-08-18T09:24:00.000Z');
         expect(users[0].createdAt).toBe('2026-04-02T10:00:00.000Z');
         expect(users[1].lastLoginAt).toBeNull();
-    });
-
-    it('создание пишет отображаемое имя и активность, разрешённые ручкой', async () => {
-        queryMock.mockResolvedValueOnce([
-            {
-                id: 3,
-                username: 'anna.editor',
-                role: 'editor',
-                isActive: false,
-                displayName: 'Анна Ким',
-                avatarUrl: null,
-                createdAt: new Date('2026-08-18T10:00:00.000Z'),
-                lastLoginAt: null,
-            },
-        ]);
-
-        const user = await createPostgresAuthAdapter().createUser({
-            ...CREATE_PAYLOAD,
-            username: 'anna.editor',
-            displayName: 'Анна Ким',
-            isActive: false,
-        });
-
-        const [sql, params] = queryMock.mock.calls[0];
-
-        expect(sql).toContain('display_name');
-        expect(sql).toContain('is_active');
-        expect(params).toEqual([
-            'anna.editor',
-            CREATE_PAYLOAD.passwordHash,
-            'editor',
-            'Анна Ким',
-            false,
-        ]);
-        expect(user.displayName).toBe('Анна Ким');
-        expect(user.isActive).toBe(false);
     });
 });

@@ -6,7 +6,11 @@
     "type": "module",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/saintfr3ak/nuxt-bricks.git"
+        "url": "git+https://github.com/junkym0nk3y/nuxt-bricks.git"
+    },
+    "homepage": "https://github.com/junkym0nk3y/nuxt-bricks#readme",
+    "bugs": {
+        "url": "https://github.com/junkym0nk3y/nuxt-bricks/issues"
     },
     "exports": {
         ".": {
@@ -43,7 +47,9 @@
     "files": [
         "dist",
         "migrations",
-        "docs/external-backend-contract.md"
+        "docs/external-backend-contract.md",
+        "LICENSE",
+        "CHANGELOG.md"
     ],
     "bin": {
         "bricks-migrate": "dist/cli/bricks-migrate.mjs"

@@ -14,7 +14,6 @@ import type {
     IAuthProfileUpdateResult,
     IAuthUserProfileChange,
     IAuthUserStateChange,
-    ICreateAuthUserPayload,
     TAuthUserMethods,
 } from '../../types/authAdapters';
 import type { IBricksUserSummary } from '../../../common/types/auth';
@@ -23,7 +22,7 @@ import type {
     IBricksUserSummaryRow,
     IGuardedUserMutation,
 } from '../../types/postgres';
-import { BricksLastActiveAdminError, BricksUsernameTakenError } from '../utils/authErrors';
+import { BricksLastActiveAdminError } from '../utils/authErrors';
 import {
     breaksActiveAdminInvariant,
     isUserStateUnchanged,
@@ -35,7 +34,7 @@ import {
  * list for every method: had they drifted apart, they would hand the client
  * different shapes of one entity.
  */
-const USER_SUMMARY_COLUMNS = `id, username, role, is_active AS "isActive",
+export const USER_SUMMARY_COLUMNS = `id, username, role, is_active AS "isActive",
     display_name AS "displayName", avatar_url AS "avatarUrl",
     created_at AS "createdAt", last_login_at AS "lastLoginAt"`;
 
@@ -45,7 +44,7 @@ const USER_SUMMARY_COLUMNS = `id, username, role, is_active AS "isActive",
  * @param row - A row of the query result.
  * @returns The account in the IBricksUserSummary shape.
  */
-function toUserSummary(row: IBricksUserSummaryRow): IBricksUserSummary {
+export function toUserSummary(row: IBricksUserSummaryRow): IBricksUserSummary {
     return {
         ...row,
         createdAt: toIsoDate(row.createdAt) ?? row.createdAt.toString(),
@@ -100,7 +99,7 @@ const USERS_PRIMARY_KEY_CONSTRAINT = 'bricks_users_pkey';
  * @param error - The caught query error.
  * @returns true when the conflict could have happened over the username.
  */
-function isPossibleUsernameConflict(error: unknown): boolean {
+export function isPossibleUsernameConflict(error: unknown): boolean {
     if (!isUniqueViolation(error)) {
         return false;
     }
@@ -234,43 +233,6 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
             );
 
             return rows.map(toUserSummary);
-        },
-
-        /**
-         * Creates an account. The username is canonicalized to lower case —
-         * uniqueness is held by the index on `lower(username)`, and login is
-         * case-insensitive. Storing `Admin` as typed would show a capitalized name
-         * in the list while login accepts any case, so the list would suggest a
-         * spelling that means nothing.
-         *
-         * A taken username is decided by the index violation rather than by a
-         * read up front: a parallel creation has time to slip in between the read
-         * and the insert.
-         */
-        async createUser(payload: ICreateAuthUserPayload): Promise<IBricksUserSummary> {
-            try {
-                const rows = await query<IBricksUserSummaryRow>(
-                    `INSERT INTO bricks_users
-                        (username, password_hash, role, display_name, is_active)
-                    VALUES (lower($1), $2, $3, $4, $5)
-                    RETURNING ${USER_SUMMARY_COLUMNS}`,
-                    [
-                        payload.username,
-                        payload.passwordHash,
-                        payload.role,
-                        payload.displayName,
-                        payload.isActive,
-                    ]
-                );
-
-                return toUserSummary(rows[0]);
-            } catch (error: unknown) {
-                if (isPossibleUsernameConflict(error)) {
-                    throw new BricksUsernameTakenError(payload.username, error);
-                }
-
-                throw error;
-            }
         },
 
         /**

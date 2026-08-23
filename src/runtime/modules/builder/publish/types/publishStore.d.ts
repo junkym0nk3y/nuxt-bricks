@@ -61,6 +61,15 @@ export interface IPageLibraryWriteStoreDeps {
 }
 
 /**
+ * The narrow contract of the store for the local writes into the page list
+ * (`utils/pagesListWrite.ts`) — DI instead of a direct import of the store, so that
+ * the logic is tested without Pinia.
+ */
+export interface IPagesListWriteStoreDeps {
+    publishedPages: TPublishedPageSummary[];
+}
+
+/**
  * The narrow contract of the store for the write operations of the current landing
  * (`utils/currentPageWrite.ts`) — DI instead of a direct import of the store, so
  * that the logic is tested without Pinia.

@@ -29,6 +29,7 @@ const {
     assertUserManagementAvailable,
     buildCreateUserPayload,
     requirePassword,
+    validateCreateUserInput,
     validateUpdateUserPayload,
 } = await import('../../src/runtime/server/utils/auth/userManagement');
 const { verifyPassword } = await import('../../src/runtime/server/utils/auth/passwords');
@@ -147,23 +148,25 @@ describe('userManagement: запрет операций над собой', () =
 });
 
 describe('userManagement: валидация DTO', () => {
-    it('канонизирует логин в нижний регистр — уникальность держится индексом по lower(username)', async () => {
-        const payload = await buildCreateUserPayload({
+    it('канонизирует логин в нижний регистр — уникальность держится индексом по lower(username)', () => {
+        const input = validateCreateUserInput({
             username: '  Ivan.Petrov  ',
             password: 'sufficient-password',
             role: 'editor',
         });
 
-        expect(payload.username).toBe('ivan.petrov');
+        expect(input.username).toBe('ivan.petrov');
     });
 
     it('не обрезает пробелы пароля: обрезанный пароль не подошёл бы при входе', async () => {
         const password = '  spaced pass  ';
-        const payload = await buildCreateUserPayload({
-            username: 'spacey',
-            password,
-            role: 'viewer',
-        });
+        const payload = await buildCreateUserPayload(
+            validateCreateUserInput({
+                username: 'spacey',
+                password,
+                role: 'viewer',
+            })
+        );
 
         expect(await verifyPassword(password, payload.passwordHash)).toBe(true);
         expect(await verifyPassword(password.trim(), payload.passwordHash)).toBe(false);
@@ -174,14 +177,14 @@ describe('userManagement: валидация DTO', () => {
     // предупреждение о дефолтном пароле на неё не сработало бы: оно узнаёт
     // только сидовый хеш, а у заново заданного пароля своя соль. Тем же запретом
     // закрыта «смена» своего пароля на тот же самый ради гашения полосы.
-    it('отклоняет дефолтный пароль сида на всех путях установки пароля', async () => {
-        await expect(
-            buildCreateUserPayload({
+    it('отклоняет дефолтный пароль сида на всех путях установки пароля', () => {
+        expect(() =>
+            validateCreateUserInput({
                 username: 'ivan',
                 password: BRICKS_DEFAULT_ADMIN_PASSWORD,
                 role: 'editor',
             })
-        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+        ).toThrowError(expect.objectContaining({ statusCode: 400 }));
 
         // Тот же путь используют админская ручка чужого пароля и вкладка своего:
         // границы нового пароля у них общие
@@ -193,44 +196,44 @@ describe('userManagement: валидация DTO', () => {
         );
     });
 
-    it('отклоняет логин с недопустимыми символами и слишком короткий пароль', async () => {
-        await expect(
-            buildCreateUserPayload({
+    it('отклоняет логин с недопустимыми символами и слишком короткий пароль', () => {
+        expect(() =>
+            validateCreateUserInput({
                 username: 'ivan petrov',
                 password: 'sufficient-password',
                 role: 'editor',
             })
-        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+        ).toThrowError(expect.objectContaining({ statusCode: 400 }));
 
-        await expect(
-            buildCreateUserPayload({ username: 'ivan', password: 'short', role: 'editor' })
-        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+        expect(() =>
+            validateCreateUserInput({ username: 'ivan', password: 'short', role: 'editor' })
+        ).toThrowError(expect.objectContaining({ statusCode: 400 }));
     });
 
     // Предел логина задан продуктом, а не колонкой (VARCHAR(255)): строка списка
     // показывает логин целиком и не обрезает его, потому что по нему входят и по
     // нему учётку находят. Числа здесь намеренно записаны литералами: взятые из
     // той же константы, они повторили бы реализацию и не заметили бы её правку
-    it('принимает логин из 14 символов и отклоняет 15', async () => {
-        const payload = await buildCreateUserPayload({
+    it('принимает логин из 14 символов и отклоняет 15', () => {
+        const input = validateCreateUserInput({
             username: 'a'.repeat(14),
             password: 'sufficient-password',
             role: 'editor',
         });
 
-        expect(payload.username).toBe('a'.repeat(14));
+        expect(input.username).toBe('a'.repeat(14));
 
-        await expect(
-            buildCreateUserPayload({
+        expect(() =>
+            validateCreateUserInput({
                 username: 'a'.repeat(15),
                 password: 'sufficient-password',
                 role: 'editor',
             })
-        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+        ).toThrowError(expect.objectContaining({ statusCode: 400 }));
     });
 
-    it('без имени и активности учётка активна и показывается логином', async () => {
-        const payload = await buildCreateUserPayload({
+    it('без имени и активности учётка активна и показывается логином', () => {
+        const input = validateCreateUserInput({
             username: 'ivan',
             password: 'sufficient-password',
             role: 'editor',
@@ -239,12 +242,12 @@ describe('userManagement: валидация DTO', () => {
         // Разрешает их ручка, а не адаптер: `undefined` уехал бы в INSERT как
         // NULL, а `is_active` объявлен NOT NULL — дефолт таблицы при явном
         // значении не применяется вовсе
-        expect(payload.displayName).toBeNull();
-        expect(payload.isActive).toBe(true);
+        expect(input.displayName).toBeNull();
+        expect(input.isActive).toBe(true);
     });
 
-    it('принимает отображаемое имя и выключенный вход при создании', async () => {
-        const payload = await buildCreateUserPayload({
+    it('принимает отображаемое имя и выключенный вход при создании', () => {
+        const input = validateCreateUserInput({
             username: 'anna.editor',
             password: 'sufficient-password',
             role: 'editor',
@@ -252,40 +255,40 @@ describe('userManagement: валидация DTO', () => {
             isActive: false,
         });
 
-        expect(payload.displayName).toBe('Анна Ким');
-        expect(payload.isActive).toBe(false);
+        expect(input.displayName).toBe('Анна Ким');
+        expect(input.isActive).toBe(false);
     });
 
-    it('пустое имя равно его отсутствию: просьба показывать логин', async () => {
-        const payload = await buildCreateUserPayload({
+    it('пустое имя равно его отсутствию: просьба показывать логин', () => {
+        const input = validateCreateUserInput({
             username: 'ivan',
             password: 'sufficient-password',
             role: 'editor',
             displayName: '   ',
         });
 
-        expect(payload.displayName).toBeNull();
+        expect(input.displayName).toBeNull();
     });
 
-    it('отклоняет имя с управляющим символом и неизвестные ключи создания', async () => {
+    it('отклоняет имя с управляющим символом и неизвестные ключи создания', () => {
         // Перенос строки внутри имени сломал бы строку списка и меню профиля
-        await expect(
-            buildCreateUserPayload({
+        expect(() =>
+            validateCreateUserInput({
                 username: 'ivan',
                 password: 'sufficient-password',
                 role: 'editor',
                 displayName: 'Иван\nПетров',
             })
-        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+        ).toThrowError(expect.objectContaining({ statusCode: 400 }));
 
-        await expect(
-            buildCreateUserPayload({
+        expect(() =>
+            validateCreateUserInput({
                 username: 'ivan',
                 password: 'sufficient-password',
                 role: 'editor',
                 avatarUrl: 'https://example.test/photo.webp',
             })
-        ).rejects.toThrowError(expect.objectContaining({ statusCode: 400 }));
+        ).toThrowError(expect.objectContaining({ statusCode: 400 }));
     });
 
     it('требует хотя бы одно поле в правке и отклоняет неизвестные ключи', () => {

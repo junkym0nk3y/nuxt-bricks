@@ -49,10 +49,17 @@ function asTransactionQuery(
         mock(text, params) as Promise<T[]>;
 }
 
-/** Ошибка pg с SQLSTATE unique_violation. */
-function makeUniqueViolation(): Error & { code: string } {
+/**
+ * Ошибка pg с SQLSTATE unique_violation.
+ *
+ * @param constraint - Имя нарушенного индекса; не передан — драйвер имени не
+ * прислал (совместимый сервер, прокси).
+ * @returns Ошибка запроса.
+ */
+function makeUniqueViolation(constraint?: string): Error & { code: string } {
     return Object.assign(new Error('duplicate key value violates unique constraint'), {
         code: '23505',
+        ...(constraint === undefined ? {} : { constraint }),
     });
 }
 
@@ -90,6 +97,35 @@ describe('postgresStorageAdapter: конфликты и RETURNING-мутации
         await expect(
             adapter.createPage({ pagename: 'landing', schema: { components: [] } })
         ).rejects.toBeInstanceOf(BricksPageAddressConflictError);
+    });
+
+    // Оба адресных индекса означают ровно то, о чём говорит ответ 409: адрес занят
+    it.each(['uq_bricks_pages_address', 'uq_bricks_pages_address_bare'])(
+        'createPage: нарушение %s → конфликт адреса',
+        async (constraint) => {
+            queryOneMock.mockRejectedValueOnce(makeUniqueViolation(constraint));
+
+            const adapter = createPostgresStorageAdapter();
+
+            await expect(
+                adapter.createPage({ pagename: 'landing', schema: { components: [] } })
+            ).rejects.toBeInstanceOf(BricksPageAddressConflictError);
+        }
+    );
+
+    // Отставшая после восстановления дампа SERIAL-sequence упирает вставку в
+    // первичный ключ. Адрес при этом свободен, и ответ «страница с таким адресом
+    // уже существует» отправил бы человека придумывать другой адрес, а поломанную
+    // базу оставил бы ненайденной
+    it('createPage: нарушение первичного ключа конфликтом адреса НЕ считается', async () => {
+        const violation = makeUniqueViolation('bricks_pages_pkey');
+        queryOneMock.mockRejectedValueOnce(violation);
+
+        const adapter = createPostgresStorageAdapter();
+
+        await expect(
+            adapter.createPage({ pagename: 'landing', schema: { components: [] } })
+        ).rejects.toBe(violation);
     });
 
     it('updatePage без schema: UPDATE с RETURNING, без pre-SELECT', async () => {

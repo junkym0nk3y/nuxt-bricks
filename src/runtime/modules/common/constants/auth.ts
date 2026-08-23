@@ -132,3 +132,24 @@ export const BRICKS_PASSWORD_MAX_LENGTH = 1024;
  * `x-bricks-csrf: 1` to unsafe requests.
  */
 export const BRICKS_CSRF_HEADER_NAME = 'x-bricks-csrf';
+
+/**
+ * Name of the header carrying the client's identifier of an account creation
+ * operation.
+ *
+ * The name is the conventional one (the IETF Idempotency-Key draft), so that an
+ * integrator recognizes the semantics without reading our documentation: the same key
+ * on a repeat means "this is the same intention", and the server answers with the
+ * outcome of the first attempt instead of performing a second one.
+ */
+export const BRICKS_IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key';
+
+/**
+ * The shape of an accepted key: 16 to 64 characters out of the URL-safe alphabet.
+ *
+ * The bounds are a sanity check rather than a security measure — the key is a name of
+ * the request, not a secret. The lower bound keeps a key from being so short that two
+ * independent intentions collide by accident; the upper one matches the column of the
+ * operations table, so a valid key is never truncated by the database.
+ */
+export const BRICKS_IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{16,64}$/;

@@ -14,6 +14,23 @@ export interface IAuthLoginBody {
     password?: unknown;
 }
 
+/**
+ * The validated body of an account creation, BEFORE the password is hashed.
+ *
+ * The plaintext password is part of it deliberately: validation and the digest of the
+ * request happen before the derivation, and the derivation is the slow step the
+ * operation key exists to protect. The adapter never sees this shape — it receives
+ * `ICreateAuthUserPayload`, where the password is a hash already.
+ */
+export interface IAuthUserCreateInput {
+    username: string;
+    password: string;
+    role: TBricksUserRole;
+    /** The display name; null — the username is shown everywhere */
+    displayName: string | null;
+    isActive: boolean;
+}
+
 /** Validated login credentials */
 export interface IAuthLoginCredentials {
     username: string;

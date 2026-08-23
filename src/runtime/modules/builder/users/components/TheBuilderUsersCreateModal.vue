@@ -86,7 +86,6 @@ const {
     errors,
     generalError,
     isSubmitting,
-    isSubmitSealed,
     generatePassword,
     submitForm,
     resetToEmpty,
@@ -262,7 +261,7 @@ watch(
                         size="md"
                         variant="primary"
                         type="submit"
-                        :disabled="isSubmitting || isSubmitSealed"
+                        :disabled="isSubmitting"
                     >
                         {{ t('bricks.users.createModal.submit') }}
                     </BricksButton>

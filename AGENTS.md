@@ -261,10 +261,6 @@ Playground поднят в режиме `auth.mode: 'database'`, поэтому 
 
 Чему в выводе проверок не верить на слово:
 
-- **`knip:check` красный и на чистом HEAD** — держит unused exports в
-  `layouts-blocks/utils/inlineContent.ts` и `slotContent.ts`. По exit-коду
-  `lint:check` свою регрессию от этого долга не отличить: сверять список
-  сообщений, а не код возврата.
 - **Проверка типов — только `npm run type-check`.** Голый `npx tsc --noEmit` не
   понимает SFC и сыплет ложными `TS2307: Cannot find module './Component.vue'`.
   Диагностику IDE/LSP тоже сверять с `vue-tsc`: её индекс отстаёт и держит

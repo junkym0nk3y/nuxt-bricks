@@ -85,8 +85,14 @@ function loadPagesWithinDeadline(request: Promise<void>): Promise<void> {
  * on the client takes the person to the login (on the server the 401 handler
  * returns at once and performs no redirect).
  *
+ * A re-read on request lives here too rather than in the host of the dashboard:
+ * the semantics of loading the list belong to one place together with the
+ * protection against stale answers, and the host only wires the state to the
+ * control.
+ *
  * @param options - The callback for a refused load (a toast of the dashboard).
- * @returns The flag of a load in progress for the page list.
+ * @returns The flag of a load in progress, the flag of a re-read on request and the
+ * re-read itself.
  */
 export async function usePublishPagesData(
     options: IUsePublishPagesDataOptions
@@ -166,6 +172,40 @@ export async function usePublishPagesData(
             });
     }
 
+    const isRefreshingPages = ref(false);
+
+    /**
+     * Re-reads the list on request — the refresh control of the dashboard.
+     *
+     * Through the `loadAllPages` store action rather than through
+     * `pagesData.refresh()`: the latter would put `useAsyncData` into `pending`,
+     * `isLoadingPages` would turn true, and the list would swap its rows for the
+     * initial spinner — the person asked whether anything had changed, not to have
+     * the list taken away. `loadAllPages` replaces the rows in the store only when
+     * a full answer arrives, and leaves the previous list alone on a refusal.
+     *
+     * The guard is here rather than only on the control: a `disabled` button is not
+     * protection against a second event (a repeated click during the frame, a
+     * programmatic call), and two parallel reads would displace one another by
+     * their request numbers.
+     */
+    async function refreshPages(): Promise<void> {
+        if (isRefreshingPages.value) {
+            return;
+        }
+
+        isRefreshingPages.value = true;
+
+        try {
+            await publishStore.loadAllPages();
+        } catch (error: unknown) {
+            console.warn('[BricksBuilder] Pages list refresh failed:', error);
+            options.onLoadFailed();
+        } finally {
+            isRefreshingPages.value = false;
+        }
+    }
+
     // `onScopeDispose` instead of `onUnmounted`: with the second argument it keeps
     // quiet outside a component, so the composable stays callable in unit tests
     onScopeDispose(() => {
@@ -189,5 +229,7 @@ export async function usePublishPagesData(
 
     return {
         isLoadingPages,
+        isRefreshingPages,
+        refreshPages,
     };
 }

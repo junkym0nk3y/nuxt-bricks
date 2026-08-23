@@ -14,6 +14,7 @@ import { getPageAddressKey, toPageAddress } from '../../../common/utils/bricks/p
 import { buildDefaultFormState, buildEditFormState, normalizeFormState } from '../utils/formState';
 import { beginActiveWrite, endActiveWrite } from '../utils/activeWrites';
 import { ensureAllPagesLoaded, runLoadAllPages } from '../utils/pagesLoad';
+import { writePagePublishedLocally } from '../utils/pagesListWrite';
 import { runCreatePage, runDuplicatePage } from '../utils/pageLibraryWrite';
 import { validatePublishFormState } from '../utils/formValidation';
 import { requirePageRevision, toPageWriteError } from '../utils/requestErrors';
@@ -152,6 +153,21 @@ export const usePublishStore = defineStore('bricksPublish', {
          */
         async publishPage(schema: IBricksSchema, formState: TPublishFormState): Promise<number> {
             return await runPublishPage(this, schema, formState);
+        },
+
+        /**
+         * Writes the publication flag into the local list ahead of the server answer
+         * — see `utils/pagesListWrite.writePagePublishedLocally`.
+         *
+         * @param id - Page identifier.
+         * @param published - The publication flag to show right away.
+         * @returns The record put into the list; null — there is no such page.
+         */
+        setPagePublishedLocally(
+            id: string | number,
+            published: boolean
+        ): TPublishedPageSummary | null {
+            return writePagePublishedLocally(this, id, published);
         },
 
         /**

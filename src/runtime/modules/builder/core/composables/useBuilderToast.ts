@@ -3,8 +3,16 @@
 import type { IBuilderActionToastOptions, IBuilderToastState } from '../types/toast';
 
 // Vue
-import { reactive } from 'vue';
+import { computed, reactive } from 'vue';
 // #endregion
+
+/**
+ * How long an ordinary toast stays up, in milliseconds. Owned here rather than by
+ * the hosts: the state field is optional, and every screen drawing the toast used to
+ * carry a fallback of its own — three copies of one number that drift apart one at a
+ * time.
+ */
+const DEFAULT_TOAST_DURATION = 4000;
 
 // Module singleton: one state for the whole application, so that a toast can be
 // shown both by the builder page and by deep descendants (the canvas context menu)
@@ -12,7 +20,7 @@ const toast = reactive<IBuilderToastState>({
     visible: false,
     message: '',
     variant: 'success',
-    duration: 4000,
+    duration: DEFAULT_TOAST_DURATION,
     autoHide: true,
     actionLabel: '',
     onAction: null,
@@ -38,7 +46,7 @@ export function useBuilderToast() {
     function showToast(
         message: string,
         variant: IBuilderToastState['variant'] = 'success',
-        duration = 4000
+        duration = DEFAULT_TOAST_DURATION
     ): number {
         toast.message = message;
         toast.variant = variant;
@@ -91,5 +99,10 @@ export function useBuilderToast() {
         toast.visible = false;
     }
 
-    return { toast, showToast, showActionToast, hideToast };
+    // The duration for the component: the state field is optional (a toast awaiting
+    // an answer sets 0 deliberately), and the fallback belongs next to the default
+    // rather than in every screen that draws the toast
+    const toastDuration = computed<number>(() => toast.duration ?? DEFAULT_TOAST_DURATION);
+
+    return { toast, toastDuration, showToast, showActionToast, hideToast };
 }

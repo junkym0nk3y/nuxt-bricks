@@ -105,6 +105,11 @@ export interface IThrownHttpError {
     statusCode: number;
     statusMessage?: string;
     data?: { code?: string };
+    /**
+     * Текст самой ошибки. Нужен там, где проверяется, что наружу вышла ИМЕННО она:
+     * отказ уборки не должен подменять причину отказа операции.
+     */
+    message?: string;
 }
 
 /**

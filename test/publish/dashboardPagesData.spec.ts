@@ -156,4 +156,104 @@ describe('список страниц дашборда: загрузка зап�
         await vi.waitFor(() => expect(isLoadingPages.value).toBe(false));
         expect(onLoadFailed).toHaveBeenCalledTimes(1);
     });
+
+    /**
+     * После публикации список больше не перечитывается сам: ответ POST — это вся
+     * созданная страница, и её кладёт в список `syncPageInList`. Страницы, которые
+     * завёл другой редактор, подхватывает эта кнопка — осознанным действием вместо
+     * запроса на каждую публикацию.
+     */
+    describe('обновление списка по просьбе человека', () => {
+        it('строки остаются на месте, а ожидание показывает только кнопка', async () => {
+            apiFetcherMock.mockResolvedValueOnce([buildPage({ id: 1, pagename: 'landing' })]);
+
+            const { isLoadingPages, isRefreshingPages, refreshPages } = await usePublishPagesData({
+                onLoadFailed: vi.fn(),
+            });
+
+            await vi.waitFor(() => expect(isLoadingPages.value).toBe(false));
+
+            // Присваивается синхронно в моке ниже — до первого использования
+            let finishRefresh!: (pages: unknown[]) => void;
+
+            apiFetcherMock.mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        finishRefresh = resolve;
+                    })
+            );
+
+            const refresh = refreshPages();
+
+            await vi.waitFor(() => expect(isRefreshingPages.value).toBe(true));
+
+            // Человек спросил, изменилось ли что-нибудь, а не просил убрать
+            // список: `isLoadingPages` подменил бы строки начальным спиннером
+            expect(isLoadingPages.value).toBe(false);
+            expect(usePublishStore().publishedPages.map((page) => page.pagename)).toEqual([
+                'landing',
+            ]);
+
+            finishRefresh([buildPage({ id: 2, pagename: 'promo' })]);
+            await refresh;
+
+            expect(isRefreshingPages.value).toBe(false);
+            expect(usePublishStore().publishedPages.map((page) => page.pagename)).toEqual([
+                'promo',
+            ]);
+        });
+
+        it('повторная просьба во время запроса второго запроса не делает', async () => {
+            apiFetcherMock.mockResolvedValueOnce([]);
+
+            const { isLoadingPages, refreshPages } = await usePublishPagesData({
+                onLoadFailed: vi.fn(),
+            });
+
+            await vi.waitFor(() => expect(isLoadingPages.value).toBe(false));
+            apiFetcherMock.mockReset();
+
+            // Присваивается синхронно в моке ниже — до первого использования
+            let finishRefresh!: (pages: unknown[]) => void;
+
+            apiFetcherMock.mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        finishRefresh = resolve;
+                    })
+            );
+
+            const first = refreshPages();
+            const second = refreshPages();
+
+            // Два параллельных чтения вытесняли бы друг друга своими номерами
+            // запросов, а `disabled` на кнопке от второго события не защищает
+            expect(apiFetcherMock).toHaveBeenCalledTimes(1);
+
+            finishRefresh([]);
+            await Promise.all([first, second]);
+        });
+
+        it('отказ обновления докладывается тостом, а список остаётся прежним', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+            apiFetcherMock.mockResolvedValueOnce([buildPage({ id: 1, pagename: 'landing' })]);
+
+            const onLoadFailed = vi.fn();
+            const { isLoadingPages, isRefreshingPages, refreshPages } = await usePublishPagesData({
+                onLoadFailed,
+            });
+
+            await vi.waitFor(() => expect(isLoadingPages.value).toBe(false));
+
+            apiFetcherMock.mockRejectedValueOnce(new Error('503'));
+            await refreshPages();
+
+            expect(onLoadFailed).toHaveBeenCalledTimes(1);
+            expect(isRefreshingPages.value).toBe(false);
+            expect(usePublishStore().publishedPages.map((page) => page.pagename)).toEqual([
+                'landing',
+            ]);
+        });
+    });
 });

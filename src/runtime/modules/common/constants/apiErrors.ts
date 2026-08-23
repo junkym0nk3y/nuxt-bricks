@@ -66,6 +66,32 @@ export const BRICKS_API_ERROR_CODES = {
      * error concerns a single field of the form.
      */
     invalidCurrentPassword: 'INVALID_CURRENT_PASSWORD',
+    /**
+     * The account creation request arrived without the operation key, or with one
+     * that does not look like a key at all. The key is mandatory: without it a
+     * repeat after an aborted request cannot be told from a second creation, and
+     * that is the whole reason the endpoint has it.
+     */
+    idempotencyKeyRequired: 'IDEMPOTENCY_KEY_REQUIRED',
+    /**
+     * The key is known, but the body differs from the one it was first sent with.
+     * Answering with the outcome of the first operation would hand back a result
+     * that belongs to a different request, so the request is refused instead. The
+     * builder never produces this: an edit of any field issues a new key.
+     */
+    idempotencyKeyReused: 'IDEMPOTENCY_KEY_REUSED',
+    /**
+     * The first attempt of this operation is still running on the server (the
+     * password hash is being computed). The outcome is not known YET — the client
+     * has to ask again rather than start a second creation.
+     */
+    userCreateInProgress: 'USER_CREATE_IN_PROGRESS',
+    /**
+     * The operation did create an account, and that account has since been deleted.
+     * Creating it anew under the same key is exactly what the key forbids, so the
+     * client is told the outcome instead: the work is done and undone.
+     */
+    userCreateResultGone: 'USER_CREATE_RESULT_GONE',
 } as const;
 
 /** Locale key of the server-side time limit rejection: one text for every domain */
