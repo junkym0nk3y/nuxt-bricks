@@ -130,6 +130,11 @@ describe('csrfProtection: чистая проверка контекста за�
         expect(isCsrfProtectedPath('/api/bricks/media/s3-page-thumbnail')).toBe(true);
         expect(isCsrfProtectedPath('/api/other')).toBe(false);
         expect(isCsrfProtectedPath('/landing')).toBe(false);
+        // The segment boundary: a handler of the consumer whose name merely
+        // starts with bricks belongs to the consumer — otherwise its POST would
+        // get our 403 instead of its own answer
+        expect(isCsrfProtectedPath('/api/bricksmith')).toBe(false);
+        expect(isCsrfProtectedPath('/api/bricksmith/pages')).toBe(false);
         // Бывший /mock-api/** больше не в скоупе модуля
         expect(isCsrfProtectedPath('/mock-api/s3-page-thumbnail')).toBe(false);
     });

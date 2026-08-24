@@ -1,4 +1,4 @@
-import type { Ref, VNodeChild } from 'vue';
+import type { Ref, VNode, VNodeChild } from 'vue';
 import type { IBricksComponent } from '../../common/types/brick';
 import type { IBrickExportModule } from '../../common/types/index';
 import type { TApiRequestOptions } from '../../common/types/composables';
@@ -21,6 +21,28 @@ export interface IRendererLayoutsOptions {
     styles: Record<string, string>;
     renderChild: TRendererChildRenderer;
 }
+
+/**
+ * Why the guard refused to render a layout block: the component is its own
+ * ancestor (`cycle`) or the chain is deeper than the schema contract allows
+ * (`depth`).
+ */
+export type TRendererLayoutRefusalReason = 'cycle' | 'depth';
+
+/**
+ * Answer of the layout dispatcher.
+ *
+ * Three outcomes rather than `VNode | null`, because `not-layout` and `refused`
+ * demand opposite things from the caller: the first is the normal route to the
+ * brick resolver, the second must never reach it — a refused LAYOUT block has no
+ * brick file, the resolver stays silent on the `layout` prefix, and the visitor
+ * would be shown "the component is missing from the library" for what is in fact
+ * a corrupted component tree.
+ */
+export type TRendererLayoutResult =
+    | { kind: 'rendered'; vnode: VNode }
+    | { kind: 'not-layout' }
+    | { kind: 'refused'; reason: TRendererLayoutRefusalReason };
 
 export interface IRendererPlaceholderProps {
     title?: string;

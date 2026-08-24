@@ -17,6 +17,8 @@
 import { createError, getRequestHeader, type H3Event } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { BRICKS_CSRF_HEADER_NAME } from '../../../modules/common/constants/auth';
+import { BRICKS_API_PREFIX } from '../../../modules/common/constants/apiPaths';
+import { matchesPathPrefix } from '../../../modules/common/utils/localApiPaths';
 import { parseTrustProxyFlag } from '../requestClientIp';
 
 /** Methods that need no CSRF check (safe per RFC 9110) */
@@ -80,10 +82,15 @@ function parseComparableRequestOrigin(protocol: TEffectiveProtocol, host: string
  * (including the auth handlers, which are not under the auth matrix, the media
  * proxy and the page thumbnail).
  *
+ * On a segment boundary: a route of the consumer whose name merely starts with
+ * `bricks` (`/api/bricksmith`) is not ours, and refusing its POST with 403 would
+ * be a namespace takeover — the same predicate the routing of the client and of
+ * the dev proxy uses.
+ *
  * @param pathname - Logical request path (without baseURL).
  */
 export function isCsrfProtectedPath(pathname: string): boolean {
-    return pathname.startsWith('/api/bricks');
+    return matchesPathPrefix(pathname, BRICKS_API_PREFIX);
 }
 
 /**

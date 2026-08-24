@@ -10,137 +10,7 @@
 
 ---
 
-## 1. `/api/bricks` сопоставляется без границы сегмента
-
-**Файлы:** `src/runtime/server/utils/auth/routeProtection.ts:103`,
-`src/runtime/server/utils/auth/csrfProtection.ts:86`,
-`src/runtime/server/utils/auth/rolePolicy.ts:190`
-
-Все три матрицы решают «это путь bricks?» через
-`pathname.startsWith('/api/bricks')`. Границы сегмента здесь нет, поэтому чужой
-маршрут потребителя `/api/bricksmith` объявляется путём bricks: `requiresAuth`
-требует авторизации, `isCsrfProtectedPath` включает CSRF-гейт,
-`resolveRequiredAccess` выдаёт ролевое требование.
-
-Правильный предикат в репозитории уже есть и уже используется соседним слоем:
-`matchesPathPrefix`/`isLocalApiPathname` из
-`modules/common/utils/localApiPaths.ts`, и на них есть спека —
-`test/common/localApiPaths.spec.ts:20,36,59` прямо утверждает, что
-`/api/bricksmith` **не** путь bricks. Тот же вывод фиксирует
-`test/server/proxyRouting.spec.ts:82`: dev-прокси считает `/api/bricksmith` чужим
-маршрутом и отправляет его на PROXY_URL. То есть два слоя одного модуля расходятся
-на одном и том же пути.
-
-Отказ fail-closed (потребитель получит 401 вместо своей ручки, а не наоборот), но
-для интегрирующего разработчика это молчаливый захват его собственного
-пространства имён: имя маршрута, начинающееся на `bricks`, перестаёт ему
-принадлежать. Комментарии в коде описывают намерение верно — расходится с ним
-реализация.
-
----
-
-## 2. Импорт из бакета пишет ложный MIME всем форматам кроме четырёх
-
-**Файлы:** `src/runtime/modules/persistence/server/utils/mediaProcessing.ts`
-(`detectMimeTypeByFilename`),
-`src/runtime/modules/persistence/server/utils/mediaImport.ts:18`
-
-`detectMimeTypeByFilename` знает `svg`, `jpg`/`jpeg`, `png`, `webp` — и всё
-остальное объявляет `image/png`. `buildImportPayload` применяет её к каждому
-объекту под media-префиксом, а поддерживаемых расширений у модуля заметно больше:
-`gif`, `avif`, `tif`/`tiff`, `bmp`, `heic`/`heif` и все шесть видео-контейнеров
-(`mp4`, `webm`, `ogg`, `mov`, `avi`, `mkv`). В итоге импортированное видео лежит в
-медиатеке с `mime_type: image/png`.
-
-Ирония в том, что модуль уже умеет определять формат по содержимому:
-`sniffImageFormat`/`sniffVideoFormat` из `fileSignatures.ts` — тот самый механизм,
-которым загрузка перестала доверять клиентскому имени. Импорт до него не дошёл.
-Цена: клиент выбирает способ показа по `mimeType`, то есть видео в галерее
-отрисуется как картинка.
-
----
-
-## 3. Непроверенный каст параметров: объект уезжает в URL как `[object Object]`
-
-**Файл:** `src/runtime/modules/render/composables/useBricksDataSources.ts`
-(`executeDataSource`, сборка `params`)
-
-`resolveParamValue` возвращает `unknown` — иначе и не может, у
-`IBrickDataSourceParam` поле `value: unknown` и `map: (…) => unknown`. При сборке
-`Map` результат приводится кастом `as [string, string | number]`, а фильтр снимает
-только `undefined` и `null`. Объект, массив или boolean каст переживают, и
-`buildDataSourceUrl` подставляет их через `String(...)`:
-`/api/x?f=%5Bobject%20Object%5D`. Такой URL проходит и `hasUnresolvedParams`
-(двоеточия нет), и `checkDataSourceUrl` — запрос уходит с мусором, без единого
-предупреждения.
-
-`.claude/rules/typescript.md` запрещает такие приведения и требует type guard.
-
----
-
-## 4. `hasUnresolvedParams` ищет любое двоеточие, а не `:paramName`
-
-**Файл:** `src/runtime/modules/render/composables/useBricksDataSources.ts`
-
-Проверка заканчивается `return checkedPart.includes(':')`, хотя плейсхолдер имеет
-форму `:paramName` (её знает `buildDataSourceUrl`: `/:([a-zA-Z0-9_]+)/g`).
-Легальный URL с двоеточием в query отбрасывается как «unresolved params»:
-`/api/events?at=12:30` — относительный, значит `checkedPart` это вся строка,
-`includes(':')` истинно, источник пропускается с предупреждением и компонент
-остаётся на fallback props. Для абсолютных URL `checkedPart` это
-`pathname + search`, то есть тот же случай.
-
-**Чинить:** искать тем же регекспом, что подставляет, — остаток `:([a-zA-Z0-9_]+)`.
-
----
-
-## 5. Отказ layout-блока по циклу неотличим от «это не layout»
-
-**Файлы:** `src/runtime/modules/render/composables/useRendererLayouts.ts`
-(`renderLayoutComponent`), `render/components/TheRenderer.vue`
-
-`renderLayoutComponent` возвращает `null` в двух разных случаях: у компонента нет
-`renderPublished` (не layout — штатный путь диспетчера) и блок **отказано**
-рендерить из-за цикла или превышения `MAX_COMPONENT_TREE_DEPTH`. Вызывающий их не
-различает: `TheRenderer.renderComponent` берёт
-`layoutContent ?? renderUiComponent(...)`.
-
-Для отказавшего layout-блока это значит поход в `resolveBrickComponent` с
-`brickPath` вида `layout/grid`, а `findImportModule` на префиксе `layout`
-возвращает `undefined` молча (`common/composables/useBrickImports.ts`:
-`resolveBrickLoader` отсекает `LAYOUT_BRICK_PREFIX`, `reportMissingBrick` для него
-не зовётся). Итог: посетитель повреждённой страницы видит заглушку «Компонент не
-найден в библиотеке. Обновите bricks или schema» — диагноз неверный, а в лог не
-уходит ничего.
-
-Спека это не ловит: харнесс `test/render/layoutsCycleGuard.spec.ts:44` подменяет
-отказ безобидным `h('div')` (`renderLayout(child) ?? h('div')`), то есть проверяет
-завершаемость рекурсии, но не то, что увидит посетитель.
-
----
-
-## 6. Замена URL в схеме идёт по всей строке, а префиксные URL ломаются
-
-**Файл:** `builder/media/utils/schemaImageExtractor.ts` (`replaceSchemaImageUrls`,
-ветка HTML)
-
-Замена делает `replaced.split(oldUrl).join(newUrl)` по всей строке: заменяется
-каждое вхождение где угодно — в `href` соседней ссылки, в видимом тексте, в
-`data-`атрибуте. Извлечение при этом читает только `src` у `<img>`
-(`HTML_IMG_SRC_RE`), то есть симметрия «что нашли, то и меняем» не соблюдается.
-
-Отсюда второй, более неприятный край: **URL, который является префиксом
-другого**. `urlMap` обходится в порядке вставки, и если `…/a.png` заменяется
-раньше, чем `…/a.png?v=2`, второй превращается в `<плейсхолдер>?v=2` — то есть в
-битую ссылку. Оба случая узкие (замена делается только на плейсхолдер при импорте
-схемы), но оба молчаливые.
-
-**Чинить:** заменять только внутри `src` (тот же `HTML_IMG_SRC_RE` с колбэком)
-либо сортировать ключи по убыванию длины.
-
----
-
-## 7. Гонка загрузки статьи: медленный ответ переписывает открытую статью
+## 1. Гонка загрузки статьи: медленный ответ переписывает открытую статью
 
 **Файл:** `builder/documentation/composables/useDocumentationArticles.ts:165-190`
 (`loadArticleContent`), watcher — `:239-246`
@@ -171,25 +41,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 8. Дерево схемы принимает drop на вложенный узел и молча ничего не делает
-
-**Файлы:** `builder/shell/sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:176,212`,
-`sidebar/components/BuilderShellSidebarSchemaTreeView.vue:59-75`
-
-Рекурсивный item делает `draggable` любую строку, включая дочерние, рисует
-индикатор позиции и поднимает `reorder` наверх через цепочку родителей.
-`handleReorder` ищет `targetId` в `componentsStore.getRootComponents()` — а тот
-отдаёт только компоненты без родителя (`core/stores/actions/crud.ts:431`), — и на
-любом вложенном target выходит по `targetIndex === -1`. Пользователь видит
-подсветку «сюда можно», отпускает — и не происходит ничего.
-
-Комментарий сужен до корневого уровня (то есть описывает факт), само поведение
-остаётся: либо перестановка внутри дерева, либо `draggable` только у корневых
-строк.
-
----
-
-## 9. Гейт `isDatabaseMode` в форме пароля недостижим и оставляет форму заблокированной
+## 2. Гейт `isDatabaseMode` в форме пароля недостижим и оставляет форму заблокированной
 
 **Файл:** `builder/auth/components/BuilderAuthProfilePasswordForm.vue:99-101`
 
@@ -209,7 +61,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 10. `cycleUnit` записывает число пикселей как проценты
+## 3. `cycleUnit` записывает число пикселей как проценты
 
 **Файлы:** `src/runtime/modules/text-editor/utils/sizeUnits.ts` (`convertFromPx`),
 `src/runtime/modules/text-editor/components/TextEditorImageSizePanel.vue`
@@ -228,7 +80,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 11. Slot DnD: рекурсивный отбор детей и несимметричный `dragDepth`
+## 4. Slot DnD: рекурсивный отбор детей и несимметричный `dragDepth`
 
 **Файл:** `builder/canvas/item/composables/useSlotDragDrop.ts:134-141`, `:198-212`,
 `:239-255`
@@ -251,7 +103,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 12. Редактор layout-компонента публикуется в стор после конца правки
+## 5. Редактор layout-компонента публикуется в стор после конца правки
 
 **Файл:** `src/runtime/modules/text-editor/composables/useInlineEditor.ts`
 (`initEditor`)

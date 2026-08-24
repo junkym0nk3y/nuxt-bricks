@@ -8,6 +8,7 @@ import type {
 import type { IBricksComponent } from '../../common/types/brick';
 import type { TPublishFormState } from '../../common/types/bricks-api';
 import type { TDataSourceRequestCache } from '../types/composables';
+import type { TDataSourceUrlParamValue } from '../types/dataSourceParams';
 
 // Utils
 import {
@@ -15,6 +16,7 @@ import {
     resolveDataSourceMethod,
     type TResolvedDataSourceMethod,
 } from '../utils/dataSourcePolicy';
+import { buildDataSourceUrl, isDataSourceUrlParamValue } from '../utils/dataSourceParams';
 import { DataSourceResponseTooLargeError } from '../utils/dataSourceResponseReading';
 import { resolveDataSourceLogTarget, toDataSourceLogError } from '../utils/dataSourceLogging';
 import { hasOwnKey } from '../../common/utils/safeRecord';
@@ -103,32 +105,6 @@ export function useBricksDataSources() {
     }
 
     /**
-     * Substitutes parameters into the URL, replacing :paramName with values.
-     *
-     * The parameter names are declared by a brick file, hence a `Map` as the
-     * collection: with an ordinary object `:constructor` would count as found via
-     * the prototype, while `:__proto__` could not be represented by an own key at
-     * all and the placeholder would stay unresolved.
-     *
-     * @param url - URL with placeholders of the :paramName form.
-     * @param params - The set of parameters to substitute.
-     * @returns The URL with the parameter values substituted.
-     *
-     * @example
-     * ```ts
-     * buildDataSourceUrl('/api/users/:id', new Map([['id', 123]])); // '/api/users/123'
-     * ```
-     */
-    function buildDataSourceUrl(url: string, params: Map<string, string | number>): string {
-        return url.replace(/:([a-zA-Z0-9_]+)/g, (match, key) => {
-            if (params.has(key)) {
-                return encodeURIComponent(String(params.get(key)));
-            }
-            return match;
-        });
-    }
-
-    /**
      * Returns a truncated preview of the result for the dev logs.
      * Caps arrays at 3 elements and objects at 5 keys.
      *
@@ -146,30 +122,6 @@ export function useBricksDataSources() {
         }
 
         return value;
-    }
-
-    /**
-     * Checks whether unresolved :paramName placeholders are left in the URL.
-     * For an absolute URL only path + query is checked (the colons of the scheme
-     * and of the port are not placeholders).
-     *
-     * @param url - URL after parameter substitution.
-     * @returns true when an unfilled placeholder is left in the URL.
-     */
-    function hasUnresolvedParams(url: string): boolean {
-        let checkedPart = url;
-
-        if (!url.startsWith('/')) {
-            try {
-                const parsed = new URL(url);
-                checkedPart = `${parsed.pathname}${parsed.search}`;
-            } catch {
-                // Not an absolute URL — check the whole string (the policy
-                // filters it out anyway)
-            }
-        }
-
-        return checkedPart.includes(':');
     }
 
     /**
@@ -244,7 +196,7 @@ export function useBricksDataSources() {
         requestCache?: TDataSourceRequestCache,
         signal?: AbortSignal
     ): Promise<Record<string, unknown> | null> {
-        let params = new Map<string, string | number>();
+        let params = new Map<string, TDataSourceUrlParamValue>();
         let url = source.url;
 
         const method = resolveDataSourceMethod(source.method);
@@ -260,31 +212,61 @@ export function useBricksDataSources() {
         }
 
         try {
-            if (source.params) {
-                // The parameter names are declared in a brick file: a Map as the
-                // collection, so that no name is lost or read off the prototype
-                params = new Map(
-                    Object.entries(source.params)
-                        .map(
-                            ([key, param]) =>
-                                [key, resolveParamValue(param, component, pageSettings)] as [
-                                    string,
-                                    string | number,
-                                ]
-                        )
-                        .filter(([, value]) => value !== undefined && value !== null)
+            // The parameter names are declared in a brick file: a Map and a Set as
+            // the collections, so that no name is lost or read off the prototype
+            const declaredParams = Object.entries(source.params ?? {});
+            const declaredParamKeys = new Set(declaredParams.map(([key]) => key));
+            const resolvedParams = declaredParams.map(
+                ([key, param]) => [key, resolveParamValue(param, component, pageSettings)] as const
+            );
+
+            params = new Map(
+                resolvedParams.filter(
+                    (entry): entry is readonly [string, TDataSourceUrlParamValue] =>
+                        isDataSourceUrlParamValue(entry[1])
+                )
+            );
+
+            // An absent value (undefined/null) is a normal "the parameter did not
+            // arrive": it is reported by the unresolved placeholder below. Reported
+            // here is a value of a type a URL cannot carry — the types only, never
+            // the values themselves, since the log of a published page must not
+            // hold the props or the page settings
+            const rejectedParamTypes = Object.fromEntries(
+                resolvedParams
+                    .filter(
+                        ([, value]) =>
+                            value !== undefined &&
+                            value !== null &&
+                            !isDataSourceUrlParamValue(value)
+                    )
+                    .map(([key, value]) => [key, typeof value])
+            );
+
+            if (Object.keys(rejectedParamTypes).length > 0) {
+                console.warn(
+                    '[Bricks DataSource] Dropped params - a URL carries only strings, finite numbers and booleans:',
+                    {
+                        key: source.key,
+                        rejectedParamTypes,
+                        componentId: component.id,
+                        brickPath: component.brickPath,
+                    }
                 );
             }
 
-            url = buildDataSourceUrl(source.url, params);
+            const urlBuild = buildDataSourceUrl(source.url, params, declaredParamKeys);
 
-            if (hasUnresolvedParams(url)) {
+            url = urlBuild.url;
+
+            if (urlBuild.unresolvedParamKeys.length > 0) {
                 console.warn(
                     '[Bricks DataSource] Skip - unresolved params:',
                     withDevLogDetails(
                         {
                             key: source.key,
                             target: resolveDataSourceLogTarget(url),
+                            unresolvedParams: urlBuild.unresolvedParamKeys,
                             componentId: component.id,
                             brickPath: component.brickPath,
                         },

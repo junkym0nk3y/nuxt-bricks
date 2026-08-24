@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<IRendererPlaceholderProps>(), {
         <h3 :class="$style.title">
             {{ props.title }}
         </h3>
-        <p :class="$style.description">
+        <p v-if="props.description" :class="$style.description">
             {{ props.description }}
         </p>
     </div>

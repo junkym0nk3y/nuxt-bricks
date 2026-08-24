@@ -163,6 +163,67 @@ describe('useBricksDataSources.executeDataSource', () => {
         );
     });
 
+    it('значение параметра без строковой формы отбрасывается, источник пропускается', async () => {
+        const { executeDataSource } = useBricksDataSources();
+
+        const result = await executeDataSource(
+            createSource({
+                url: '/api/items/:filters',
+                params: { filters: { from: 'component.filters' } },
+            }),
+            createComponent({ filters: { tag: 'news' } }),
+            null
+        );
+
+        // An object used to survive the cast and travel into the URL as
+        // [object Object]
+        expect(result).toBeNull();
+        expect(dataSourceFetcherMock).not.toHaveBeenCalled();
+        expect(console.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Dropped params'),
+            expect.objectContaining({ rejectedParamTypes: { filters: 'object' } })
+        );
+        expect(console.warn).toHaveBeenCalledWith(
+            expect.stringContaining('unresolved'),
+            expect.objectContaining({ unresolvedParams: ['filters'] })
+        );
+    });
+
+    it('boolean подставляется как есть — это допустимый скаляр URL', async () => {
+        dataSourceFetcherMock.mockResolvedValue({ items: [] });
+        const { executeDataSource } = useBricksDataSources();
+
+        await executeDataSource(
+            createSource({
+                url: '/api/items?draft=:draft',
+                params: { draft: { value: false } },
+            }),
+            createComponent(),
+            null
+        );
+
+        expect(dataSourceFetcherMock).toHaveBeenCalledWith('/api/items?draft=false', {
+            method: 'GET',
+        });
+    });
+
+    it('легальное двоеточие в query не считается незакрытым плейсхолдером', async () => {
+        dataSourceFetcherMock.mockResolvedValue({ items: [] });
+        const { executeDataSource } = useBricksDataSources();
+
+        const result = await executeDataSource(
+            createSource({ url: '/api/events?at=12:30' }),
+            createComponent(),
+            null
+        );
+
+        expect(dataSourceFetcherMock).toHaveBeenCalledWith('/api/events?at=12:30', {
+            method: 'GET',
+        });
+        expect(result).toEqual({ items: [] });
+        expect(console.warn).not.toHaveBeenCalled();
+    });
+
     it('отклоняет мутирующий метод без запроса', async () => {
         const { executeDataSource } = useBricksDataSources();
 

@@ -7,6 +7,7 @@ import {
     S3Client,
     PutObjectCommand,
     DeleteObjectCommand,
+    GetObjectCommand,
     ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { useRuntimeConfig } from 'nitropack/runtime';
@@ -356,6 +357,40 @@ export function createS3PublishAdapter(): IPublishAdapter {
             } while (continuationToken);
 
             return files;
+        },
+
+        /**
+         * Reads the head of an object with a ranged GetObject: the format is
+         * decided by the first bytes, and a full read of a video would pull
+         * hundreds of megabytes for nothing.
+         *
+         * A key outside the managed namespace is refused the same way
+         * `deleteFile` refuses one: in a shared bucket the module must not read
+         * foreign objects either.
+         */
+        async readFileHead(key: string, maxBytes: number): Promise<Buffer> {
+            const { client: s3, config } = useClient();
+
+            if (!isManagedStorageKey(key, resolveManagedPrefixes(config))) {
+                throw new Error(
+                    `[S3] Refusing to read a key outside the managed namespace: ${key}`
+                );
+            }
+
+            const response = await s3.send(
+                new GetObjectCommand({
+                    Bucket: config.bucket,
+                    Key: key,
+                    // The range is inclusive on both ends
+                    Range: `bytes=0-${maxBytes - 1}`,
+                })
+            );
+
+            if (!response.Body) {
+                return Buffer.alloc(0);
+            }
+
+            return Buffer.from(await response.Body.transformToByteArray());
         },
     };
 }

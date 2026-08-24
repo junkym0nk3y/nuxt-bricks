@@ -6,10 +6,12 @@
  * PROXY_URL, so the decision does not depend on whether a database is present.
  */
 
+import { BRICKS_API_PREFIX } from '../constants/apiPaths';
+
 // #region Constants
 /** Prefixes of the local endpoints: persistence, health, auth, component
  * library, media proxy, page thumbnail. */
-const LOCAL_API_PREFIXES = ['/api/bricks'];
+const LOCAL_API_PREFIXES = [BRICKS_API_PREFIX];
 
 /**
  * Synthetic base for parsing an origin-form request string. A domain in the

@@ -78,6 +78,27 @@ const displayName = computed<string>(() => props.component.componentName);
 const isLayout = computed<boolean>(() => props.component.type === 'layout');
 
 const hasChildren = computed<boolean>(() => childComponents.value.length > 0);
+
+/**
+ * A row may be dropped ONTO only at the root level.
+ *
+ * A nested row used to accept a drop too — it drew the position indicator and
+ * emitted the reorder — while the handler above looks the target up among the
+ * root components only and left silently on a nested one: the user saw "you can
+ * drop it here" and nothing happened.
+ *
+ * Making the nested move actually work is not a matter of an index: nothing keeps
+ * the invariants of such a move. The store would move an ancestor into its own
+ * descendant (there is no cycle check in `moveComponentToLayout`), the chain could
+ * end up deeper than the schema contract allows, a Grid has its own capacity and
+ * swap semantics on the canvas, and a slot child is not represented in this tree
+ * at all — its slot membership would be lost. That is a job of its own with a
+ * shared policy in the core, not a branch in the sidebar.
+ *
+ * A nested row stays a drag SOURCE: dropping it onto a root row raises the block
+ * to the top level, and that has always worked.
+ */
+const canReceiveDrop = computed<boolean>(() => canEdit.value && props.depth === 0);
 // #endregion
 
 // #region Methods
@@ -108,8 +129,15 @@ function handleDragStart(event: DragEvent): void {
  * @param event - The dragover event.
  */
 function handleDragOver(event: DragEvent): void {
-    event.preventDefault();
     event.stopPropagation();
+
+    // Without preventDefault the browser refuses the drop itself and shows the
+    // "not allowed" cursor — a nested row must not promise what would not happen
+    if (!canReceiveDrop.value) {
+        return;
+    }
+
+    event.preventDefault();
 
     if (!event.dataTransfer) {
         return;
@@ -137,6 +165,10 @@ function handleDragLeave(): void {
 function handleDrop(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
+
+    if (!canReceiveDrop.value) {
+        return;
+    }
 
     const draggedId = event.dataTransfer?.getData('tree-component-id');
     if (!draggedId || draggedId === props.component.id) {

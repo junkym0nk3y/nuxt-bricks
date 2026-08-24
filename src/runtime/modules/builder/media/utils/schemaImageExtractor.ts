@@ -32,7 +32,18 @@ const PLACEHOLDER_IMAGE_SUFFIX = '/images/brick-empty.webp';
 
 const IMAGE_EXTENSIONS_RE = /\.(webp|png|jpg|jpeg|gif|svg|avif)(\?|$)/i;
 const CDN_PATTERNS_RE = /storage\.yandexcloud\.net|amazonaws\.com|cdn\./i;
-const HTML_IMG_SRC_RE = /<img[^>]+src=["']([^"']+)["']/gi;
+/**
+ * The `src` of an `<img>` split into three groups: everything up to the value,
+ * the quote and the value itself. Extraction and replacement go through one and
+ * the same pattern, so what gets swapped is exactly what was found.
+ *
+ * The whitespace before `src` is mandatory — otherwise `data-src` of a lazy
+ * loader passes for `src` and its URL is collected as an image of the page.
+ */
+const HTML_IMG_SRC_RE = /(<img\b[^>]*?\s+src\s*=\s*)(["'])([^"']+)\2/gi;
+
+/** Whether the string holds an `<img>` at all — a cheap gate ahead of the pattern. */
+const HTML_IMG_TAG_RE = /<img\b/i;
 const DATA_URI_RE = /^data:/;
 /**
  * The longest string that may still be taken for a bare URL — a ceiling against
@@ -205,7 +216,7 @@ function extractFromHtml(
     HTML_IMG_SRC_RE.lastIndex = 0;
 
     while ((match = HTML_IMG_SRC_RE.exec(html)) !== null) {
-        const src = match[1];
+        const src = match[3];
         if (src && !DATA_URI_RE.test(src) && !isPlaceholderImageUrl(src)) {
             addUrlToMap(
                 urlMap,
@@ -214,6 +225,28 @@ function extractFromHtml(
             );
         }
     }
+}
+/**
+ * Swaps the `src` of every `<img>` whose value the map holds, leaving the rest of
+ * the markup exactly as it was (the quote character included).
+ *
+ * @param html - The HTML string of the prop.
+ * @param urlMap - `Map<oldUrl, newUrl>` of the replacements.
+ * @returns The string with the sources replaced.
+ */
+function replaceHtmlImageSources(html: string, urlMap: Map<string, string>): string {
+    HTML_IMG_SRC_RE.lastIndex = 0;
+
+    return html.replace(
+        HTML_IMG_SRC_RE,
+        (match: string, prefix: string, quote: string, src: string): string => {
+            const newUrl = urlMap.get(src);
+
+            // An empty new URL is a legitimate value of the map, so the check is
+            // for its presence and not for its truthiness
+            return newUrl === undefined ? match : `${prefix}${quote}${newUrl}${quote}`;
+        }
+    );
 }
 // #endregion
 
@@ -246,7 +279,7 @@ export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUr
                 }
 
                 // HTML content carrying <img> tags
-                if (value.includes('<img')) {
+                if (HTML_IMG_TAG_RE.test(value)) {
                     extractFromHtml(value, componentIndex, component, propName, urlMap);
                 }
 
@@ -303,10 +336,19 @@ export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUr
  * Replaces the image URLs of a schema according to a mapping.
  * The input is not mutated — a new schema is returned.
  *
- * A bare prop and a gallery or segment item are swapped whole, by an exact match. An
- * HTML prop is a plain substring replacement over the entire string, so a match is
- * taken wherever it sits — in a text node, in a `href`, inside a longer URL — and the
- * promise there is only that nothing but the matched substrings changes.
+ * Everything is swapped by an EXACT match of the whole value: a bare prop, an item
+ * of a gallery or of a segment, and the `src` of an `<img>` inside an HTML prop.
+ * The scope is the same as the extraction's, and that is the point: the
+ * replacement used to walk the whole HTML string, so a match was taken wherever
+ * it sat — in the `href` of a neighboring link, in the visible text, in a
+ * `data-` attribute — and a URL that was a PREFIX of another one broke it: with
+ * `…/a.png` swapped ahead of `…/a.png?v=2`, the second turned into
+ * `<the new URL>?v=2`, a broken link. An exact comparison has neither edge, and
+ * the order of the map stops mattering.
+ *
+ * What the narrowed scope gives up: the same URL inside an `href` around the
+ * picture stays as it was. It was never extracted, so it was never shown to the
+ * user either — swapping links is a separate job, with a source type of its own.
  *
  * @param schema - The original schema.
  * @param urlMap - `Map<oldUrl, newUrl>` of the replacements.
@@ -348,13 +390,11 @@ export function replaceSchemaImageUrls(
                     return;
                 }
 
-                // HTML — every occurrence of the old URL is swapped, wherever in
-                // the markup it sits; nothing else is touched
-                if (value.includes('<img')) {
-                    let replaced = value;
-                    urlMap.forEach((newUrl, oldUrl) => {
-                        replaced = replaced.split(oldUrl).join(newUrl);
-                    });
+                // HTML — only the `src` of an `<img>`, by an exact match of the
+                // whole value
+                if (HTML_IMG_TAG_RE.test(value)) {
+                    const replaced = replaceHtmlImageSources(value, urlMap);
+
                     if (replaced !== value) {
                         hasChanges = true;
                         newPropEntries.push([propName, replaced]);

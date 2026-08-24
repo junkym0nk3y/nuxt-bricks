@@ -30,6 +30,8 @@ import {
     isProtectedBricksHtmlPath,
     type IBricksRoutePrefixes,
 } from '../../../modules/common/utils/bricks/routePaths';
+import { BRICKS_API_PREFIX } from '../../../modules/common/constants/apiPaths';
+import { matchesPathPrefix } from '../../../modules/common/utils/localApiPaths';
 
 /** Read methods allowed on the public read model without authentication */
 const PUBLIC_READ_METHODS = ['GET', 'HEAD'];
@@ -60,7 +62,15 @@ export function requiresAuth(
     prefixes: IBricksRoutePrefixes
 ): boolean {
     // Database mode: the login page and the auth handlers are open — otherwise
-    // there is no way to sign in
+    // there is no way to sign in.
+    //
+    // The trailing slash of the sub-prefixes here (and of the public read model
+    // below) is deliberate and must not be relaxed to a segment-boundary match:
+    // there is no handler at exactly `/api/bricks/auth` or `/api/bricks/public`,
+    // so opening those roots would hand them to the generic `/api/bricks/:id`
+    // with `id` = `auth`/`public` — an open editorial handler. The middleware
+    // normalizes a trailing slash away before the matrix, so `/api/bricks/auth/`
+    // stays closed as well
     if (mode === 'database') {
         if (
             pathname === getBuilderLoginPath(prefixes) ||
@@ -100,8 +110,10 @@ export function requiresAuth(
     }
 
     // Editorial API — protected in full, GET included (drafts, full schema,
-    // media library)
-    if (pathname.startsWith('/api/bricks')) {
+    // media library). On a segment boundary: `/api/bricksmith` is a route of the
+    // consumer, and demanding authorization for it would take over a namespace
+    // that is not ours
+    if (matchesPathPrefix(pathname, BRICKS_API_PREFIX)) {
         return true;
     }
 

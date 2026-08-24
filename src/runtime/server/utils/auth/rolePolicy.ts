@@ -24,7 +24,9 @@
  * narrowest right, not the widest.
  */
 import { BRICKS_ROLE_RANK } from '../../../modules/common/constants/auth';
+import { BRICKS_API_PREFIX } from '../../../modules/common/constants/apiPaths';
 import { parseBricksBooleanFlag } from '../../../modules/common/utils/main';
+import { matchesPathPrefix } from '../../../modules/common/utils/localApiPaths';
 import type { TBricksUserRole } from '../../../modules/common/types/auth';
 import type { TBricksAccessRequirement } from './types';
 
@@ -186,8 +188,10 @@ export function resolveRequiredAccess(
 ): Exclude<TBricksAccessRequirement, null> {
     // Builder and preview HTML pages are open to every role: a viewer needs
     // access to the canvas and the preview, and view mode disables editing —
-    // refusing at the door would leave them without their only reachable screen
-    if (!pathname.startsWith('/api/bricks')) {
+    // refusing at the door would leave them without their only reachable screen.
+    // The API is recognized on a segment boundary, so a route of the consumer
+    // (`/api/bricksmith`) is treated as somebody else's path, not as ours
+    if (!matchesPathPrefix(pathname, BRICKS_API_PREFIX)) {
         return 'viewer';
     }
 

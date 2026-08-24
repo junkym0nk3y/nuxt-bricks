@@ -1,8 +1,11 @@
 // #region Imports
 // Types
-import type { VNode } from 'vue';
 import type { IBricksComponent } from '../../common/types/brick';
-import type { IRendererLayoutsOptions } from '../types/render';
+import type {
+    IRendererLayoutsOptions,
+    TRendererLayoutRefusalReason,
+    TRendererLayoutResult,
+} from '../types/render';
 
 // Utils
 import { getBlockDefinition } from '../../layouts-blocks/registry';
@@ -34,6 +37,17 @@ export function useRendererLayouts({
      * unbounded.
      */
     let activeAncestry: ReadonlySet<string> = new Set<string>();
+
+    /**
+     * Refusals already reported, as `<reason>:<componentId>`.
+     *
+     * Per instance rather than per module: a schema is not the immutable import
+     * map of the brick files — the live preview replaces it, and one and the same
+     * component id belongs to different pages. A module-level set would silence
+     * the refusal of every later page and of every later SSR request; this one
+     * only keeps a reactive redraw of the same branch from repeating itself.
+     */
+    const reportedRefusals = new Set<string>();
     // #endregion
 
     // #region Methods
@@ -68,27 +82,69 @@ export function useRendererLayouts({
     }
 
     /**
+     * Reports a refusal of the guard, once per pair of reason and component.
+     *
+     * At the `warn` level and not `error`: the page stays operable, one block
+     * does not render. Without this report the refusal was silent — the caller
+     * could not tell it from "this is not a layout block" and showed the visitor
+     * the placeholder of a brick missing from the library.
+     *
+     * @param component - Component whose rendering was refused.
+     * @param reason - Which of the two guards refused it.
+     */
+    function reportLayoutRefusal(
+        component: IBricksComponent,
+        reason: TRendererLayoutRefusalReason
+    ): void {
+        const refusalKey = `${reason}:${component.id}`;
+
+        if (reportedRefusals.has(refusalKey)) {
+            return;
+        }
+
+        reportedRefusals.add(refusalKey);
+
+        console.warn('[useRendererLayouts] Layout block refused: the component tree is invalid', {
+            reason,
+            componentId: component.id,
+            componentName: component.componentName,
+            ...(reason === 'depth' ? { maxComponentTreeDepth: MAX_COMPONENT_TREE_DEPTH } : {}),
+        });
+    }
+
+    /**
      * Renders a layout block through the registry, adding classes from the outer
      * context (device visibility, for example).
      *
      * @param component - Schema component.
      * @param extraClasses - Additional classes.
      * @param extraAttrs - Additional attributes.
-     * @returns VNode of the layout block, or `null` for non-layout components.
+     * @returns The rendered vnode, `not-layout` for a component the registry does
+     * not render, or a refusal of the guard with its reason.
      */
     function renderLayoutComponent(
         component: IBricksComponent,
         extraClasses: string[] = [],
         extraAttrs: Record<string, string | undefined> = {}
-    ): VNode | null {
+    ): TRendererLayoutResult {
         const definition = getBlockDefinition(component.componentName);
 
         if (!definition?.renderPublished) {
-            return null;
+            return { kind: 'not-layout' };
         }
 
-        if (activeAncestry.has(component.id) || activeAncestry.size >= MAX_COMPONENT_TREE_DEPTH) {
-            return null;
+        // The cycle is checked first: when both guards hold at once, being one's
+        // own ancestor is the more precise diagnosis of the two
+        if (activeAncestry.has(component.id)) {
+            reportLayoutRefusal(component, 'cycle');
+
+            return { kind: 'refused', reason: 'cycle' };
+        }
+
+        if (activeAncestry.size >= MAX_COMPONENT_TREE_DEPTH) {
+            reportLayoutRefusal(component, 'depth');
+
+            return { kind: 'refused', reason: 'depth' };
         }
 
         const ancestry: ReadonlySet<string> = new Set(activeAncestry).add(component.id);
@@ -110,15 +166,18 @@ export function useRendererLayouts({
             }
         };
 
-        return definition.renderPublished({
-            component,
-            definition,
-            extraClasses,
-            extraAttrs,
-            styles,
-            renderChild: scopedRenderChild,
-            getChildComponents,
-        });
+        return {
+            kind: 'rendered',
+            vnode: definition.renderPublished({
+                component,
+                definition,
+                extraClasses,
+                extraAttrs,
+                styles,
+                renderChild: scopedRenderChild,
+                getChildComponents,
+            }),
+        };
     }
     // #endregion
 

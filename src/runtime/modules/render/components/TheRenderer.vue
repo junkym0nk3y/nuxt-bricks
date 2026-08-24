@@ -5,7 +5,7 @@ import type { IRendererProps } from '../types/render';
 import type { IBricksComponent } from '../../common/types/brick';
 
 // Vue
-import { computed, h, useCssModule } from 'vue';
+import { computed, h, useCssModule, type VNode } from 'vue';
 
 // Composables
 import { useBrickImports } from '../../common/composables/useBrickImports';
@@ -59,10 +59,89 @@ function renderComponent(component: IBricksComponent) {
     const hasContainer = needsContainerWrapper(component);
     const innerAttrs = hasContainer ? {} : ariaAttrs;
 
-    const layoutContent = renderLayoutComponent(component, visibilityClasses, innerAttrs);
-    const content = layoutContent ?? renderUiComponent(component, visibilityClasses, innerAttrs);
+    return wrapWithContainer(
+        renderLayoutOrBrick(component, visibilityClasses, innerAttrs),
+        component,
+        visibilityClasses,
+        ariaAttrs
+    );
+}
 
-    return wrapWithContainer(content, component, visibilityClasses, ariaAttrs);
+/**
+ * Dispatches a schema component: a layout block of the registry, the placeholder
+ * of a refused layout block, or a brick file of the consumer.
+ *
+ * @param component - Schema component.
+ * @returns VNode of the chosen branch.
+ */
+function renderLayoutOrBrick(
+    component: IBricksComponent,
+    visibilityClasses: string[],
+    extraAttrs: Record<string, string | undefined>
+): VNode {
+    const layoutResult = renderLayoutComponent(component, visibilityClasses, extraAttrs);
+
+    if (layoutResult.kind === 'rendered') {
+        return layoutResult.vnode;
+    }
+
+    // A layout block the guard refused (a cycle or a chain over the depth limit)
+    // must not travel into the brick resolver: layout blocks have no brick files,
+    // the resolver answers `undefined` on the `layout` prefix without a word, and
+    // the visitor would be shown "the component is missing from the library" —
+    // a wrong diagnosis for a corrupted component tree. The reason itself is not
+    // shown: it is an internal detail of the schema, and it goes to the log
+    if (layoutResult.kind === 'refused') {
+        return renderPlaceholder(component, visibilityClasses, extraAttrs);
+    }
+
+    return renderUiComponent(component, visibilityClasses, extraAttrs);
+}
+
+/**
+ * Grid placement of a component: it is kept for the placeholder too, otherwise a
+ * neighbor of a failed cell would slide into its place.
+ *
+ * @param component - Schema component.
+ * @returns The style object, or undefined when the component has no placement.
+ */
+function buildGridItemStyle(component: IBricksComponent): Record<string, string> | undefined {
+    const gridItemStyle: Record<string, string> = {};
+
+    if (component.gridColumn) {
+        gridItemStyle.gridColumn = component.gridColumn;
+    }
+
+    if (component.gridRow) {
+        gridItemStyle.gridRow = component.gridRow;
+    }
+
+    return Object.keys(gridItemStyle).length ? gridItemStyle : undefined;
+}
+
+/**
+ * Renders the placeholder of an unavailable component.
+ *
+ * @param component - Schema component.
+ * @param description - What exactly is wrong; omitted when there is nothing to
+ * tell the visitor beyond the fact itself.
+ * @returns VNode of the placeholder.
+ */
+function renderPlaceholder(
+    component: IBricksComponent,
+    visibilityClasses: string[],
+    extraAttrs: Record<string, string | undefined>,
+    description = ''
+): VNode {
+    return h(RendererPlaceholder, {
+        key: component.id,
+        id: component.htmlId || undefined,
+        title: `${component.componentName || 'Компонент'} недоступен`,
+        description,
+        class: [styles.bricksPlaceholder, ...visibilityClasses],
+        style: buildGridItemStyle(component),
+        ...extraAttrs,
+    });
 }
 
 /**
@@ -82,13 +161,6 @@ function renderUiComponent(
         ...(props.resolvedProps?.get(component.id) ?? {}),
     };
     const brickComponent = resolveBrickComponent(component.brickPath);
-    const gridItemStyle: Record<string, string> = {};
-    if (component.gridColumn) {
-        gridItemStyle.gridColumn = component.gridColumn;
-    }
-    if (component.gridRow) {
-        gridItemStyle.gridRow = component.gridRow;
-    }
 
     if (brickComponent) {
         return h(brickComponent, {
@@ -96,20 +168,17 @@ function renderUiComponent(
             key: component.id,
             id: component.htmlId || undefined,
             class: [styles.bricksComponent, ...visibilityClasses],
-            style: Object.keys(gridItemStyle).length ? gridItemStyle : undefined,
+            style: buildGridItemStyle(component),
             ...extraAttrs,
         });
     }
 
-    return h(RendererPlaceholder, {
-        key: component.id,
-        id: component.htmlId || undefined,
-        title: `${component.componentName || 'Компонент'} недоступен`,
-        description: 'Компонент не найден в библиотеке. Обновите bricks или schema.',
-        class: [styles.bricksPlaceholder, ...visibilityClasses],
-        style: Object.keys(gridItemStyle).length ? gridItemStyle : undefined,
-        ...extraAttrs,
-    });
+    return renderPlaceholder(
+        component,
+        visibilityClasses,
+        extraAttrs,
+        'Компонент не найден в библиотеке. Обновите bricks или schema.'
+    );
 }
 
 /**

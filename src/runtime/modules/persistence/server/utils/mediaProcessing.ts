@@ -14,7 +14,7 @@ import {
     sniffVideoFormat,
     type TSniffedImageFormat,
 } from './fileSignatures';
-import { collectWebStreamWithLimit } from './requestBodyLimits';
+import { SNIFFED_FORMAT_EXTENSIONS } from './mediaFormats';
 import {
     getFileExtension,
     isAnimatedImage,
@@ -35,24 +35,6 @@ import { MEDIA_VARIANT_PRESETS } from './mediaVariants';
 /** ISO-BMFF containers: one signature, different extensions (`mp4`, `mov`, `m4v`). */
 const ISO_BMFF_EXTENSIONS = new Set(['mp4', 'mov', 'm4v']);
 /**
- * The object's extension by the recognized content. HEIF and TIFF/BMP are here
- * even though they are never stored as they are: the value is needed to decide
- * web-safeness by the content rather than by the name. `svg` does not get here —
- * vectors are handled by a branch of their own.
- */
-const SNIFFED_FORMAT_EXTENSIONS: Record<TSniffedImageFormat, string> = {
-    jpeg: 'jpg',
-    png: 'png',
-    gif: 'gif',
-    webp: 'webp',
-    avif: 'avif',
-    tiff: 'tiff',
-    bmp: 'bmp',
-    heif: 'heic',
-    svg: 'svg',
-};
-
-/**
  * The formats that can have more than one frame.
  *
  * The animation check is a separate sharp pass over the metadata, that is, one
@@ -68,73 +50,9 @@ const ANIMATABLE_SNIFFED_FORMATS = new Set<TSniffedImageFormat>(['gif', 'webp', 
  */
 const MIME_TYPE_MAX_LENGTH = 255;
 
-/** The timeout for reading SVG content out of storage (ms). */
-const SVG_FETCH_TIMEOUT_MS = 10_000;
-/** The size limit of the SVG content stored in the database for the preview. */
-const MAX_SVG_CONTENT_BYTES = 2 * 1024 * 1024;
 /** How many bytes of the file's head to decode for the textual SVG check. */
 const SVG_SNIFF_BYTES = 4096;
 // #endregion
-
-/**
- * Decides the MIME by the file name (used for imports from S3).
- * @param filename The file name.
- */
-export function detectMimeTypeByFilename(filename: string): string {
-    const extension = filename.split('.').pop()?.toLowerCase();
-
-    if (!extension) {
-        return 'image/png';
-    }
-
-    if (extension === 'svg') {
-        return 'image/svg+xml';
-    }
-
-    if (extension === 'jpg' || extension === 'jpeg') {
-        return 'image/jpeg';
-    }
-
-    if (extension === 'png') {
-        return 'image/png';
-    }
-
-    if (extension === 'webp') {
-        return 'image/webp';
-    }
-
-    return 'image/png';
-}
-
-/**
- * Fetches the SVG content by its URL to store it in the database for the preview.
- * Reads with a timeout, with no redirects and with a hard size limit — the URL
- * comes from our own storage, but the resource bounds are mandatory.
- * @param url The public link to the file.
- */
-export async function fetchSvgContent(url: string): Promise<string | undefined> {
-    try {
-        const response = await fetch(url, {
-            redirect: 'error',
-            signal: AbortSignal.timeout(SVG_FETCH_TIMEOUT_MS),
-        });
-
-        if (!response.ok || !response.body) {
-            return undefined;
-        }
-
-        const buffer = await collectWebStreamWithLimit(
-            response.body,
-            MAX_SVG_CONTENT_BYTES,
-            () => new Error(`SVG content exceeds ${MAX_SVG_CONTENT_BYTES} bytes limit`)
-        );
-
-        return buffer.toString('utf8');
-    } catch (error) {
-        console.warn('[Media] Failed to fetch SVG content for', url, error);
-        return undefined;
-    }
-}
 
 /**
  * Rejects a declared Content-Type that will not fit into the `mime_type` column.

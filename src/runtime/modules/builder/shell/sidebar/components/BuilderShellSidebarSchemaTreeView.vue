@@ -57,8 +57,11 @@ function handleClose(): void {
 }
 
 /**
- * Moves a component among the root ones according to the drop position. A target with
- * a parent is not found in the root list, and the drop then does nothing.
+ * Moves a component among the root ones according to the drop position.
+ *
+ * The target is always a root component: a nested row does not accept a drop (see
+ * `canReceiveDrop` in the tree item). A nested block can still be dragged onto a
+ * root row, and it is raised to the top level by this very call.
  *
  * @param draggedId - Id of the dragged component.
  * @param targetId - Id of the component it was dropped onto.

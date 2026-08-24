@@ -51,6 +51,74 @@ describe('schemaImageExtractor: placeholder', () => {
  * импортированной руками, поэтому `__proto__` подменял прототип нового объекта
  * вместо записи ключа.
  */
+describe('schemaImageExtractor: область замены в HTML-пропе', () => {
+    it('меняет только src у img, не трогая href, текст и data-атрибуты', () => {
+        // The replacement used to walk the whole string, so one URL was swapped in
+        // every place at once — including the ones the extraction never showed the
+        // user
+        const schema = makeSchema({
+            content:
+                '<a href="/uploads/a.png" data-preview="/uploads/a.png">/uploads/a.png' +
+                '<img src="/uploads/a.png"></a>',
+        });
+
+        const replaced = replaceSchemaImageUrls(
+            schema,
+            new Map([['/uploads/a.png', '/placeholder.webp']])
+        );
+
+        expect(replaced.components[0].props?.content).toBe(
+            '<a href="/uploads/a.png" data-preview="/uploads/a.png">/uploads/a.png' +
+                '<img src="/placeholder.webp"></a>'
+        );
+    });
+
+    it('URL, являющийся префиксом другого, получает свою замену', () => {
+        // The shorter key stands first on purpose: with a substring replacement it
+        // used to turn the second src into `<the new URL>?v=2` — a broken link
+        const schema = makeSchema({
+            content: '<img src="/uploads/a.png"><img src="/uploads/a.png?v=2">',
+        });
+
+        const replaced = replaceSchemaImageUrls(
+            schema,
+            new Map([
+                ['/uploads/a.png', '/first.webp'],
+                ['/uploads/a.png?v=2', '/second.webp'],
+            ])
+        );
+
+        expect(replaced.components[0].props?.content).toBe(
+            '<img src="/first.webp"><img src="/second.webp">'
+        );
+    });
+
+    it('data-src ленивого загрузчика не считается картинкой страницы', () => {
+        const schema = makeSchema({
+            content: '<img data-src="/uploads/lazy.png" src="/uploads/real.png">',
+        });
+
+        expect(extractSchemaImageUrls(schema).map((entry) => entry.url)).toEqual([
+            '/uploads/real.png',
+        ]);
+    });
+
+    it('кавычки и остальная разметка сохраняются как были', () => {
+        const schema = makeSchema({
+            content: "<img class='hero' src='/uploads/a.png' alt='hero'>",
+        });
+
+        const replaced = replaceSchemaImageUrls(
+            schema,
+            new Map([['/uploads/a.png', '/placeholder.webp']])
+        );
+
+        expect(replaced.components[0].props?.content).toBe(
+            "<img class='hero' src='/placeholder.webp' alt='hero'>"
+        );
+    });
+});
+
 describe('schemaImageExtractor: замена URL при именах пропов из Object.prototype', () => {
     it('сохраняет собственные пропы со специальными именами', () => {
         const schema = makeSchema(

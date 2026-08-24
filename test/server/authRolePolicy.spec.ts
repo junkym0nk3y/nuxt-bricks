@@ -96,6 +96,20 @@ describe('rolePolicy: минимальный доступ по пути и ме�
         expect(resolveRequiredAccess('/bricks-preview/my-page', 'GET')).toBe('viewer');
     });
 
+    it('не выдаёт ролевое требование чужому маршруту рядом с неймспейсом', () => {
+        // The segment boundary: `/api/bricksmith` is a handler of the consumer
+        // rather than ours, so it goes down the non-API branch. The method here
+        // has to be a mutating one: on a GET the previous implementation answered
+        // `viewer` too, and the case would not tell the fix apart
+        expect(resolveRequiredAccess('/api/bricksmith', 'POST')).toBe('viewer');
+        expect(resolveRequiredAccess('/api/bricksmith', 'DELETE')).toBe('viewer');
+        expect(resolveRequiredAccess('/api/bricksmith/pages', 'PUT')).toBe('viewer');
+
+        // Our own namespace still answers by the method as before
+        expect(resolveRequiredAccess('/api/bricks', 'POST')).toBe('editor');
+        expect(resolveRequiredAccess('/api/bricks/1', 'DELETE')).toBe('admin');
+    });
+
     it('закрывается на самое узкое право при незнакомом методе', () => {
         // Новая ручка не должна получать широкий доступ по умолчанию
         expect(resolveRequiredAccess('/api/bricks/whatever', 'PROPFIND')).toBe('admin');

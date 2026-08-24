@@ -1,12 +1,13 @@
 // #region Imports
 // Types
 import type { IBricksComponent } from '../../src/runtime/modules/common/types/brick';
+import type { TRendererLayoutResult } from '../../src/runtime/modules/render/types/render';
 
 // Vue
 import { computed, h, type VNode } from 'vue';
 
 // Vitest
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Composables
 import { useRendererLayouts } from '../../src/runtime/modules/render/composables/useRendererLayouts';
@@ -55,20 +56,29 @@ function makeGrid(id: string, children: string[], parent?: string): IBricksCompo
  */
 function createHarness(components: IBricksComponent[]) {
     const calls = { renderChild: 0 };
-    let renderLayout: (component: IBricksComponent) => VNode | null = () => null;
+    const refusals: string[] = [];
+    let renderLayout: (component: IBricksComponent) => TRendererLayoutResult = () => ({
+        kind: 'not-layout',
+    });
 
     const api = useRendererLayouts({
         allComponents: computed(() => components),
         styles: {},
         renderChild: (child: IBricksComponent) => {
             calls.renderChild += 1;
-            return renderLayout(child) ?? h('div');
+            const result = renderLayout(child);
+
+            if (result.kind === 'refused') {
+                refusals.push(result.reason);
+            }
+
+            return result.kind === 'rendered' ? result.vnode : h('div');
         },
     });
 
     renderLayout = api.renderLayoutComponent;
 
-    return { api, calls };
+    return { api, calls, refusals };
 }
 
 /**
@@ -106,13 +116,22 @@ function collectDeferredSlides(
 }
 
 describe('useRendererLayouts: цикл через отложенный renderSlide слайдера', () => {
+    beforeEach(() => {
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('цикл Slider A -> Grid B -> Slider A обрывается при deferred-вызове renderSlide', () => {
         const sliderA = makeSlider('a', ['b'], 'b');
         const gridB = makeGrid('b', ['a'], 'a');
-        const { api, calls } = createHarness([sliderA, gridB]);
+        const { api, calls, refusals } = createHarness([sliderA, gridB]);
 
-        const root = api.renderLayoutComponent(sliderA);
-        expect(root).not.toBe(null);
+        const rootResult = api.renderLayoutComponent(sliderA);
+        expect(rootResult.kind).toBe('rendered');
+        const root = rootResult.kind === 'rendered' ? rootResult.vnode : null;
 
         // Имитируем то, что делает BlockSlider.vue после выхода из
         // renderPublished: последовательно дёргаем renderSlide каждого
@@ -137,20 +156,25 @@ describe('useRendererLayouts: цикл через отложенный renderSli
         expect(iterations).toBeLessThan(iterationCap);
         expect(iterations).toBeLessThanOrEqual(MAX_COMPONENT_TREE_DEPTH);
         expect(calls.renderChild).toBeLessThanOrEqual(MAX_COMPONENT_TREE_DEPTH * 2);
+        // The deferred call arrives after renderPublished has already returned —
+        // the refusal and its reason have to reach the caller there as well
+        expect(refusals).toContain('cycle');
     });
 
     it('валидный слайдер рендерит слайды через deferred renderSlide без обрезания', () => {
         const slider = makeSlider('s', ['g']);
         const grid = makeGrid('g', [], 's');
-        const { api } = createHarness([slider, grid]);
+        const { api, refusals } = createHarness([slider, grid]);
 
-        const root = api.renderLayoutComponent(slider);
-        expect(root).not.toBe(null);
+        const rootResult = api.renderLayoutComponent(slider);
+        expect(rootResult.kind).toBe('rendered');
+        const root = rootResult.kind === 'rendered' ? rootResult.vnode : null;
 
         const deferred = collectDeferredSlides(root);
         expect(deferred).toHaveLength(1);
 
         const rendered = deferred[0].renderSlide(deferred[0].slide);
         expect(rendered).not.toBe(null);
+        expect(refusals).toEqual([]);
     });
 });

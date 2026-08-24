@@ -73,6 +73,33 @@ describe('routeProtection: матрица защищённых путей', () =
         }
     });
 
+    it('чужой маршрут потребителя рядом с неймспейсом остаётся его собственным', () => {
+        // A prefix match without a segment boundary is not enough here:
+        // `/api/bricksmith` is a handler of the consumer, and demanding
+        // authorization for it takes over a namespace that is not the module's
+        for (const mode of ['basic', 'database'] as const) {
+            expect(requiresAuth('/api/bricksmith', 'GET', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/api/bricksmith', 'POST', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/api/bricksmith/pages', 'GET', mode, PREFIXES)).toBe(false);
+            expect(requiresAuth('/api/bricks-external', 'DELETE', mode, PREFIXES)).toBe(false);
+
+            // The root of the namespace itself and its subtree are ours
+            expect(requiresAuth('/api/bricks', 'GET', mode, PREFIXES)).toBe(true);
+            expect(requiresAuth('/api/bricks/media', 'GET', mode, PREFIXES)).toBe(true);
+        }
+    });
+
+    it('точные корни /api/bricks/auth и /api/bricks/public закрыты', () => {
+        // The open sub-prefixes are deliberately written with a trailing slash:
+        // there is no handler at the roots themselves, so an open root would go
+        // to the generic `/api/bricks/:id` with `id` = `auth`/`public` — an
+        // editorial handler
+        expect(requiresAuth('/api/bricks/auth', 'GET', 'database', PREFIXES)).toBe(true);
+        expect(requiresAuth('/api/bricks/auth', 'POST', 'database', PREFIXES)).toBe(true);
+        expect(requiresAuth('/api/bricks/public', 'GET', 'database', PREFIXES)).toBe(true);
+        expect(requiresAuth('/api/bricks/publicsomething', 'GET', 'database', PREFIXES)).toBe(true);
+    });
+
     it('бывшие /mock-api/** пути освобождены — обычные пути host-приложения', () => {
         for (const mode of ['basic', 'database'] as const) {
             expect(requiresAuth('/mock-api/s3-media-proxy', 'POST', mode, PREFIXES)).toBe(false);

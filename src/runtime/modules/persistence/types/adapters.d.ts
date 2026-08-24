@@ -342,6 +342,18 @@ export interface IPublishAdapter {
     deleteFile(url: string): Promise<void>;
     listFiles(prefix?: string): Promise<IStoredFileInfo[]>;
     /**
+     * Reads the head of a stored object — the bytes the format is decided by.
+     *
+     * Reading goes through the adapter rather than over the public URL of the
+     * file: the object need not be public at all, an HTTP fetch by a URL would
+     * open a second path out of the server, and the bound on what is read belongs
+     * to whoever owns the storage contract. An implementation is obliged to
+     * refuse a key outside the managed namespace, exactly as `deleteFile` does.
+     *
+     * Returns at most `maxBytes`, and fewer for a shorter object.
+     */
+    readFileHead(key: string, maxBytes: number): Promise<Buffer>;
+    /**
      * Checks that the URL points at a file of its own storage inside the managed
      * namespace.
      *
