@@ -70,6 +70,15 @@ test('shows a blocking session error and opens the page after retry', async ({ p
     await expect(errorDialog).toContainText('500 Internal Server Error');
     await expect(page.getByRole('button', { name: 'Try again' })).toBeFocused();
 
+    // The screen covers the working area for the pointer alone. Without `inert` on it
+    // the keyboard walked past the screen into the sidebar, the properties panel and
+    // the fields of the publish form — where the autosave turns every edit down by
+    // the readiness of the session, so the work was lost without a word
+    const workspaceNavSettings = page.getByRole('button', { name: 'Settings' });
+    await workspaceNavSettings.focus();
+    await expect(workspaceNavSettings).not.toBeFocused();
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeFocused();
+
     await page.getByRole('button', { name: 'Try again' }).click();
     await expect(errorDialog).toBeHidden();
     await expect(page.getByRole('button', { name: 'Settings' })).toBeEnabled();

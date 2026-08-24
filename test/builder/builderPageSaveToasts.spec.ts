@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Vue
-import { computed, effectScope, ref, type EffectScope } from 'vue';
+import { computed, effectScope, ref, type EffectScope, type Ref } from 'vue';
 // #endregion
 
 /**
@@ -11,44 +11,56 @@ import { computed, effectScope, ref, type EffectScope } from 'vue';
  * контекста: сообщение об уже покинутой странице выглядело относящимся к той, что
  * открыта. Ошибка вытесненной операции вдобавок читала `generalError` — поле формы
  * новой страницы.
+ *
+ * Здесь же — гард готовности сессии у предпросмотра: тулбар при отказе загрузки
+ * намеренно живой, поэтому disabled у кнопки правилом не является.
  */
 
 // #region Mocks
-const { toasts, publishStoreMock, componentsStoreMock, sidebarStoreMock, componentLibraryMock } =
-    vi.hoisted(() => ({
-        toasts: [] as Array<{ message: string; variant: string }>,
-        componentLibraryMock: {
-            skippedBricks: [] as Array<{ name: string; brickPath: string; reason: string }>,
-            isLoadFailed: false,
+const {
+    toasts,
+    publishStoreMock,
+    componentsStoreMock,
+    sidebarStoreMock,
+    componentLibraryMock,
+    previewCurrentPageMock,
+    startPreviewSyncMock,
+} = vi.hoisted(() => ({
+    toasts: [] as Array<{ message: string; variant: string }>,
+    previewCurrentPageMock: vi.fn(() => 'page-a'),
+    startPreviewSyncMock: vi.fn(),
+    componentLibraryMock: {
+        skippedBricks: [] as Array<{ name: string; brickPath: string; reason: string }>,
+        isLoadFailed: false,
+    },
+    publishStoreMock: {
+        currentFormState: {
+            pagename: 'page-a',
+            title: 'Page A',
+            published: false,
+            description: '',
         },
-        publishStoreMock: {
-            currentFormState: {
-                pagename: 'page-a',
-                title: 'Page A',
-                published: false,
-                description: '',
-            },
-            generalError: '',
-            editingPageId: 1 as string | number | null,
-            publishCurrentPage: vi.fn(),
-            saveCurrentPageAsCopy: vi.fn(),
-            setCurrentFormField: vi.fn(),
-            startEditingPage: vi.fn(),
-            startNewPublish: vi.fn(),
-            clearErrors: vi.fn(),
-        },
-        componentsStoreMock: {
-            selectedComponent: null,
-            exportSchema: vi.fn(() => ({ components: [] })),
-            loadSchema: vi.fn(),
-        },
-        sidebarStoreMock: {
-            left: { visible: false, width: '0px' },
-            activeView: 'components',
-            toggleSidebarView: vi.fn(),
-            hideSidebar: vi.fn(),
-        },
-    }));
+        generalError: '',
+        editingPageId: 1 as string | number | null,
+        publishCurrentPage: vi.fn(),
+        saveCurrentPageAsCopy: vi.fn(),
+        setCurrentFormField: vi.fn(),
+        startEditingPage: vi.fn(),
+        startNewPublish: vi.fn(),
+        clearErrors: vi.fn(),
+    },
+    componentsStoreMock: {
+        selectedComponent: null,
+        exportSchema: vi.fn(() => ({ components: [] })),
+        loadSchema: vi.fn(),
+    },
+    sidebarStoreMock: {
+        left: { visible: false, width: '0px' },
+        activeView: 'components',
+        toggleSidebarView: vi.fn(),
+        hideSidebar: vi.fn(),
+    },
+}));
 
 vi.mock('vue-i18n', () => ({
     useI18n: () => ({
@@ -107,11 +119,11 @@ vi.mock('../../src/runtime/modules/builder/app/composables/usePageThumbnail', ()
 }));
 
 vi.mock('../../src/runtime/modules/builder/app/composables/usePreviewSync', () => ({
-    usePreviewSync: () => ({ startPreviewSync: vi.fn() }),
+    usePreviewSync: () => ({ startPreviewSync: startPreviewSyncMock }),
 }));
 
 vi.mock('../../src/runtime/modules/builder/publish/composables/usePublishPreview', () => ({
-    usePublishPreview: () => ({ previewCurrentPage: vi.fn() }),
+    usePublishPreview: () => ({ previewCurrentPage: previewCurrentPageMock }),
 }));
 
 vi.mock('../../src/runtime/modules/common/composables/useBricksConfig', () => ({
@@ -151,7 +163,7 @@ import type { IUseBuilderPageReturn } from '../../src/runtime/modules/builder/ap
  * @returns Scope, API страницы и функция инвалидации сессии.
  */
 async function mountBuilderPage(
-    overrides: { switchToSavedPage?: () => Promise<void> } = {}
+    overrides: { switchToSavedPage?: () => Promise<void>; isSessionReady?: Ref<boolean> } = {}
 ): Promise<{
     scope: EffectScope;
     page: IUseBuilderPageReturn;
@@ -181,6 +193,7 @@ async function mountBuilderPage(
             switchToSavedPage: overrides.switchToSavedPage ?? vi.fn(async () => undefined),
             commitSavedSnapshot: vi.fn(),
             sessionToken,
+            isSessionReady: overrides.isSessionReady ?? ref(true),
         })
     ) as Promise<IUseBuilderPageReturn>);
 
@@ -201,6 +214,9 @@ describe('страница билдера: тосты операции, доех
         publishStoreMock.saveCurrentPageAsCopy.mockReset();
         componentLibraryMock.skippedBricks = [];
         componentLibraryMock.isLoadFailed = false;
+        componentsStoreMock.exportSchema.mockClear();
+        previewCurrentPageMock.mockClear();
+        startPreviewSyncMock.mockClear();
         // provide() вне setup-компонента предупреждает в консоль — здесь это шум
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     });
@@ -390,6 +406,83 @@ describe('страница билдера: тосты операции, доех
         // Второй тост затёр бы первый — синглтон; отказ и свежее, и чинится повтором
         expect(toasts).toHaveLength(1);
         expect(toasts[0]?.message).toBe('bricks.library.loadFailed');
+
+        scope.stop();
+    });
+});
+
+describe('гард готовности сессии: сохранения и предпросмотр', () => {
+    beforeEach(() => {
+        toasts.length = 0;
+        publishStoreMock.publishCurrentPage.mockReset();
+        publishStoreMock.saveCurrentPageAsCopy.mockReset();
+        componentsStoreMock.exportSchema.mockClear();
+        previewCurrentPageMock.mockClear();
+        startPreviewSyncMock.mockClear();
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('несогласованная сессия: PUT не уходит, человек получает сообщение', async () => {
+        const { scope, page } = await mountBuilderPage({ isSessionReady: ref(false) });
+
+        await page.handleSaveDraft();
+
+        // До готовности форма и editingPageId уже заполнены, а схемы на канвасе
+        // ещё нет: PUT перезаписал бы страницу в базе пустым канвасом
+        expect(publishStoreMock.publishCurrentPage).not.toHaveBeenCalled();
+        expect(toasts).toEqual([
+            { message: 'bricks.publish.session.saveBlocked', variant: 'error' },
+        ]);
+
+        scope.stop();
+    });
+
+    it('несогласованная сессия: копия тоже не сохраняется', async () => {
+        const { scope, page } = await mountBuilderPage({ isSessionReady: ref(false) });
+
+        await page.handleSaveAsCopy();
+
+        expect(publishStoreMock.saveCurrentPageAsCopy).not.toHaveBeenCalled();
+        expect(toasts).toEqual([
+            { message: 'bricks.publish.session.saveBlocked', variant: 'error' },
+        ]);
+
+        scope.stop();
+    });
+
+    it('несогласованная сессия: канвас не экспортируется и превью не открывается', async () => {
+        const { scope, page } = await mountBuilderPage({ isSessionReady: ref(false) });
+
+        await page.handlePreview();
+
+        // Экспорт до готовности отдал бы либо пустой канвас, либо остатки прошлой
+        // страницы — и они уехали бы в хранилище превью как открытая страница
+        expect(componentsStoreMock.exportSchema).not.toHaveBeenCalled();
+        expect(previewCurrentPageMock).not.toHaveBeenCalled();
+        expect(startPreviewSyncMock).not.toHaveBeenCalled();
+        expect(toasts).toEqual([
+            { message: 'bricks.publish.session.previewBlocked', variant: 'error' },
+        ]);
+
+        scope.stop();
+    });
+
+    it('готовность читается на каждый вызов, а не при создании страницы', async () => {
+        const isSessionReady = ref(false);
+        const { scope, page } = await mountBuilderPage({ isSessionReady });
+
+        await page.handlePreview();
+        await page.handleSaveDraft();
+        isSessionReady.value = true;
+        await page.handlePreview();
+        await page.handleSaveDraft();
+
+        expect(previewCurrentPageMock).toHaveBeenCalledTimes(1);
+        expect(publishStoreMock.publishCurrentPage).toHaveBeenCalledTimes(1);
 
         scope.stop();
     });

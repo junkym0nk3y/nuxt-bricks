@@ -1,22 +1,62 @@
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
-import type { IBuilderDraftEntry, TBuilderDraftMigration } from '../types/builderDrafts';
+import type {
+    IBuilderDraftEntry,
+    TBuilderDraftMigration,
+    TBuilderDraftPrincipal,
+} from '../types/builderDrafts';
 import { getPageAddressKey, toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import { normalizeFormState } from './formState';
 
 /**
  * Builds the localStorage key of a builder draft.
  *
- * The key is the address (`…:draft:blog/post`) rather than the name alone: for
- * `/blog/post` and `/news/post` the draft would be shared — the second page,
- * opened alongside, would offer to restore the edits of the first and would smear
- * its own autosave over them. For a page with no prefix the key is the same as the
- * old one, which is why its drafts survive the move to identity by address.
+ * The key is the principal plus the address (`…:draft:database:7:blog/post`). The
+ * address alone is not identity enough twice over: for `/blog/post` and `/news/post`
+ * the draft would be shared, and without the principal so would it be for two
+ * editors of one browser profile — the second was offered the unfinished work of the
+ * first and their autosave smeared over it.
  *
+ * A record written under the previous, unscoped key is neither read nor removed: its
+ * owner cannot be determined, and handing somebody an unclaimed draft is the very
+ * defect the principal closes.
+ *
+ * @param principal - The owner of the draft.
  * @param address - Page address.
  * @returns The key for localStorage.
  */
-function buildBuilderDraftKey(address: IBricksPageAddress): string {
-    return `bricks-builder:draft:${getPageAddressKey(address)}`;
+function buildBuilderDraftKey(
+    principal: TBuilderDraftPrincipal,
+    address: IBricksPageAddress
+): string {
+    return `bricks-builder:draft:${principal}:${getPageAddressKey(address)}`;
+}
+
+/**
+ * Resolves the owner of the drafts of the current session.
+ *
+ * `null` means the identity is unknown, and then drafts are not touched at all:
+ * falling back onto a shared key would merge the users back together, which is
+ * exactly what the principal is here to prevent. In the database mode an unresolved
+ * profile also means the role is unknown, and a role like that carries no editing
+ * right — there is nothing to autosave anyway.
+ *
+ * @param isDatabaseMode - Whether the accounts of the database mode are on.
+ * @param userId - The id of the signed-in account (database mode only).
+ * @returns The owner of the drafts, or null when it cannot be determined.
+ */
+export function resolveBuilderDraftPrincipal(
+    isDatabaseMode: boolean,
+    userId: number | null | undefined
+): TBuilderDraftPrincipal | null {
+    if (!isDatabaseMode) {
+        return 'basic';
+    }
+
+    if (typeof userId !== 'number') {
+        return null;
+    }
+
+    return `database:${userId}`;
 }
 
 /**
@@ -58,14 +98,20 @@ export function isBuilderDraftStorageAvailable(): boolean {
 /**
  * Returns a builder draft out of localStorage.
  *
+ * @param principal - The owner of the draft; `null` — the owner is unknown, and an
+ * unknown owner has no drafts here: reading a record under a shared key would hand
+ * one person the unfinished work of another.
  * @param address - Page address.
  */
-export function getBuilderDraft(address: IBricksPageAddress): IBuilderDraftEntry | null {
-    if (typeof window === 'undefined') {
+export function getBuilderDraft(
+    principal: TBuilderDraftPrincipal | null,
+    address: IBricksPageAddress
+): IBuilderDraftEntry | null {
+    if (principal === null || typeof window === 'undefined') {
         return null;
     }
 
-    const key = buildBuilderDraftKey(address);
+    const key = buildBuilderDraftKey(principal, address);
 
     // The access to the storage itself is inside the try as well: with the site
     // data blocked `getItem` throws too, and a draft is read from the session
@@ -93,11 +139,16 @@ export function getBuilderDraft(address: IBricksPageAddress): IBuilderDraftEntry
  * off by it: the ban may be lifted (the quota freed up, the setting changed), and
  * the next attempt will go through.
  *
+ * @param principal - The owner of the draft; with `null` nothing is written — the
+ * autosave stops before this call, so a refusal here is the defensive one.
  * @param draft - Draft data.
  * @returns Whether the draft was written.
  */
-export function setBuilderDraft(draft: IBuilderDraftEntry): boolean {
-    if (typeof window === 'undefined') {
+export function setBuilderDraft(
+    principal: TBuilderDraftPrincipal | null,
+    draft: IBuilderDraftEntry
+): boolean {
+    if (principal === null || typeof window === 'undefined') {
         return false;
     }
 
@@ -115,7 +166,7 @@ export function setBuilderDraft(draft: IBuilderDraftEntry): boolean {
             : undefined,
     };
 
-    const key = buildBuilderDraftKey(toPageAddress(draft.pagename, draft.urlPrefix));
+    const key = buildBuilderDraftKey(principal, toPageAddress(draft.pagename, draft.urlPrefix));
     try {
         window.localStorage.setItem(key, JSON.stringify(normalized));
 
@@ -134,15 +185,25 @@ export function setBuilderDraft(draft: IBuilderDraftEntry): boolean {
  * explicit "open the saved one" — and on the next visit it offers to restore the
  * state a person has already turned down.
  *
+ * @param principal - The owner of the draft; with `null` there is no key of this
+ * session in the storage, so the removal succeeds having done nothing — a refusal
+ * would send a person looking for a storage that never refused.
  * @param address - Page address.
  * @returns Whether the draft was removed.
  */
-export function removeBuilderDraft(address: IBricksPageAddress): boolean {
+export function removeBuilderDraft(
+    principal: TBuilderDraftPrincipal | null,
+    address: IBricksPageAddress
+): boolean {
+    if (principal === null) {
+        return true;
+    }
+
     if (typeof window === 'undefined') {
         return false;
     }
 
-    const key = buildBuilderDraftKey(address);
+    const key = buildBuilderDraftKey(principal, address);
 
     // The removal is also called after a page has been saved successfully: an
     // exception of a blocked storage would fail the committing of the saved state,
@@ -168,19 +229,22 @@ export function removeBuilderDraft(address: IBricksPageAddress): boolean {
  * anyway, but that is the ordinary "a session owns its key" rather than a quiet
  * substitution during a rename.
  *
+ * @param principal - The owner of the draft; with `null` there is nothing of this
+ * session under either key.
  * @param fromAddress - The old address.
  * @param toAddress - The new address.
  */
 export function migrateBuilderDraft(
+    principal: TBuilderDraftPrincipal | null,
     fromAddress: IBricksPageAddress,
     toAddress: IBricksPageAddress
 ): TBuilderDraftMigration {
-    if (typeof window === 'undefined') {
+    if (principal === null || typeof window === 'undefined') {
         return 'nothing-to-migrate';
     }
 
-    const fromKey = buildBuilderDraftKey(fromAddress);
-    const toKey = buildBuilderDraftKey(toAddress);
+    const fromKey = buildBuilderDraftKey(principal, fromAddress);
+    const toKey = buildBuilderDraftKey(principal, toAddress);
 
     if (fromKey === toKey) {
         return 'nothing-to-migrate';

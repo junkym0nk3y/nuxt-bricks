@@ -397,6 +397,7 @@
                 "errorRetry": "Try again",
                 "errorOpenPages": "My pages",
                 "saveBlocked": "The page has not loaded yet — saving is disabled",
+                "previewBlocked": "The page has not loaded yet — the preview is disabled",
                 "errorTimeout": "The page is not responding — loading was cancelled"
             },
             "navigation": {

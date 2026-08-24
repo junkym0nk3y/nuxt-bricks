@@ -11,7 +11,10 @@ import type { IPublishedPage, TPublishedPageSummary } from '../../../common/type
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IUsePublishSchemaImportReturn } from '../../publish/types/composables';
 import type { ISidebarExpose } from './builder';
-import type { IBuilderDraftSnapshot } from '../../publish/types/builderDrafts';
+import type {
+    IBuilderDraftSnapshot,
+    TBuilderDraftPrincipal,
+} from '../../publish/types/builderDrafts';
 import type { IBuilderToastState } from '../../core/types/toast';
 import type { TCachedModal } from '../../core/types/modals';
 import type { IBrickManifestEntry } from '../../../common/types/brickManifest';
@@ -51,6 +54,16 @@ export type TSwitchToSavedPage = (page: IPublishedPage) => Promise<void>;
  */
 export interface IBuilderSessionAddressOptions {
     draftStorageNotice: IDraftStorageNotice;
+    /**
+     * The owner of the drafts of this session (`resolveBuilderDraftPrincipal`).
+     * `null` — the identity is unknown, and then drafts are neither read nor
+     * written: a shared key would merge the users back together.
+     *
+     * It is computed once by the composition root and handed to every consumer of
+     * the drafts as one and the same value: written under one principal and removed
+     * under another, a draft would come back to life on the next visit.
+     */
+    draftPrincipal: TBuilderDraftPrincipal | null;
 }
 
 /**
@@ -108,14 +121,25 @@ export interface IBuilderSessionOptions {
      * The editing right of the current role: whether a draft is read at all
      * depends on it.
      *
-     * The key of a draft is the address — one for everyone who opens this page in
-     * this browser — so a role without the editing right does not read it at all:
-     * otherwise an observer would see the unfinished work of an editor and, by
-     * answering "discard" in the restore window, would take it away for good. It
-     * comes from the composition root rather than from the permissions composable
-     * directly: that is how a test substitutes it.
+     * The key of a draft carries the principal, so the drafts of two accounts no
+     * longer meet; the editing right is the second half of the same barrier, and it
+     * is about a role rather than an identity. Without it a draft is not read at
+     * all: an observer sharing the account of an editor would otherwise see their
+     * unfinished work and, by answering "discard" in the restore window, would take
+     * it away for good. It comes from the composition root rather than from the
+     * permissions composable directly: that is how a test substitutes it.
      */
     canEdit: ComputedRef<boolean>;
+    /**
+     * The owner of the drafts of this session (`resolveBuilderDraftPrincipal`).
+     * `null` — the identity is unknown, and then drafts are neither read nor
+     * written: a shared key would merge the users back together.
+     *
+     * It is computed once by the composition root and handed to every consumer of
+     * the drafts as one and the same value: written under one principal and removed
+     * under another, a draft would come back to life on the next visit.
+     */
+    draftPrincipal: TBuilderDraftPrincipal | null;
 }
 
 /**
@@ -143,6 +167,16 @@ export interface IBuilderDraftPromptOptions {
  * Options of the useBuilderDraftPersistence composable.
  */
 export interface IBuilderDraftPersistenceOptions {
+    /**
+     * The owner of the drafts of this session (`resolveBuilderDraftPrincipal`).
+     * `null` — the identity is unknown, and then drafts are neither read nor
+     * written: a shared key would merge the users back together.
+     *
+     * It is computed once by the composition root and handed to every consumer of
+     * the drafts as one and the same value: written under one principal and removed
+     * under another, a draft would come back to life on the next visit.
+     */
+    draftPrincipal: TBuilderDraftPrincipal | null;
     routeAddress: ComputedRef<IBricksPageAddress>;
     sessionAddress: Ref<IBricksPageAddress>;
     isSessionLoading: Ref<boolean>;
@@ -314,6 +348,12 @@ export interface IBuilderPageOptions {
     switchToSavedPage: TSwitchToSavedPage;
     commitSavedSnapshot: TCommitSavedSnapshot;
     sessionToken: IBuilderSessionToken;
+    /**
+     * The session is open to a consistent state. Read by the preview: before
+     * readiness the canvas holds either nothing or the remains of the previous
+     * page, and the preview would be built out of those.
+     */
+    isSessionReady: Ref<boolean> | ComputedRef<boolean>;
 }
 
 /**

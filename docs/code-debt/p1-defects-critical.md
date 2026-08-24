@@ -10,57 +10,7 @@
 
 ---
 
-## 1. При экране ошибки сессии рабочая область остаётся доступной с клавиатуры
-
-**Файл:** `builder/app/pages/[pagename].vue` (`isBuilderLocked`)
-
-`isBuilderLocked` намеренно ложен при `sessionError`, потому что экран ошибки сам
-перекрывает рабочую область. Перекрывает он её **только для указателя**: экран —
-`position: absolute; inset: 0` внутри `.content`, а `inert` в этот момент не стоит
-нигде и блокировщика в DOM нет. Tab поэтому уходит в сайдбар, панель свойств и
-поля формы публикации за экраном, а `isSessionReady` там ложен — автосейв
-отклоняет всё, что там наберут, и правка теряется молча. Это ровно тот класс
-потери, ради которого барьер и делался: комментарий блокировщика описывает его как
-закрытый.
-
-**Чинить (дешёвый вариант):** снять исключение и держать `inert` на `.workspace`
-(но не на тулбаре) и при `sessionError` — сам экран лежит вне `.workspace`,
-поэтому его кнопки останутся живыми. Взвешивать владельцу: тулбар остаётся живым
-намеренно, и на этом же держится следующий пункт.
-
----
-
-## 2. `handlePreview` — единственное действие тулбара без гарда готовности сессии
-
-**Файл:** `builder/app/composables/useBuilderPage.ts`
-
-Оба сохранения проходят через `runSaveWhenSessionReady`, сохранение шаблона несёт
-собственный гард (`useBuilderTemplateSave.requestFromCanvas`), а `handlePreview`
-зовёт `componentsStore.exportSchema()` без проверки. До готовности сессии на
-канвасе либо пусто, либо остатки прошлой страницы, и превью открывается по ним.
-
-Достижимо это при показанном экране ошибки сессии (пункт выше — тулбар там не под
-`inert`), то есть ровно тогда, когда содержимое канваса заведомо не принадлежит
-открытой странице.
-
----
-
-## 3. `isInstalled` поднимается до успешной установки чанка
-
-**Файл:** `src/runtime/plugins/utils/builderRouteScope.ts:65-66`
-
-`isInstalled = true` стоит **до** `await install()`. Упавший `import()`
-(ChunkLoadError, разорванная сеть, задеплоенная новая версия с другими хешами)
-навсегда закрывает вторую попытку: следующая навигация на builder увидит поднятый
-флаг и вернётся сразу, а билдер откроется без provider'а тулбара, правил
-vee-validate или builder-набора иконок — без единого сообщения.
-
-Второй эффект того же места: параллельные вызовы (`beforeResolve` и начальный URL)
-не ждут промис первого, потому что флаг не хранит сам промис.
-
----
-
-## 4. `/api/bricks` сопоставляется без границы сегмента
+## 1. `/api/bricks` сопоставляется без границы сегмента
 
 **Файлы:** `src/runtime/server/utils/auth/routeProtection.ts:103`,
 `src/runtime/server/utils/auth/csrfProtection.ts:86`,
@@ -89,7 +39,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 5. Импорт из бакета пишет ложный MIME всем форматам кроме четырёх
+## 2. Импорт из бакета пишет ложный MIME всем форматам кроме четырёх
 
 **Файлы:** `src/runtime/modules/persistence/server/utils/mediaProcessing.ts`
 (`detectMimeTypeByFilename`),
@@ -110,7 +60,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 6. Непроверенный каст параметров: объект уезжает в URL как `[object Object]`
+## 3. Непроверенный каст параметров: объект уезжает в URL как `[object Object]`
 
 **Файл:** `src/runtime/modules/render/composables/useBricksDataSources.ts`
 (`executeDataSource`, сборка `params`)
@@ -128,7 +78,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 7. `hasUnresolvedParams` ищет любое двоеточие, а не `:paramName`
+## 4. `hasUnresolvedParams` ищет любое двоеточие, а не `:paramName`
 
 **Файл:** `src/runtime/modules/render/composables/useBricksDataSources.ts`
 
@@ -144,7 +94,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 8. Отказ layout-блока по циклу неотличим от «это не layout»
+## 5. Отказ layout-блока по циклу неотличим от «это не layout»
 
 **Файлы:** `src/runtime/modules/render/composables/useRendererLayouts.ts`
 (`renderLayoutComponent`), `render/components/TheRenderer.vue`
@@ -169,7 +119,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 9. Замена URL в схеме идёт по всей строке, а префиксные URL ломаются
+## 6. Замена URL в схеме идёт по всей строке, а префиксные URL ломаются
 
 **Файл:** `builder/media/utils/schemaImageExtractor.ts` (`replaceSchemaImageUrls`,
 ветка HTML)
@@ -190,7 +140,7 @@ vee-validate или builder-набора иконок — без единого 
 
 ---
 
-## 10. Гонка загрузки статьи: медленный ответ переписывает открытую статью
+## 7. Гонка загрузки статьи: медленный ответ переписывает открытую статью
 
 **Файл:** `builder/documentation/composables/useDocumentationArticles.ts:165-190`
 (`loadArticleContent`), watcher — `:239-246`
@@ -221,7 +171,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 11. Дерево схемы принимает drop на вложенный узел и молча ничего не делает
+## 8. Дерево схемы принимает drop на вложенный узел и молча ничего не делает
 
 **Файлы:** `builder/shell/sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:176,212`,
 `sidebar/components/BuilderShellSidebarSchemaTreeView.vue:59-75`
@@ -239,7 +189,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 12. Гейт `isDatabaseMode` в форме пароля недостижим и оставляет форму заблокированной
+## 9. Гейт `isDatabaseMode` в форме пароля недостижим и оставляет форму заблокированной
 
 **Файл:** `builder/auth/components/BuilderAuthProfilePasswordForm.vue:99-101`
 
@@ -259,7 +209,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 13. `cycleUnit` записывает число пикселей как проценты
+## 10. `cycleUnit` записывает число пикселей как проценты
 
 **Файлы:** `src/runtime/modules/text-editor/utils/sizeUnits.ts` (`convertFromPx`),
 `src/runtime/modules/text-editor/components/TextEditorImageSizePanel.vue`
@@ -278,7 +228,7 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 14. Slot DnD: рекурсивный отбор детей и несимметричный `dragDepth`
+## 11. Slot DnD: рекурсивный отбор детей и несимметричный `dragDepth`
 
 **Файл:** `builder/canvas/item/composables/useSlotDragDrop.ts:134-141`, `:198-212`,
 `:239-255`
@@ -301,48 +251,28 @@ playground с восемью локальными статьями поймат�
 
 ---
 
-## 15. `isFallbackMode` включается без редактора: лишняя запись в историю и inline-правка `input` без редактора
+## 12. Редактор layout-компонента публикуется в стор после конца правки
 
-**Файл:** `builder/canvas/editing/composables/useInlineEditingFallback.ts:177-205`
-**Состояние:** вживую не воспроизведено — в playground нет brick-компонентов.
+**Файл:** `src/runtime/modules/text-editor/composables/useInlineEditor.ts`
+(`initEditor`)
 
-По истечении задержки флаг ставится всегда — `isFallbackMode.value = true`, — а
-редактор создаётся только для `textarea` и `inline-content`. Между тем
-inline-editable у brick-компонента бывает и `input`
-(`builder/core/utils/inlineEditableProp.ts:21`, «input included for headlines»).
-Для такого свойства получается: редактора нет ни от layout-компонента (иначе таймер
-бы не сработал), ни fallback-ного, то есть править значение в overlay нечем; а на
-выходе из редактирования ветка `if (isFallbackMode.value)` вызывает
-`saveFallbackToStore()` (пустая операция при `fallbackEditor === null`) и
-`componentsStore.saveToHistory()`.
+`initEditor` тянет TipTap динамическими `import()` и после них безусловно делает
+`inlineEditingStore.setEditor(editor.value)`. Оба сторожа, которые сносят редактор
+при уходе с компонента или смене свойства, требуют `editor.value` — а пока идёт
+импорт, он ещё `null`. Значит, `stopEditing()` (Escape, клик мимо, переход на
+другую страницу), случившийся внутри окна импорта, не уничтожает ничего, а
+доехавший следом редактор встаёт в стор уже без активной правки.
 
-`historyStore.capture` пишет снимок без сравнения с предыдущим
-(`builder/core/stores/history.ts:36-47`), поэтому в историю уезжает дубль
-состояния: undo становится доступен, ничего не изменив. То же делает `handleDone` в
-overlay.
+Дальше — молчаливый отказ: следующее inline-редактирование видит непустой
+`inlineEditingStore.editor` и не создаёт своего (`useInlineEditingFallback`
+выходит по этой проверке), то есть overlay открывается, а править нечем. Второй
+эффект — `saveToStore` осевшего редактора продолжает писать в **прежний** проп.
 
----
+Overlay-половина этого класса уже закрыта: fallback после `await` сверяет
+поколение, компонент, свойство и чужой редактор в сторе и уничтожает лишний
+экземпляр. Здесь нужно то же самое — снимок `componentId`/`propName` до `await` и
+`editor.destroy()` при расхождении.
 
-## 16. Черновик билдера общий на браузер: второй редактор перезаписывает чужую работу
-
-**Файл:** `builder/publish/utils/draftStorage.ts:18-20` (`buildBuilderDraftKey`)
-
-Ключ адресный (`bricks-builder:draft:<адрес>`), принципала в нём нет. Два редактора
-на общей машине под одним браузерным профилем работают с одним черновиком: второй
-получает предложение восстановить чужую незавершённую работу, а его автосейв её
-затирает. Роль без права правки черновик не читает и не пишет вовсе, поэтому
-радиус — редакторы и админы.
-
-**Решение владельца: привязать ключ к принципалу** — `database:<userId>` либо
-`basic` для Basic Auth; идентификатор брать оттуда же, откуда приезжает роль.
-
-**Цена принята вместе с решением:** существующие черновики станут невидимыми.
-Подхватывать безымянные ключи автоматически нельзя — владельца у них не
-определить, и молчаливое присвоение чужого черновика ровно тот дефект, который
-правка закрывает. Проект не опубликован, потребитель один, поэтому потеря
-ограничена локальными черновиками разработки.
-
-**Есть на что опереться:** формат ключа уже менялся (адрес вместо имени страницы),
-и у той правки есть спека — `test/builder/draftStorageMigration.spec.ts`. Новый
-случай отличается тем, что старый ключ не переносится, а игнорируется: это и должен
-зафиксировать различающий тест.
+**Различающий тест:** `stopEditing()` до завершения импорта — редактор уничтожен,
+`inlineEditingStore.editor` остался `null`; спека на это сейчас есть только у
+fallback (`test/builder/inlineEditingFallback.spec.ts`).

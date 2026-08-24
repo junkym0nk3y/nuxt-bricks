@@ -37,7 +37,14 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
     const fallbackEditorContent = shallowRef<Component | null>(null);
 
     /**
-     * Whether the fallback editor is in use (the overlay built an editor of its own).
+     * Whether the fallback editor is in use — raised once the overlay HAS an editor
+     * of its own, never on the intention to build one.
+     *
+     * The difference is what leaving the editing costs: the flag gates both the save
+     * of the value and `saveToHistory`, and `historyStore.capture` writes a snapshot
+     * without comparing it with the previous one. Raised before the asynchronous
+     * `createTiptapEditor`, it survived a refused import and put a duplicate of the
+     * state into the history — undo became available having changed nothing.
      */
     const isFallbackMode = ref(false);
 
@@ -48,6 +55,21 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
 
     /** Timer that waits for an editor to be initialized by a layout component */
     let fallbackInitTimer: ReturnType<typeof setTimeout> | null = null;
+
+    /**
+     * The generation of an initialization. `createTiptapEditor` is asynchronous, and
+     * over its await the editing can end, the property can be switched or a layout
+     * component can bring an editor of its own — an editor built for a state that is
+     * gone must not reach the store.
+     */
+    let fallbackGeneration = 0;
+
+    /**
+     * An initialization is in flight. The intention lives apart from `isFallbackMode`
+     * on purpose: the switch of a property has to rebuild the editor that is still
+     * being created, while the history must not count it as existing.
+     */
+    let isFallbackInitPending = false;
 
     /**
      * Whether to show the fallback EditorContent in the overlay (for brick components).
@@ -96,6 +118,12 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
      * Called when no layout component created an editor of its own.
      */
     async function initFallbackTiptapEditor(): Promise<void> {
+        fallbackGeneration += 1;
+        const generation = fallbackGeneration;
+        const componentId = inlineEditingStore.componentId;
+        const propName = inlineEditingStore.propName;
+        isFallbackInitPending = true;
+
         try {
             const currentValue = getCurrentPropValue();
             const htmlContent = typeof currentValue === 'string' ? currentValue : '';
@@ -110,14 +138,40 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
                 onUpdate: saveFallbackToStore,
             });
 
+            // The state the editor was built for is gone: the editing has ended, the
+            // property or the component has been switched, or a layout component has
+            // brought an editor of its own while this one was being built. Publishing
+            // it would write the value of one property into another, revive editing
+            // over a component nobody is editing, or overwrite somebody else's editor
+            // in the store — after which the overlay would drive the wrong one.
+            //
+            // The identity of the target is checked next to the generation rather
+            // than through it: a move onto another component keeping the property
+            // name (`text` to `text`) leaves both watchers silent.
+            if (
+                generation !== fallbackGeneration ||
+                inlineEditingStore.componentId !== componentId ||
+                inlineEditingStore.propName !== propName ||
+                inlineEditingStore.editor
+            ) {
+                ed.destroy();
+
+                return;
+            }
+
             fallbackEditorContent.value = EditorContent;
             fallbackEditor.value = ed;
+            isFallbackMode.value = true;
             inlineEditingStore.setEditor(ed);
 
             await nextTick();
             ed.commands.focus();
         } catch (error) {
             console.error('[useInlineEditingFallback] Failed to init fallback editor:', error);
+        } finally {
+            if (generation === fallbackGeneration) {
+                isFallbackInitPending = false;
+            }
         }
     }
 
@@ -129,6 +183,10 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
             clearTimeout(fallbackInitTimer);
             fallbackInitTimer = null;
         }
+
+        // An editor still being built belongs to the state being torn down here
+        fallbackGeneration += 1;
+        isFallbackInitPending = false;
 
         if (fallbackEditor.value) {
             fallbackEditor.value.destroy();
@@ -159,13 +217,17 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
 
             options.onPropSwitch?.();
 
-            // Rebuild the fallback editor for the newly selected property
-            if (!isFallbackMode.value || !inlineEditingStore.isEditing) {
+            // Rebuild the fallback editor for the newly selected property — the one
+            // still being created included, otherwise it would arrive holding the
+            // value of the property left behind
+            if (
+                (!isFallbackMode.value && !isFallbackInitPending) ||
+                !inlineEditingStore.isEditing
+            ) {
                 return;
             }
 
             destroyFallbackEditor();
-            isFallbackMode.value = true;
             initFallbackTiptapEditor();
         }
     );
@@ -194,7 +256,6 @@ export function useInlineEditingFallback(options: IInlineEditingFallbackOptions 
                     return;
                 }
 
-                isFallbackMode.value = true;
                 const pType = inlineEditingStore.propType;
 
                 if (pType === 'textarea' || pType === 'inline-content') {

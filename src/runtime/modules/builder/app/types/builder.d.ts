@@ -66,6 +66,18 @@ export interface IBuilderDraftRestoreModalEmits {
 }
 
 /**
+ * The state the lock of the builder is computed from (`sessionLock`).
+ */
+export interface IBuilderSessionLockState {
+    /** The bootstrap of the session was refused and the error screen is up. */
+    hasSessionError: boolean;
+    /** The session has loaded through to a consistent state. */
+    isSessionReady: boolean;
+    /** The loader is still on the screen (it outlives the readiness of the session). */
+    isLoaderVisible: boolean;
+}
+
+/**
  * Arguments of the save guard (`runSaveWhenSessionReady`).
  */
 export interface ISessionSaveGuardOptions {

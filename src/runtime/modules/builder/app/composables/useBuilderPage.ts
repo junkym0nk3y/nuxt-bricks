@@ -6,6 +6,7 @@ import type { IBuilderPageOptions, IUseBuilderPageReturn } from '../types/compos
 
 // Utils
 import { setPublishStoreBackgroundColor } from '../../publish/utils/formState';
+import { runSaveWhenSessionReady } from '../utils/sessionGuards';
 
 // Vue
 import { computed, provide, ref, watch } from 'vue';
@@ -50,6 +51,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         switchToSavedPage,
         commitSavedSnapshot,
         sessionToken,
+        isSessionReady,
     } = options;
 
     // #region Stores & Composables
@@ -217,21 +219,64 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         isDocumentationModalOpen.value = false;
     }
 
-    const { isEditingExistingPage, currentPublishPageTitle, handleSaveDraft, handleSaveAsCopy } =
-        useBuilderPageWrite({
-            sessionToken,
-            renameSession,
-            switchToSavedPage,
-            commitSavedSnapshot,
-            ensurePublishSettingsVisible,
+    const {
+        isEditingExistingPage,
+        currentPublishPageTitle,
+        handleSaveDraft: saveDraft,
+        handleSaveAsCopy: saveAsCopy,
+    } = useBuilderPageWrite({
+        sessionToken,
+        renameSession,
+        switchToSavedPage,
+        commitSavedSnapshot,
+        ensurePublishSettingsVisible,
+    });
+
+    /**
+     * Saves the page into a consistent session alone (the rule itself is in
+     * `runSaveWhenSessionReady`). Every action of the toolbar that reads the canvas
+     * asks about the readiness here rather than in the composition root: in a
+     * template the rule could only be verified by its text, and such a check stays
+     * green over, say, a lost `return`.
+     */
+    async function handleSaveDraft(): Promise<void> {
+        await runSaveWhenSessionReady({
+            isSessionReady: () => isSessionReady.value,
+            save: saveDraft,
+            onBlocked: () => showToast(t('bricks.publish.session.saveBlocked'), 'error'),
         });
+    }
+
+    /**
+     * The same for the save of a copy.
+     */
+    async function handleSaveAsCopy(): Promise<void> {
+        await runSaveWhenSessionReady({
+            isSessionReady: () => isSessionReady.value,
+            save: saveAsCopy,
+            onBlocked: () => showToast(t('bricks.publish.session.saveBlocked'), 'error'),
+        });
+    }
 
     /**
      * Opens the preview of the current landing in a new tab. After the opening it
      * starts the synchronization — the changes on the canvas will show up in the
      * preview in real time.
+     *
+     * The readiness of the session is checked before the export rather than trusted
+     * to the disabled state of the button: with the screen of a refused bootstrap up,
+     * the toolbar deliberately stays live (the retry and the way out sit there), and
+     * the canvas at that moment holds either nothing or the remains of the previous
+     * page. A preview built out of those would be written into the preview storage
+     * and shown as the page a person is looking at.
      */
     async function handlePreview(): Promise<void> {
+        if (!isSessionReady.value) {
+            showToast(t('bricks.publish.session.previewBlocked'), 'error');
+
+            return;
+        }
+
         const schema = componentsStore.exportSchema();
         const previewPagename = previewCurrentPage(schema);
 

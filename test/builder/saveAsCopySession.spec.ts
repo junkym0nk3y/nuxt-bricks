@@ -20,6 +20,7 @@ import {
     createDeferredApi,
     createWindowStub,
     mountBuilderContext,
+    TEST_DRAFT_PRINCIPAL,
 } from '../helpers/builderSessionHarness';
 import { createFormStateBuilder, createPageBuilder } from '../helpers/publishFixtures';
 // #endregion
@@ -195,11 +196,12 @@ describe('Save as Copy: единый переход сессии', () => {
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
-        expect(getBuilderDraft(bareAddress('original-copy'))?.draftSnapshot.formState.title).toBe(
-            'Изменения в копии'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('original-copy'))?.draftSnapshot
+                .formState.title
+        ).toBe('Изменения в копии');
         // Регрессия P1: раньше autosave продолжал писать под slug оригинала
-        expect(getBuilderDraft(bareAddress('original'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('original'))).toBeNull();
     });
 
     it('reload по URL копии открывает копию, а не оригинал', async () => {
@@ -240,7 +242,7 @@ describe('Save as Copy: единый переход сессии', () => {
 
         // Совпадающий pageId + отличающийся контент — restore предлагается (регрессия
         // на сам механизм: гейт не должен ломать легитимный кейс)
-        setBuilderDraft({
+        setBuilderDraft(TEST_DRAFT_PRINCIPAL, {
             pagename: 'page-match',
             urlPrefix: null,
             updatedAt: new Date().toISOString(),
@@ -257,7 +259,7 @@ describe('Save as Copy: единый переход сессии', () => {
 
         // Чужой pageId (например, stale-черновик из-за старого бага без единого
         // перехода сессии) — restore НЕ предлагается, черновик подчищается
-        setBuilderDraft({
+        setBuilderDraft(TEST_DRAFT_PRINCIPAL, {
             pagename: 'page-foreign',
             urlPrefix: null,
             updatedAt: new Date().toISOString(),
@@ -270,10 +272,10 @@ describe('Save as Copy: единый переход сессии', () => {
         });
         await context.session.openBuilderSession(bareAddress('page-foreign'));
         expect(context.session.isDraftRestorePending.value).toBe(false);
-        expect(getBuilderDraft(bareAddress('page-foreign'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-foreign'))).toBeNull();
 
         // Черновик без pageId (повреждённый/чужой формат) — тоже stale
-        setBuilderDraft({
+        setBuilderDraft(TEST_DRAFT_PRINCIPAL, {
             pagename: 'page-stale',
             urlPrefix: null,
             updatedAt: new Date().toISOString(),
@@ -285,7 +287,7 @@ describe('Save as Copy: единый переход сессии', () => {
         });
         await context.session.openBuilderSession(bareAddress('page-stale'));
         expect(context.session.isDraftRestorePending.value).toBe(false);
-        expect(getBuilderDraft(bareAddress('page-stale'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-stale'))).toBeNull();
     });
 
     it('медленный Save as Copy не уводит сессию на слаг копии', async () => {
@@ -301,7 +303,7 @@ describe('Save as Copy: единый переход сессии', () => {
         publishStore.setCurrentFormField('title', 'Правка оригинала');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('original'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('original'))).not.toBeNull();
 
         // Save as Copy на время запроса ставит editingPageId = null и pagename копии
         // в форму — для pagename-sync это выглядит как новая страница
@@ -316,10 +318,11 @@ describe('Save as Copy: единый переход сессии', () => {
         expect(await saving).toBeNull();
         expect(routerBridge.replace).not.toHaveBeenCalled();
         expect(context.address.sessionAddress.value).toEqual(bareAddress('original'));
-        expect(getBuilderDraft(bareAddress('original'))?.draftSnapshot.formState.title).toBe(
-            'Правка оригинала'
-        );
-        expect(getBuilderDraft(bareAddress('original-copy'))).toBeNull();
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('original'))?.draftSnapshot.formState
+                .title
+        ).toBe('Правка оригинала');
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('original-copy'))).toBeNull();
     });
 
     it('уже запланированная синхронизация URL не срабатывает во время Save as Copy', async () => {

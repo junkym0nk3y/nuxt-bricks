@@ -53,18 +53,41 @@ async function runOnBricksRoute(
     const prefixes =
         (config.public.bricksRoutes as IBricksRoutePrefixes | undefined) ??
         DEFAULT_BRICKS_ROUTE_PREFIXES;
-    let isInstalled = false;
+
+    // The installation itself rather than a "done" flag. A flag raised before the
+    // await turned a single failed `import()` (a chunk lost to a deploy, a broken
+    // network) into a permanently half-installed builder: the next navigation saw
+    // the flag and returned at once, so the toolbar provider, the validation rules
+    // or the builder icon set never arrived and nothing was reported. Keeping the
+    // promise also serializes the parallel callers — `beforeResolve` and the initial
+    // URL both reach here, and a flag made the second one continue before the first
+    // installation had finished.
+    let installation: Promise<void> | null = null;
 
     /**
-     * Runs install once, if the path is one the predicate serves.
+     * Runs install once, if the path is one the predicate serves. A refused
+     * installation is forgotten, so the next navigation onto a served route tries
+     * again; the refusal itself still reaches the caller.
      */
     async function ensureInstalled(path: string): Promise<void> {
-        if (isInstalled || !matches(prefixes, path)) {
+        if (!matches(prefixes, path)) {
             return;
         }
 
-        isInstalled = true;
-        await install();
+        if (installation === null) {
+            const attempt = install();
+
+            installation = attempt;
+            attempt.catch(() => {
+                // The identity check keeps a late refusal from wiping a retry that
+                // has already started under the same latch
+                if (installation === attempt) {
+                    installation = null;
+                }
+            });
+        }
+
+        await installation;
     }
 
     // An SPA transition onto a served surface from a published page; install is

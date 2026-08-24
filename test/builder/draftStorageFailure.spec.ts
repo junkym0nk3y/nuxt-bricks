@@ -15,8 +15,10 @@ import type { IBuilderContext, IWindowStub } from '../helpers/types';
 import {
     AUTOSAVE_DEBOUNCE_MS,
     bareAddress,
+    buildTestDraftKey,
     createWindowStub,
     mountBuilderContext,
+    TEST_DRAFT_PRINCIPAL,
 } from '../helpers/builderSessionHarness';
 import { createPageBuilder, seedLoadedPages } from '../helpers/publishFixtures';
 // #endregion
@@ -164,9 +166,10 @@ describe('черновик билдера: недоступное хранили
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
-        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
-            'После освобождения'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.draftSnapshot
+                .formState.title
+        ).toBe('После освобождения');
     });
 
     it('полностью запрещённое хранилище не срывает открытие страницы', async () => {
@@ -312,7 +315,7 @@ describe('черновик билдера: недоступное хранили
         // Под целевым ключом лежит черновик другой страницы — обычная ситуация
         // «сессия владеет своим ключом», хранилище при этом исправно
         windowStub.localStorage.setItem(
-            'bricks-builder:draft:renamed-page',
+            buildTestDraftKey(bareAddress('renamed-page')),
             JSON.stringify({ pagename: 'renamed-page' })
         );
 
@@ -320,5 +323,13 @@ describe('черновик билдера: недоступное хранили
 
         expect(context.draftStorageUnavailableMock).not.toHaveBeenCalled();
         expect(context.address.sessionAddress.value).toEqual(bareAddress('renamed-page'));
+        // Занятый ключ переносом не затирается: под ним лежит черновик другой
+        // страницы, и «перенесли» вместо «ключ занят» уничтожило бы его молча
+        expect(
+            JSON.parse(
+                windowStub.localStorage.getItem(buildTestDraftKey(bareAddress('renamed-page'))) ??
+                    'null'
+            )
+        ).toEqual({ pagename: 'renamed-page' });
     });
 });

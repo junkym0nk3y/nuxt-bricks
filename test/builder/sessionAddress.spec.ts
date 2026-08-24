@@ -18,6 +18,7 @@ import {
     bareAddress,
     createWindowStub,
     mountBuilderContext,
+    TEST_DRAFT_PRINCIPAL,
 } from '../helpers/builderSessionHarness';
 import { createPageBuilder, seedLoadedPages } from '../helpers/publishFixtures';
 // #endregion
@@ -134,9 +135,10 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
         publishStore.setCurrentFormField('title', 'Черновик');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
-            'Черновик'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.draftSnapshot
+                .formState.title
+        ).toBe('Черновик');
 
         // Rename новой страницы → миграция черновика + router.replace
         publishStore.setCurrentFormField('pagename', 'landing');
@@ -150,19 +152,21 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
             params: { pagename: 'landing' },
         });
         expect(routerBridge.route.params.pagename).toBe('landing');
-        expect(getBuilderDraft(bareAddress('draft-page'))).toBeNull();
-        expect(getBuilderDraft(bareAddress('landing'))?.draftSnapshot.formState.title).toBe(
-            'Черновик'
-        );
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))).toBeNull();
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('landing'))?.draftSnapshot.formState
+                .title
+        ).toBe('Черновик');
 
         // Дальнейший autosave — по новому ключу (регрессия P1: раньше писал по старому)
         publishStore.setCurrentFormField('title', 'Черновик 2');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('landing'))?.draftSnapshot.formState.title).toBe(
-            'Черновик 2'
-        );
-        expect(getBuilderDraft(bareAddress('draft-page'))).toBeNull();
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('landing'))?.draftSnapshot.formState
+                .title
+        ).toBe('Черновик 2');
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))).toBeNull();
 
         // «Reload» /bricks/landing: новый Pinia + новая проводка composables
         context.scope.stop();
@@ -281,8 +285,12 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
 
         // Ключ по одному имени дал бы один черновик на две страницы: вторая
         // предложила бы восстановить правки первой и затёрла бы их
-        expect(getBuilderDraft(blogPost)?.draftSnapshot.formState.title).toBe('Пост блога');
-        expect(getBuilderDraft(newsPost)?.draftSnapshot.formState.title).toBe('Пост новостей');
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, blogPost)?.draftSnapshot.formState.title).toBe(
+            'Пост блога'
+        );
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, newsPost)?.draftSnapshot.formState.title).toBe(
+            'Пост новостей'
+        );
     });
 
     it('смена префикса в форме новой страницы переносит сессию на prefixed-маршрут', async () => {
@@ -310,10 +318,10 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
             name: 'bricks-builder-pagename-prefixed',
             params: { pagename: 'draft-page', urlPrefix: ['blog'] },
         });
-        expect(getBuilderDraft(bareAddress('draft-page'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))).toBeNull();
         expect(
-            getBuilderDraft({ pagename: 'draft-page', urlPrefix: 'blog' })?.draftSnapshot.formState
-                .title
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, { pagename: 'draft-page', urlPrefix: 'blog' })
+                ?.draftSnapshot.formState.title
         ).toBe('Черновик');
     });
 
@@ -340,7 +348,7 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
         publishStore.setCurrentFormField('title', 'Несохранённое');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('draft-page'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))).not.toBeNull();
 
         // Успешное сохранение: страница появилась на сервере, сохраняющий фиксирует
         // снапшот явно (сверив токен сессии) — раньше это делал watch на
@@ -350,7 +358,7 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
         context.session.commitSavedSnapshot(context.sessionToken.capture());
         await nextTick();
 
-        expect(getBuilderDraft(bareAddress('draft-page'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))).toBeNull();
     });
 
     it('сохранение, доехавшее после открытия другой страницы, её черновик не трогает', async () => {
@@ -371,7 +379,7 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
         publishStore.setCurrentFormField('title', 'Правка первой');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('first-page'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('first-page'))).not.toBeNull();
 
         // Пользователь ушёл на другую страницу, не дождавшись ответа сервера
         routerBridge.route.params.pagename = 'second-page';
@@ -381,7 +389,7 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
         publishStore.setCurrentFormField('title', 'Правка второй');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('second-page'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('second-page'))).not.toBeNull();
 
         // Ответ на сохранение первой страницы: стор поднимает свою метку успеха.
         // Фиксацию снапшота она больше не запускает — её зовёт сам сохраняющий,
@@ -390,12 +398,14 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
         publishStore.lastSuccessfulSaveAt = Date.now();
         await nextTick();
 
-        expect(getBuilderDraft(bareAddress('second-page'))?.draftSnapshot.formState.title).toBe(
-            'Правка второй'
-        );
-        expect(getBuilderDraft(bareAddress('first-page'))?.draftSnapshot.formState.title).toBe(
-            'Правка первой'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('second-page'))?.draftSnapshot
+                .formState.title
+        ).toBe('Правка второй');
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('first-page'))?.draftSnapshot
+                .formState.title
+        ).toBe('Правка первой');
     });
 
     it('фиксация снапшота с токеном прежней сессии — no-op', async () => {
@@ -418,17 +428,18 @@ describe('адрес сессии билдера: rename, autosave, reload', () 
         publishStore.setCurrentFormField('title', 'Правка второй');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('second-page'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('second-page'))).not.toBeNull();
 
         // Между проверкой токена у вызывающего и этим вызовом стоит
         // `await renameSession` (внутри — router.replace): перехваченная за это
         // время навигация иначе фиксировала бы снапшот чужой страницы и удаляла
-        // её черновик. Поэтому токен сверяет сама фиксация (находка ревью)
+        // её черновик. Поэтому токен сверяет сама фиксация
         context.session.commitSavedSnapshot(startedIn);
 
-        expect(getBuilderDraft(bareAddress('second-page'))?.draftSnapshot.formState.title).toBe(
-            'Правка второй'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('second-page'))?.draftSnapshot
+                .formState.title
+        ).toBe('Правка второй');
         expect(context.session.savedSnapshot.value?.formState.title).not.toBe('Правка второй');
     });
 });

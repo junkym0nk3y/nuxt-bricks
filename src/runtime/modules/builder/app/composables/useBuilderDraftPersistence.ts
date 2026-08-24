@@ -42,6 +42,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
         buildCurrentSnapshot,
         draftStorageNotice,
         canEdit,
+        draftPrincipal,
     } = options;
 
     const historyStore = useHistoryStore();
@@ -71,8 +72,10 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
 
         // Without the editing right the autosave does not touch the draft at all
         // — neither the write nor the removal (why — in
-        // IBuilderDraftPersistenceOptions)
-        if (!canEdit.value) {
+        // IBuilderDraftPersistenceOptions). The same for an unknown owner of the
+        // drafts: writing under a shared key would hand the record to the next
+        // person to open the builder in this browser
+        if (!canEdit.value || draftPrincipal === null) {
             return;
         }
 
@@ -105,14 +108,14 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
             // The outcome matters here too: a draft that was not removed equals
             // the saved state only right now, and after the next edit it will
             // diverge from it again and offer a restore on the next visit
-            if (!removeBuilderDraft(address)) {
+            if (!removeBuilderDraft(draftPrincipal, address)) {
                 draftStorageNotice.report();
             }
 
             return;
         }
 
-        const isPersisted = setBuilderDraft({
+        const isPersisted = setBuilderDraft(draftPrincipal, {
             pagename: address.pagename,
             urlPrefix: address.urlPrefix,
             updatedAt: new Date().toISOString(),
@@ -181,7 +184,12 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
     // right a role that cannot edit would touch localStorage and would be told about
     // drafts it has none of
     watch([isSessionReady, canEdit], ([isReady, isEditable]) => {
-        if (!isReady || !isEditable || isBuilderDraftStorageAvailable()) {
+        if (
+            !isReady ||
+            !isEditable ||
+            draftPrincipal === null ||
+            isBuilderDraftStorageAvailable()
+        ) {
             return;
         }
 

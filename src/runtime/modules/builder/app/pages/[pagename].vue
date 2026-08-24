@@ -2,6 +2,7 @@
 // #region Imports
 // Types
 import type { TMediaGalleryContext } from '../../../common/types/media';
+import type { IBuilderSessionLockState } from '../types/builder';
 
 // Vue
 import {
@@ -43,7 +44,9 @@ import { useAuthSession } from '../../auth/composables/useAuthSession';
 // Utils
 import { createDraftStorageNotice } from '../utils/draftStorageNotice';
 import { loadFavoritesFromStorage } from '../../core/stores/actions/favorites';
-import { runSaveWhenSessionReady, withSessionReadyGuard } from '../utils/sessionGuards';
+import { withSessionReadyGuard } from '../utils/sessionGuards';
+import { isBuilderInterfaceLocked, isBuilderWorkspaceLocked } from '../utils/sessionLock';
+import { resolveBuilderDraftPrincipal } from '../../publish/utils/draftStorage';
 import { BRICKS_ROUTE_NAMES } from '../../../common/constants/routes';
 
 // Components
@@ -108,12 +111,16 @@ const { toastDuration, showToast, showActionToast, hideToast } = useBuilderToast
 // role of `ensureRole` is taken out of the profile already received (why there is a
 // request at all — in useBuilderPermissions)
 const { canEdit, canChangePassword, ensureRole } = useBuilderPermissions();
-const { logout } = useAuthSession();
+const { isDatabaseMode, logout } = useAuthSession();
 const { profile, ensureProfile } = useAuthProfile();
 const profileModal = useAuthProfileModal();
 
 await ensureProfile();
 await ensureRole(() => Promise.resolve(profile.value?.role ?? null));
+
+// The owner of the drafts, one value for all three consumers of them: written under
+// one principal and removed under another, a draft would come back on the next visit
+const draftPrincipal = resolveBuilderDraftPrincipal(isDatabaseMode, profile.value?.id);
 
 // The session token — the shared cut-off point of the operations that outlive the
 // session they began in; useBuilderSession owns the increments, the rest only read
@@ -136,6 +143,7 @@ onScopeDispose(() => {
 // The owner of the address of the session: the URL and the key of the drafts
 const { routeAddress, sessionAddress, renameSession } = useBuilderSessionAddress({
     draftStorageNotice,
+    draftPrincipal,
 });
 
 // The builder session: the opening of a page, the drafts and the move onto a copy
@@ -165,6 +173,7 @@ const {
     sessionToken,
     draftStorageNotice,
     canEdit,
+    draftPrincipal,
 });
 
 // The bridge of the inline editor: the editor is connected here alone
@@ -180,6 +189,7 @@ const builder = await useBuilderPage({
     switchToSavedPage,
     commitSavedSnapshot,
     sessionToken,
+    isSessionReady,
 });
 
 const {
@@ -269,6 +279,7 @@ useBuilderDraftPersistence({
     buildCurrentSnapshot,
     draftStorageNotice,
     canEdit,
+    draftPrincipal,
 });
 useBuilderSessionAddressSync({ renameSession, isSessionReady });
 
@@ -283,12 +294,6 @@ usePropertiesPanelAvailability(canEdit);
 
 // #region Computed
 
-// The interface is closed while the session is inconsistent OR while the loader is
-// on the screen: the loader promises that work is not possible yet, and the promise
-// has to be true. The error screen is the exception — it lies over the workspace
-// itself and holds the only actions left (the retry and the way onto the dashboard).
-// Over it for the pointer, that is: Tab still reaches the workspace behind it.
-//
 // What is at stake is a silently lost edit: before readiness the autosave turns one
 // down by !isSessionReady, the canvas is then overwritten by the incoming schema,
 // and an edit of the form travels into savedSnapshot as "already saved", so no draft
@@ -296,13 +301,14 @@ usePropertiesPanelAvailability(canEdit);
 // enough alone. The transparent blocker (`cursor: progress` its only visible sign,
 // `position: fixed` because the root is not positioned) holds the pointer, while the
 // keyboard, an already focused field and the accessibility tree walk past it — that
-// half is closed by `inert` on `.workspace` and on the toolbar. The toolbar is a
-// neighbor of the workspace rather than a part of it, so both it and the blocker sit
-// in the root: its buttons hold the way onto the dashboard, the very path the edits
-// used to be lost on.
-const isBuilderLocked = computed<boolean>(
-    () => !sessionError.value && (!isSessionReady.value || isLoaderVisible.value)
-);
+// half is closed by `inert`. Where the two flags differ, and why, is in `sessionLock`.
+const lockState = computed<IBuilderSessionLockState>(() => ({
+    hasSessionError: sessionError.value !== null,
+    isSessionReady: isSessionReady.value,
+    isLoaderVisible: isLoaderVisible.value,
+}));
+const isBuilderLocked = computed<boolean>(() => isBuilderInterfaceLocked(lockState.value));
+const isWorkspaceLocked = computed<boolean>(() => isBuilderWorkspaceLocked(lockState.value));
 const isPublishSettingsComplete = computed<boolean>(() => {
     const { pagename, title, description } = publishStore.currentFormState;
     return Boolean((pagename ?? '').trim() && (title ?? '').trim() && (description ?? '').trim());
@@ -367,29 +373,6 @@ function ensureDraftToast(): void {
 function handleLoaderHidden(): void {
     isLoaderVisible.value = false;
     ensureDraftToast();
-}
-
-/**
- * Saves the page when the session is consistent (the rule is in
- * `runSaveWhenSessionReady`).
- */
-async function handleSaveDraftGuarded(): Promise<void> {
-    await runSaveWhenSessionReady({
-        isSessionReady: () => isSessionReady.value,
-        save: handleSaveDraft,
-        onBlocked: () => showToast(t('bricks.publish.session.saveBlocked'), 'error'),
-    });
-}
-
-/**
- * Saves the page as a copy when the session is consistent.
- */
-async function handleSaveAsCopyGuarded(): Promise<void> {
-    await runSaveWhenSessionReady({
-        isSessionReady: () => isSessionReady.value,
-        save: handleSaveAsCopy,
-        onBlocked: () => showToast(t('bricks.publish.session.saveBlocked'), 'error'),
-    });
 }
 
 /**
@@ -518,8 +501,8 @@ onBeforeUnmount(() => {
             @select-page="handleSelectPage"
             @create-page="handleOpenCreatePage"
             @open-media-gallery="handleOpenMediaGalleryWithContext"
-            @save-draft="handleSaveDraftGuarded"
-            @save-as-copy="handleSaveAsCopyGuarded"
+            @save-draft="handleSaveDraft"
+            @save-as-copy="handleSaveAsCopy"
             @save-as-template="templateSave.requestFromCanvas"
             @preview="handlePreview"
             @open-profile="profileModal.open"
@@ -527,7 +510,7 @@ onBeforeUnmount(() => {
         />
 
         <div :class="$style.content">
-            <div :class="$style.workspace" :inert="isBuilderLocked">
+            <div :class="$style.workspace" :inert="isWorkspaceLocked">
                 <BuilderShellToolbarVerticalNav
                     :is-library-active="isLibraryActive"
                     :is-schema-active="isSchemaActive"

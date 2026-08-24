@@ -8,6 +8,7 @@ import type {
     IWindowStub,
 } from './types';
 import type { IBricksPageAddress } from '../../src/runtime/modules/common/types/pageAddress';
+import type { TBuilderDraftPrincipal } from '../../src/runtime/modules/builder/publish/types/builderDrafts';
 
 // Vitest
 import { vi } from 'vitest';
@@ -24,7 +25,31 @@ import { useBuilderSessionToken } from '../../src/runtime/modules/builder/app/co
 import { useBuilderDraftPersistence } from '../../src/runtime/modules/builder/app/composables/useBuilderDraftPersistence';
 import { usePropertiesPanelAvailability } from '../../src/runtime/modules/builder/core/composables/usePropertiesPanelAvailability';
 import { createDraftStorageNotice } from '../../src/runtime/modules/builder/app/utils/draftStorageNotice';
+import { getPageAddressKey } from '../../src/runtime/modules/common/utils/bricks/pageAddress';
 // #endregion
+
+/**
+ * Владелец черновиков в тестах. Ключ черновика включает принципала, поэтому
+ * спекам нужен один и тот же — иначе запись и чтение расходятся по namespace'ам.
+ */
+export const TEST_DRAFT_PRINCIPAL: TBuilderDraftPrincipal = 'database:1';
+
+/**
+ * Собирает ключ черновика так же, как это делает draftStorage. Нужен спекам,
+ * которые кладут запись в localStorage мимо `setBuilderDraft` — повреждённый JSON
+ * или занятый целевой ключ иначе просто не находятся, и кейс зеленеет, не дойдя до
+ * проверяемой ветки.
+ *
+ * @param address - Адрес страницы.
+ * @param principal - Владелец черновика (по умолчанию — тестовый).
+ * @returns Ключ записи в localStorage.
+ */
+export function buildTestDraftKey(
+    address: IBricksPageAddress,
+    principal: TBuilderDraftPrincipal = TEST_DRAFT_PRINCIPAL
+): string {
+    return `bricks-builder:draft:${principal}:${getPageAddressKey(address)}`;
+}
 
 export const AUTOSAVE_DEBOUNCE_MS = 800;
 export const ADDRESS_SYNC_DEBOUNCE_MS = 600;
@@ -133,6 +158,9 @@ export function mountBuilderContext(options: IBuilderContextOptions = {}): IBuil
     // поведение редактора. Роль без правки передаётся явно — она отсекает
     // черновики целиком
     const canEdit = computed<boolean>(() => options.canEdit ?? true);
+    // Владелец черновиков — один на связку: запись под одним принципалом и
+    // удаление под другим воскресили бы черновик на следующем визите
+    const draftPrincipal = options.draftPrincipal ?? TEST_DRAFT_PRINCIPAL;
 
     const context = scope.run(() => {
         const sessionToken = useBuilderSessionToken();
@@ -145,7 +173,7 @@ export function mountBuilderContext(options: IBuilderContextOptions = {}): IBuil
         onScopeDispose(() => {
             draftStorageNotice.stop();
         });
-        const sessionAddress = useBuilderSessionAddress({ draftStorageNotice });
+        const sessionAddress = useBuilderSessionAddress({ draftStorageNotice, draftPrincipal });
         const session = useBuilderSession({
             routeAddress: sessionAddress.routeAddress,
             sessionAddress: sessionAddress.sessionAddress,
@@ -154,6 +182,7 @@ export function mountBuilderContext(options: IBuilderContextOptions = {}): IBuil
             sessionToken,
             draftStorageNotice,
             canEdit,
+            draftPrincipal,
         });
         useBuilderDraftPersistence({
             routeAddress: sessionAddress.routeAddress,
@@ -165,6 +194,7 @@ export function mountBuilderContext(options: IBuilderContextOptions = {}): IBuil
             buildCurrentSnapshot: session.buildCurrentSnapshot,
             draftStorageNotice,
             canEdit,
+            draftPrincipal,
         });
         useBuilderSessionAddressSync({
             renameSession: sessionAddress.renameSession,

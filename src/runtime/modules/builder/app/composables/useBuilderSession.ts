@@ -57,6 +57,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         sessionToken,
         draftStorageNotice,
         canEdit,
+        draftPrincipal,
     } = options;
 
     /**
@@ -67,7 +68,7 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
      * @param address - The session address the draft lies under.
      */
     function discardDraft(address: IBricksPageAddress): void {
-        if (!removeBuilderDraft(address)) {
+        if (!removeBuilderDraft(draftPrincipal, address)) {
             draftStorageNotice.report();
         }
     }
@@ -202,9 +203,8 @@ export function useBuilderSession(options: IBuilderSessionOptions) {
         }
 
         const existingPage = publishStore.getPageByAddress(address);
-        // Without the editing right a draft is not read at all (why — in
-        // IBuilderSessionOptions)
-        const draft = canEdit.value ? getBuilderDraft(address) : null;
+        // A draft is read by the editing right alone (why — in IBuilderSessionOptions)
+        const draft = canEdit.value ? getBuilderDraft(draftPrincipal, address) : null;
 
         if (existingPage) {
             publishStore.startEditingPage(existingPage.id);

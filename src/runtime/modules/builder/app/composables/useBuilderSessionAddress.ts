@@ -81,7 +81,13 @@ export function useBuilderSessionAddress(
             // its own), while a refusal of the storage means the draft may have
             // stayed behind under the previous address: the autosave goes on
             // writing under the new key and reports the breakage nowhere itself
-            if (migrateBuilderDraft(sessionAddress.value, next) === 'storage-unavailable') {
+            const migration = migrateBuilderDraft(
+                options.draftPrincipal,
+                sessionAddress.value,
+                next
+            );
+
+            if (migration === 'storage-unavailable') {
                 options.draftStorageNotice.report();
             }
         }

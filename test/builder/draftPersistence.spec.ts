@@ -18,6 +18,7 @@ import {
     bareAddress,
     createWindowStub,
     mountBuilderContext,
+    TEST_DRAFT_PRINCIPAL,
 } from '../helpers/builderSessionHarness';
 import { createFormStateBuilder, createPageBuilder } from '../helpers/publishFixtures';
 // #endregion
@@ -153,7 +154,7 @@ describe('черновик билдера: автосейв и сброс при
         // браузере. Наблюдателю он показал бы незавершённую работу редактора, а
         // ответ «удалить» в окне восстановления унёс бы её насовсем; автосейв же
         // снял бы запись как совпадающую с сохранённой версией
-        setBuilderDraft({
+        setBuilderDraft(TEST_DRAFT_PRINCIPAL, {
             pagename: 'draft-page',
             urlPrefix: null,
             updatedAt: '2026-07-28T10:00:00.000Z',
@@ -184,7 +185,7 @@ describe('черновик билдера: автосейв и сброс при
 
         // Запись цела целиком, а не только по заголовку: автосейв наблюдателя не
         // перезаписывал её и своим `updatedAt`
-        const draft = getBuilderDraft(bareAddress('draft-page'));
+        const draft = getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'));
         expect(draft?.updatedAt).toBe('2026-07-28T10:00:00.000Z');
         expect(draft?.draftSnapshot.formState.title).toBe('Чужая работа');
     });
@@ -199,7 +200,7 @@ describe('черновик билдера: автосейв и сброс при
         );
 
         const publishStore = usePublishStore();
-        setBuilderDraft({
+        setBuilderDraft(TEST_DRAFT_PRINCIPAL, {
             pagename: 'draft-page',
             urlPrefix: null,
             updatedAt: '2026-07-28T10:00:00.000Z',
@@ -238,18 +239,21 @@ describe('черновик билдера: автосейв и сброс при
         // Половина окна debounce: таймер ещё тикает, и раньше такая правка гибла
         // вместе со страницей
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS / 2);
-        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).not.toBe(
-            'Правка перед reload'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.draftSnapshot
+                .formState.title
+        ).not.toBe('Правка перед reload');
 
         windowStub.dispatchEvent({ type: 'pagehide' });
-        const flushed = getBuilderDraft(bareAddress('draft-page'));
+        const flushed = getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'));
         expect(flushed?.draftSnapshot.formState.title).toBe('Правка перед reload');
 
         // Сброс снял таймер: повторной записи по истечении debounce нет. Сверяем
         // updatedAt, а не title — при повторном сохранении содержимое совпало бы
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('draft-page'))?.updatedAt).toBe(flushed?.updatedAt);
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.updatedAt).toBe(
+            flushed?.updatedAt
+        );
     });
 
     it('pagehide в окне debounce истории: правка пропса не теряется', async () => {
@@ -267,14 +271,14 @@ describe('черновик билдера: автосейв и сброс при
         componentsStore.updateComponentProp('c1', 'text', 'Новое значение');
         await nextTick();
         expect(
-            getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.schema.components[0]?.props
-                .text
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.draftSnapshot.schema
+                .components[0]?.props.text
         ).toBe('Исходное значение');
 
         windowStub.dispatchEvent({ type: 'pagehide' });
         expect(
-            getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.schema.components[0]?.props
-                .text
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.draftSnapshot.schema
+                .components[0]?.props.text
         ).toBe('Новое значение');
     });
 
@@ -286,7 +290,7 @@ describe('черновик билдера: автосейв и сброс при
         publishStore.setCurrentFormField('title', 'Несохранённое');
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('draft-page'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))).not.toBeNull();
 
         // Успешное сохранение: страница появилась на сервере, черновик снят.
         // Фиксацию зовёт сам сохраняющий (useBuilderPage), сверив токен сессии, —
@@ -295,17 +299,17 @@ describe('черновик билдера: автосейв и сброс при
         publishStore.startEditingPage(5);
         context.session.commitSavedSnapshot(context.sessionToken.capture());
         await nextTick();
-        expect(getBuilderDraft(bareAddress('draft-page'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))).toBeNull();
 
         // Закрытие вкладки сразу после сохранения: сброс идёт через persistDraftNow,
         // то есть сверяется с savedSnapshot, а не пишет черновик мимо guard'ов
         windowStub.dispatchEvent({ type: 'pagehide' });
-        expect(getBuilderDraft(bareAddress('draft-page'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))).toBeNull();
     });
 
     it('pagehide после ошибки открытия сессии не затирает черновик', async () => {
         // Валидный черновик в localStorage до открытия сессии
-        setBuilderDraft({
+        setBuilderDraft(TEST_DRAFT_PRINCIPAL, {
             pagename: 'draft-page',
             urlPrefix: null,
             updatedAt: '2026-07-28T10:00:00.000Z',
@@ -326,7 +330,7 @@ describe('черновик билдера: автосейв и сброс при
 
         windowStub.dispatchEvent({ type: 'pagehide' });
 
-        const draft = getBuilderDraft(bareAddress('draft-page'));
+        const draft = getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'));
         expect(draft?.updatedAt).toBe('2026-07-28T10:00:00.000Z');
         expect(draft?.draftSnapshot.formState.title).toBe('Ценная работа');
     });
@@ -344,9 +348,10 @@ describe('черновик билдера: автосейв и сброс при
         // SPA-навигация: pagehide не приходит, страница размонтируется
         context.scope.stop();
 
-        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
-            'Ушёл на дашборд'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.draftSnapshot
+                .formState.title
+        ).toBe('Ушёл на дашборд');
     });
 
     it('переход на другую страницу билдера сохраняет правку прежней', async () => {
@@ -365,15 +370,17 @@ describe('черновик билдера: автосейв и сброс при
         routerBridge.route.params.pagename = 'other-page';
         await nextTick();
 
-        expect(getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.formState.title).toBe(
-            'Правка страницы A'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.draftSnapshot
+                .formState.title
+        ).toBe('Правка страницы A');
 
         // Отложенный таймер прежней страницы снят: содержимое A в черновик B не уедет
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        expect(getBuilderDraft(bareAddress('other-page'))?.draftSnapshot.formState.title).not.toBe(
-            'Правка страницы A'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('other-page'))?.draftSnapshot
+                .formState.title
+        ).not.toBe('Правка страницы A');
     });
 
     it('автосейв канваса продолжается после заполнения истории', async () => {
@@ -403,7 +410,10 @@ describe('черновик билдера: автосейв и сброс при
         // в черновик на нём, а не на собственном capture за лимитом
         await nextTick();
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
-        const settledAt = getBuilderDraft(bareAddress('draft-page'))?.updatedAt;
+        const settledAt = getBuilderDraft(
+            TEST_DRAFT_PRINCIPAL,
+            bareAddress('draft-page')
+        )?.updatedAt;
 
         componentsStore.updateComponentProp('c1', 'text', 'После лимита');
         await vi.advanceTimersByTimeAsync(PROP_HISTORY_DEBOUNCE_MS);
@@ -411,10 +421,12 @@ describe('черновик билдера: автосейв и сброс при
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
         expect(
-            getBuilderDraft(bareAddress('draft-page'))?.draftSnapshot.schema.components[0]?.props
-                .text
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.draftSnapshot.schema
+                .components[0]?.props.text
         ).toBe('После лимита');
-        expect(getBuilderDraft(bareAddress('draft-page'))?.updatedAt).not.toBe(settledAt);
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('draft-page'))?.updatedAt
+        ).not.toBe(settledAt);
     });
 
     it('слушатель pagehide снимается вместе со scope страницы', async () => {

@@ -6,6 +6,17 @@ export interface IBuilderDraftSnapshot {
     formState: TPublishFormState;
 }
 
+/**
+ * The owner of a draft inside the key of the storage: `database:<id>` for an account
+ * of the database mode, `basic` for the single identity of Basic Auth.
+ *
+ * Without it the key was the address alone, that is one draft per browser: a second
+ * editor on a shared machine was offered the unfinished work of the first, and their
+ * autosave smeared over it. The identity comes from the same place as the role, and
+ * the id rather than the name: two editors carry one role, and a name can be changed.
+ */
+export type TBuilderDraftPrincipal = 'basic' | `database:${number}`;
+
 export type TBuilderDraftMode = 'new' | 'edit';
 
 /**

@@ -20,6 +20,7 @@ import {
     createDeferredApi,
     createWindowStub,
     mountBuilderContext,
+    TEST_DRAFT_PRINCIPAL,
 } from '../helpers/builderSessionHarness';
 import { createPageBuilder } from '../helpers/publishFixtures';
 // #endregion
@@ -170,7 +171,7 @@ describe('предложение восстановить черновик', () 
     function seedDraft(pagename: string, pageId: number, componentId: string): void {
         const publishStore = usePublishStore();
 
-        setBuilderDraft({
+        setBuilderDraft(TEST_DRAFT_PRINCIPAL, {
             pagename,
             urlPrefix: null,
             updatedAt: '2026-07-28T10:00:00.000Z',
@@ -244,7 +245,7 @@ describe('предложение восстановить черновик', () 
 
         expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
         expect(context.session.isDraftRestorePending.value).toBe(true);
-        expect(getBuilderDraft(bareAddress('page-a'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-a'))).not.toBeNull();
         expect(componentsStore.components.map((component) => component.id)).toEqual(['a1']);
 
         // Отложенное предложение открывается повторно — тем же кликом по тосту
@@ -267,7 +268,7 @@ describe('предложение восстановить черновик', () 
         context.session.handleDiscardDraft();
 
         expect(context.session.isDraftRestorePending.value).toBe(false);
-        expect(getBuilderDraft(bareAddress('page-a'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-a'))).toBeNull();
         // На канвасе остаётся сохранённая версия, а не черновик
         expect(componentsStore.components.map((component) => component.id)).toEqual(['a1']);
     });
@@ -288,9 +289,10 @@ describe('предложение восстановить черновик', () 
         // предложенный снапшот раньше, чем пользователь успел на него ответить
         window.dispatchEvent(new Event('pagehide'));
 
-        expect(getBuilderDraft(bareAddress('page-a'))?.draftSnapshot.schema.components[0]?.id).toBe(
-            'draft-1'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-a'))?.draftSnapshot.schema
+                .components[0]?.id
+        ).toBe('draft-1');
     });
 
     it('служебная перезапись формы тем же значением не считается правкой', async () => {
@@ -316,9 +318,10 @@ describe('предложение восстановить черновик', () 
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
         window.dispatchEvent(new Event('pagehide'));
 
-        expect(getBuilderDraft(bareAddress('page-a'))?.draftSnapshot.schema.components[0]?.id).toBe(
-            'draft-1'
-        );
+        expect(
+            getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-a'))?.draftSnapshot.schema
+                .components[0]?.id
+        ).toBe('draft-1');
     });
 
     it('правка канваса до фиксации в истории переживает выгрузку страницы', async () => {
@@ -339,7 +342,7 @@ describe('предложение восстановить черновик', () 
         componentsStore.updateComponentProp('a1', 'text', 'Правка до фиксации');
         window.dispatchEvent(new Event('pagehide'));
 
-        const draft = getBuilderDraft(bareAddress('page-a'));
+        const draft = getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-a'));
         expect(draft?.draftSnapshot.schema.components[0]?.id).toBe('a1');
         expect(draft?.draftSnapshot.schema.components[0]?.props?.text).toBe('Правка до фиксации');
     });
@@ -365,7 +368,7 @@ describe('предложение восстановить черновик', () 
         await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
 
         // Черновик перезаписан собственной правкой — восстанавливать больше нечего
-        const draft = getBuilderDraft(bareAddress('page-a'));
+        const draft = getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-a'));
         expect(draft?.draftSnapshot.formState.title).toBe('Правка поверх сохранённой');
         expect(draft?.draftSnapshot.schema.components.map((item) => item.id)).toEqual(['a1']);
     });
@@ -399,7 +402,7 @@ describe('предложение восстановить черновик', () 
         // Открытие B ещё идёт: ни канвас, ни черновик B тронуты не были
         expect(context.session.isRestoreDraftModalOpen.value).toBe(false);
         expect(context.session.isSessionReady.value).toBe(false);
-        expect(getBuilderDraft(bareAddress('page-b'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-b'))).not.toBeNull();
         expect(componentsStore.components.map((component) => component.id)).not.toEqual([
             'draft-1',
         ]);
@@ -409,10 +412,10 @@ describe('предложение восстановить черновик', () 
         (await deferred.waitFor('/api/bricks/2/')).resolve(pageB);
         await openingB;
         expect(context.session.isDraftRestorePending.value).toBe(true);
-        expect(getBuilderDraft(bareAddress('page-b'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-b'))).not.toBeNull();
 
         context.session.handleDiscardDraft();
-        expect(getBuilderDraft(bareAddress('page-b'))).toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-b'))).toBeNull();
     });
 
     it('ответ одноразовый: второй клик по уезжающей модалке ничего не делает', async () => {
@@ -434,7 +437,7 @@ describe('предложение восстановить черновик', () 
         // восстановленный черновик, ни тронуть канвас
         context.session.handleDiscardDraft();
 
-        expect(getBuilderDraft(bareAddress('page-a'))).not.toBeNull();
+        expect(getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('page-a'))).not.toBeNull();
         expect(componentsStore.components.map((component) => component.id)).toEqual(['draft-1']);
     });
 
@@ -467,7 +470,7 @@ describe('предложение восстановить черновик', () 
         context.session.handleDiscardDraft();
         context.session.handleRestoreDraft();
 
-        const migrated = getBuilderDraft(bareAddress('renamed-page'));
+        const migrated = getBuilderDraft(TEST_DRAFT_PRINCIPAL, bareAddress('renamed-page'));
         expect(migrated?.pageId).toBe(1);
         expect(migrated?.draftSnapshot.schema.components.map((item) => item.id)).toEqual([
             'draft-1',

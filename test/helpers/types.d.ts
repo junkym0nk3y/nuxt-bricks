@@ -4,6 +4,7 @@ import type { Mock, vi } from 'vitest';
 import type { useBuilderSessionAddress } from '../../src/runtime/modules/builder/app/composables/useBuilderSessionAddress';
 import type { useBuilderSession } from '../../src/runtime/modules/builder/app/composables/useBuilderSession';
 import type { IBuilderSessionToken } from '../../src/runtime/modules/builder/app/types/composables';
+import type { TBuilderDraftPrincipal } from '../../src/runtime/modules/builder/publish/types/builderDrafts';
 
 /**
  * Значение auth-флага после заполнения runtimeConfig: серверный ключ и его
@@ -36,6 +37,11 @@ export interface IBuilderContextOptions {
      * видит наблюдатель: черновики не читаются и не пишутся вовсе.
      */
     canEdit?: boolean;
+    /**
+     * Владелец черновиков (дефолт — `TEST_DRAFT_PRINCIPAL`). Передаётся явно там,
+     * где проверяется разделение черновиков между учётками.
+     */
+    draftPrincipal?: TBuilderDraftPrincipal | null;
 }
 
 /**
