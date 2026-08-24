@@ -39,7 +39,6 @@ import {
 
 // Composables
 import { useAuthProfile } from '../composables/useAuthProfile';
-import { useAuthSession } from '../composables/useAuthSession';
 import { useBricksRoutePaths } from '../../../common/composables/useBricksRoutePaths';
 
 // Components
@@ -56,7 +55,6 @@ const emit = defineEmits<IAuthProfilePasswordFormEmits>();
 // #region Data
 const { t } = useI18n();
 const { changeOwnPassword } = useAuthProfile();
-const { isDatabaseMode } = useAuthSession();
 const { builderLoginPath, withBase } = useBricksRoutePaths();
 
 const validationSchema = createAuthOwnPasswordValidationSchema({
@@ -96,10 +94,13 @@ const submitForm = handleSubmit(async (values) => {
 
         // A full reload rather than the router: there is no session, and the builder
         // stores have to be reset whole — otherwise the state of the previous person
-        // would stay behind on the sign-in form
-        if (isDatabaseMode) {
-            window.location.assign(withBase(builderLoginPath));
-        }
+        // would stay behind on the sign-in form.
+        //
+        // The mode of the authentication is NOT re-checked here: the parent mounts the
+        // form only under `canChangePassword`, which already carries the database mode.
+        // A check of it would be a branch no path reaches, and its `false` would leave
+        // the form disabled with nothing said — the flag is lowered in `catch` alone
+        window.location.assign(withBase(builderLoginPath));
     } catch (error: unknown) {
         isSubmitting.value = false;
 

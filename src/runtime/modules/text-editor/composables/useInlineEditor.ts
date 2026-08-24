@@ -46,6 +46,20 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
      */
     let isInternalUpdate = false;
 
+    /**
+     * The generation of an initialization. TipTap arrives over dynamic imports, and
+     * over their awaits the editing can end, the target can be switched, or the
+     * initialization can be started anew for the same target — an editor built for a
+     * state that is gone must not reach the store.
+     *
+     * The watchers below cannot cover that window: both of them require `editor.value`,
+     * which is still `null` while the import is on its way. An editor published after
+     * the fact left the store holding an instance nobody edits, and the next inline
+     * editing found the store busy and built nothing — the overlay opened over a text
+     * that could not be typed into.
+     */
+    let initGeneration = 0;
+
     const isActive = computed<boolean>(
         () =>
             inlineEditingStore.componentId === options.componentId &&
@@ -104,37 +118,64 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
         destroy();
     }
 
-    /** Initializes the TipTap editor (lazily). With no host (published) it is a no-op */
+    /**
+     * Initializes the TipTap editor (lazily). With no host (published) it is a no-op.
+     *
+     * Everything is built into locals first and published in one step at the end: an
+     * `editorContent` or an `originalSegments` set on the way would describe an editor
+     * that may never arrive, and the overlay reads both.
+     */
     async function initEditor(): Promise<void> {
-        if (editor.value || !host) {
+        const generation = ++initGeneration;
+
+        if (!host) {
             return;
         }
+
+        // The editing was stopped and started again over the same target while this
+        // instance survived: `stopEditing` drops the editor from the store, and nothing
+        // else puts it back. Without this the text stayed editable while the toolbar of
+        // the overlay drove nothing — no formatting, no media, no link
+        if (editor.value) {
+            if (isActive.value && inlineEditingStore.editor === null) {
+                inlineEditingStore.setEditor(editor.value);
+            }
+
+            return;
+        }
+
+        let createdEditor: Editor | null = null;
+        let createdContent: Component | null = null;
+        let createdSegments: IInlineContentSegment[] = [];
 
         try {
             const currentValue = getCurrentPropValue();
 
             if (options.propType === 'inline-content') {
-                const [{ Editor: TiptapEditor, EditorContent }, { InlineSegmentImage }] =
-                    await Promise.all([
-                        import('@tiptap/vue-3'),
-                        import('../tiptap/inlineSegmentImage'),
-                    ]);
+                const [
+                    { Editor: TiptapEditor, EditorContent },
+                    { InlineSegmentImage },
+                    { default: Document },
+                    { default: Paragraph },
+                    { default: Text },
+                    { default: HardBreak },
+                ] = await Promise.all([
+                    import('@tiptap/vue-3'),
+                    import('../tiptap/inlineSegmentImage'),
+                    import('@tiptap/extension-document'),
+                    import('@tiptap/extension-paragraph'),
+                    import('@tiptap/extension-text'),
+                    import('@tiptap/extension-hard-break'),
+                ]);
 
-                const { default: Document } = await import('@tiptap/extension-document');
-                const { default: Paragraph } = await import('@tiptap/extension-paragraph');
-                const { default: Text } = await import('@tiptap/extension-text');
-                const { default: HardBreak } = await import('@tiptap/extension-hard-break');
-
-                editorContent.value = EditorContent;
                 const segments = Array.isArray(currentValue)
                     ? (currentValue as IInlineContentSegment[])
                     : [];
-                originalSegments = [...segments];
 
-                const doc = segmentsToTiptapDoc(segments);
-
-                editor.value = new TiptapEditor({
-                    content: doc,
+                createdContent = EditorContent;
+                createdSegments = [...segments];
+                createdEditor = new TiptapEditor({
+                    content: segmentsToTiptapDoc(segments),
                     extensions: [Document, Paragraph, Text, HardBreak, InlineSegmentImage],
                     editorProps: {
                         attributes: {
@@ -146,7 +187,7 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
             } else {
                 const htmlContent = typeof currentValue === 'string' ? currentValue : '';
 
-                const { editor: createdEditor, EditorContent } = await createTiptapEditor({
+                const created = await createTiptapEditor({
                     content: htmlContent,
                     editorProps: {
                         attributes: {
@@ -156,13 +197,33 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
                     onUpdate: saveToStore,
                 });
 
-                editorContent.value = EditorContent;
-                editor.value = createdEditor;
+                createdContent = created.EditorContent;
+                createdEditor = created.editor;
             }
 
+            // The state this editor was built for is gone: the editing has ended, the
+            // target has been switched, the initialization has been started anew, or
+            // somebody else (the fallback of the overlay) got there first. Publishing it
+            // would leave the toolbar driving an instance nobody edits, and `saveToStore`
+            // of the stray editor would keep writing into the property left behind
+            if (
+                generation !== initGeneration ||
+                !isActive.value ||
+                inlineEditingStore.editor !== null
+            ) {
+                createdEditor.destroy();
+
+                return;
+            }
+
+            originalSegments = createdSegments;
+            editorContent.value = createdContent;
+            editor.value = createdEditor;
+
             // Publish the editor into the store so BuilderCanvasInlineEditingOverlay can reach it
-            inlineEditingStore.setEditor(editor.value);
+            inlineEditingStore.setEditor(createdEditor);
         } catch (error) {
+            createdEditor?.destroy();
             console.error('[useInlineEditor] Failed to init editor:', error);
         }
     }
@@ -178,15 +239,30 @@ export function useInlineEditor(options: IUseInlineEditorOptions): IUseInlineEdi
         destroy();
     }
 
-    /** Destroys the TipTap editor and clears the editor in the store */
+    /**
+     * Destroys the TipTap editor and clears the editor in the store.
+     *
+     * The generation is raised as well: an editor still being imported belongs to the
+     * state being torn down here, and it must not surface afterwards.
+     *
+     * The store is cleared only when it holds OUR instance. A component leaving the
+     * canvas while another one is being edited used to wipe the editor of that other
+     * one — after which the toolbar of the overlay drove nothing.
+     */
     function destroy(): void {
-        if (editor.value) {
-            editor.value.destroy();
+        initGeneration += 1;
+
+        const ownEditor = editor.value;
+        if (ownEditor) {
+            ownEditor.destroy();
             editor.value = null;
         }
         editorContent.value = null;
         originalSegments = [];
-        inlineEditingStore.setEditor(null);
+
+        if (ownEditor && inlineEditingStore.editor === ownEditor) {
+            inlineEditingStore.setEditor(null);
+        }
     }
 
     // Editing stopped from the outside (Escape in BuilderCanvasItem): save and destroy

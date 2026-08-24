@@ -28,7 +28,6 @@ export interface IUseComponentSlotsReturn {
  * Drag-and-drop state of a single slot.
  */
 export interface ISlotState {
-    dragDepth: number;
     isDragOver: boolean;
     dropInsertIndex: number | null;
 }

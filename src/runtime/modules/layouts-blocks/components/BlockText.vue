@@ -64,11 +64,20 @@ const sanitizedContent = computed<string>(() => sanitizeRichTextHtml(props.conte
 // #endregion
 
 // #region Lifecycle
-watch(isEditing, async (editing) => {
-    if (editing && inlineEditor) {
-        await inlineEditor.initEditor();
-    }
-});
+// The full target is watched (this component AND this property), and synchronously: a
+// stop and a start of the editing inside one tick collapse into a single unchanged
+// value under the default flush, and then the only initialization ever started would
+// be the one of the session already over — publishing an editor filled with the text
+// as it was before the restart
+watch(
+    () => inlineEditor?.isActive.value ?? false,
+    async (isTargetActive) => {
+        if (isTargetActive && inlineEditor) {
+            await inlineEditor.initEditor();
+        }
+    },
+    { flush: 'sync' }
+);
 // #endregion
 
 // #region Methods

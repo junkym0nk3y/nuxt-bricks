@@ -16,7 +16,7 @@ import {
 import { findSelectedMediaNode } from '../utils/selectedMediaNode';
 
 // Vue
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
@@ -34,6 +34,18 @@ const sizeWidth = ref('');
 const sizeHeight = ref('');
 const sizeUnit = ref<TSizeUnit>('rem');
 const lockAspectRatio = ref(true);
+// #endregion
+
+// #region Computed
+/**
+ * Whether the height is driven by the aspect ratio rather than by the field.
+ *
+ * A percentage height resolves against the height of the containing block, which is
+ * `auto` in a flow of text — the browser drops it. The node view answers a width alone
+ * by computing the height from the aspect ratio, so the field would be offering a
+ * number that is deliberately thrown away.
+ */
+const isHeightDerived = computed<boolean>(() => sizeUnit.value === '%');
 // #endregion
 
 // #region Methods
@@ -76,6 +88,27 @@ function getEmPixelSize(): number {
     return parseFloat(getComputedStyle(media.element).fontSize) || DEFAULT_PX_PER_EM;
 }
 
+/**
+ * Returns the width in pixels a percentage size of the selected media resolves against.
+ *
+ * The custom size lands on the container of the node view, so the base is the width of
+ * ITS parent — the block the media sits in. The search starts from the selected node
+ * rather than from the surface, because the shell of the editor differs between the
+ * sidebar and the modal; the content element of the editor is the fallback, and 0 says
+ * the base could not be read at all.
+ */
+function getPercentBasePx(): number {
+    if (!props.editor) {
+        return 0;
+    }
+
+    const media = findSelectedMediaNode(props.editor);
+    const container = media?.element.closest('[data-resize-container]');
+    const base = container?.parentElement ?? props.editor.view.dom;
+
+    return base instanceof HTMLElement ? base.clientWidth : 0;
+}
+
 /** Returns the current aspect ratio (width/height) of the selected media */
 function getCurrentAspectRatio(): number | null {
     if (!props.editor || !props.activeNodeType) {
@@ -99,7 +132,14 @@ function applySize(): void {
     const unit = sizeUnit.value;
     const attrs: Record<string, unknown> = {};
 
-    if (unit === 'px') {
+    if (unit === '%') {
+        // The height is left to the aspect ratio on purpose: a percentage height is
+        // dropped by the layout, and written into the attribute it would only travel
+        // into the published page as a rule that does nothing. The pixel width/height
+        // are kept untouched — the node view reads the ratio out of them
+        attrs.customWidth = !isNaN(w) && w > 0 ? `${Math.min(w, 100)}%` : null;
+        attrs.customHeight = null;
+    } else if (unit === 'px') {
         attrs.customWidth = null;
         attrs.customHeight = null;
         if (!isNaN(w) && w > 0) {
@@ -153,7 +193,7 @@ function applyWidth(): void {
         return;
     }
 
-    if (lockAspectRatio.value) {
+    if (lockAspectRatio.value && !isHeightDerived.value) {
         const ratio = getCurrentAspectRatio();
         if (ratio) {
             sizeHeight.value = String(roundDecimal(w / ratio, 2));
@@ -184,6 +224,10 @@ function applyHeight(): void {
  * Cycles the unit of measure and converts the values.
  * Converts from the pixel attrs (the source of truth) so that rounding errors do not
  * pile up.
+ *
+ * Switching into percent empties the height field instead of converting it: the height
+ * follows the aspect ratio there, and a number in the field would be a promise the
+ * layout does not keep.
  */
 function cycleUnit(): void {
     const currentIndex = SIZE_UNITS.indexOf(sizeUnit.value);
@@ -195,11 +239,17 @@ function cycleUnit(): void {
         const pxW = Number(attrs.width);
         const pxH = Number(attrs.height);
         const emPixelSize = getEmPixelSize();
+        const percentBasePx = newUnit === '%' ? getPercentBasePx() : 0;
 
         if (pxW > 0) {
-            sizeWidth.value = String(roundDecimal(convertFromPx(pxW, newUnit, emPixelSize), 2));
+            sizeWidth.value = String(
+                roundDecimal(convertFromPx(pxW, newUnit, emPixelSize, percentBasePx), 2)
+            );
         }
-        if (pxH > 0) {
+
+        if (newUnit === '%') {
+            sizeHeight.value = '';
+        } else if (pxH > 0) {
             sizeHeight.value = String(roundDecimal(convertFromPx(pxH, newUnit, emPixelSize), 2));
         }
     }
@@ -283,6 +333,7 @@ onMounted(() => {
                 type="text"
                 inputmode="decimal"
                 :value="sizeHeight"
+                :disabled="isHeightDerived"
                 @input="handleSizeInput($event, 'height')"
                 @blur="applyHeight"
                 @keydown.enter.stop.prevent="applyHeight"
@@ -335,6 +386,12 @@ onMounted(() => {
 
     &:focus {
         border-color: var(--bricks-primary);
+    }
+
+    &:disabled {
+        background: var(--bricks-base-50);
+        color: var(--bricks-base-400);
+        cursor: not-allowed;
     }
 }
 

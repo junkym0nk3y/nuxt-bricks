@@ -97,6 +97,20 @@ export function useDocumentationArticles() {
     const articleContent = ref('');
     const isContentLoading = ref(false);
     const { renderMarkdown, isLoading: isMarkdownLoading } = useMarkdownRenderer();
+
+    /**
+     * The generation of a read of an article. Both the chunk of the file and the
+     * rendering of the markdown are asynchronous, and over their awaits the reader can
+     * switch to another article — an answer of a read nobody is waiting for any more
+     * must not reach the screen.
+     *
+     * The generation lives in the instance rather than in a module variable: on the
+     * server one module counter would be shared by every request of the process, and
+     * parallel readers would cancel each other's reads. The cache of the headings and
+     * the set of the prefixes already read are build-time statics, identical for every
+     * request, and stay at the module level.
+     */
+    let contentGeneration = 0;
     // #endregion
 
     // #region Computed
@@ -160,12 +174,21 @@ export function useDocumentationArticles() {
      * until the new one replaces it: a spinner in its place would take away what the
      * reader came for.
      *
+     * The generation is raised before the lookup of the loader, so that a jump to an
+     * unknown path invalidates the read in flight as well. The refusal branch lowers
+     * the spinner by itself for that very reason: the `finally` of the read it has
+     * just invalidated is no longer allowed to touch the flag.
+     *
      * @param path - The glob path of the .md file.
      */
     async function loadArticleContent(path: string): Promise<void> {
+        contentGeneration += 1;
+        const generation = contentGeneration;
+
         const loader = mdFiles[path];
         if (!loader) {
             articleContent.value = `<p>${t('bricks.docs.articleNotFound')}</p>`;
+            isContentLoading.value = false;
             return;
         }
 
@@ -176,10 +199,22 @@ export function useDocumentationArticles() {
 
         try {
             const raw = await loader();
+            if (generation !== contentGeneration) {
+                return;
+            }
+
             const html = await renderMarkdown(raw);
+            if (generation !== contentGeneration) {
+                return;
+            }
+
             articleContent.value = html;
         } finally {
-            isContentLoading.value = false;
+            // The flag belongs to the newest read: lowering it unconditionally would
+            // hide the spinner of the read that has taken this one over
+            if (generation === contentGeneration) {
+                isContentLoading.value = false;
+            }
         }
     }
 

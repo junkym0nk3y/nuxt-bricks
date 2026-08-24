@@ -25,9 +25,10 @@ import { mount, flushPromises } from '@vue/test-utils';
 // #endregion
 
 // #region Mocks
-const { changeOwnPasswordMock, assignMock } = vi.hoisted(() => ({
+const { changeOwnPasswordMock, assignMock, sessionMock } = vi.hoisted(() => ({
     changeOwnPasswordMock: vi.fn(),
     assignMock: vi.fn(),
+    sessionMock: { isDatabaseMode: true },
 }));
 
 vi.mock('../../src/runtime/modules/builder/auth/composables/useAuthProfile', () => ({
@@ -35,7 +36,7 @@ vi.mock('../../src/runtime/modules/builder/auth/composables/useAuthProfile', () 
 }));
 
 vi.mock('../../src/runtime/modules/builder/auth/composables/useAuthSession', () => ({
-    useAuthSession: () => ({ isDatabaseMode: true }),
+    useAuthSession: () => sessionMock,
 }));
 
 vi.mock('../../src/runtime/modules/common/composables/useBricksRoutePaths', () => ({
@@ -134,6 +135,7 @@ describe('BuilderAuthProfilePasswordForm', () => {
     beforeEach(() => {
         changeOwnPasswordMock.mockReset();
         assignMock.mockReset();
+        sessionMock.isDatabaseMode = true;
         // happy-dom не даёт переопределить assign напрямую
         Object.defineProperty(window, 'location', {
             configurable: true,
@@ -149,6 +151,25 @@ describe('BuilderAuthProfilePasswordForm', () => {
         await submitForm(wrapper);
 
         expect(changeOwnPasswordMock).toHaveBeenCalledWith('current-password', 'new-password');
+        expect(assignMock).toHaveBeenCalledWith('/app/bricks/bricks-login');
+
+        wrapper.unmount();
+    });
+
+    // Режим авторизации форма повторно НЕ проверяет: родитель монтирует её только
+    // под `canChangePassword`, а тот уже включает database-режим. Гейт по режиму был
+    // ветвью, до которой не доходит ни один путь, и его `false` оставлял форму с
+    // заблокированными полями и кнопкой без единого слова: `isSubmitting` снимается
+    // только в `catch`. Спека держит это со стороны контракта — вернувшийся гейт
+    // покраснеет здесь
+    it('успех уводит на вход, даже когда композабл сессии сообщает не-database режим', async () => {
+        sessionMock.isDatabaseMode = false;
+        changeOwnPasswordMock.mockResolvedValueOnce(undefined);
+
+        const wrapper = await mountFilledForm();
+
+        await submitForm(wrapper);
+
         expect(assignMock).toHaveBeenCalledWith('/app/bricks/bricks-login');
 
         wrapper.unmount();

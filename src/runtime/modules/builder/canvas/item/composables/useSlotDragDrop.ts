@@ -24,7 +24,7 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     // #region Data
     // Slot names come from the brick file: in a plain object `slotStates['__proto__']`
     // would read as an existing bucket, and the drag handlers would write
-    // dragDepth/isDragOver/dropInsertIndex into `Object.prototype`
+    // isDragOver/dropInsertIndex into `Object.prototype`
     const slotStates = reactive(new Map<string, ISlotState>());
     const slotContainerRefs = new Map<string, HTMLElement>();
     const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, null);
@@ -81,13 +81,12 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
         }
 
         slotStates.set(slotName, {
-            dragDepth: 0,
             isDragOver: false,
             dropInsertIndex: null,
         });
 
         // Through get rather than through the literal just written: the reactive proxy is
-        // what makes a mutation of dragDepth/isDragOver repaint the placeholder
+        // what makes a mutation of isDragOver/dropInsertIndex repaint the placeholder
         return slotStates.get(slotName) as ISlotState;
     }
 
@@ -98,7 +97,6 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
      */
     function resetSlotState(slotName: string): void {
         const state = ensureSlotState(slotName);
-        state.dragDepth = 0;
         state.isDragOver = false;
         state.dropInsertIndex = null;
     }
@@ -126,7 +124,14 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Collects every child element inside the container of a slot
+     * Collects the immediate children of the container of a slot.
+     *
+     * The selector is deliberately scoped to the direct children: `data-slot-child` is
+     * carried by every canvas item that sits in a slot, nested ones included, and a
+     * recursive lookup counted the children of a slot inside a slot as well — the
+     * insertion index then went past the number of children the slot actually has. The
+     * flow placeholder and the spacer carry no such attribute, so they stay out on
+     * their own.
      *
      * @param slotName - Slot name
      * @returns Array of child HTMLElements
@@ -137,7 +142,9 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
             return [];
         }
 
-        return Array.from(container.querySelectorAll<HTMLElement>('[data-slot-child="true"]'));
+        return Array.from(
+            container.querySelectorAll<HTMLElement>(':scope > [data-slot-child="true"]')
+        );
     }
 
     /**
@@ -200,7 +207,6 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
         event.stopPropagation();
 
         const state = ensureSlotState(slotName);
-        state.dragDepth += 1;
 
         if (!applyDropEffect(event)) {
             resetSlotState(slotName);
@@ -231,7 +237,13 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     }
 
     /**
-     * Handles a drag leave event of a slot
+     * Handles a drag leave event of a slot.
+     *
+     * There is no nesting counter behind this: `dragenter` bubbles up from every
+     * descendant of the container, while a leave onto a descendant returns right here,
+     * so a counter grew without ever coming back down and left the placeholder on
+     * screen for the rest of the drag. A target outside the container — `null`
+     * included, which is how a leave for another window arrives — is the real exit.
      *
      * @param slotName - Slot name
      * @param event - Drag leave event
@@ -242,12 +254,6 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
         const container = slotContainerRefs.get(slotName);
         const nextTarget = event.relatedTarget;
         if (nextTarget instanceof Node && container?.contains(nextTarget)) {
-            return;
-        }
-
-        const state = ensureSlotState(slotName);
-        state.dragDepth = Math.max(0, state.dragDepth - 1);
-        if (state.dragDepth > 0) {
             return;
         }
 
