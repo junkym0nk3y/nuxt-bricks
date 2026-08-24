@@ -2,6 +2,7 @@
 // #region Imports
 // Types
 import type { IBricksComponent } from '../../../../common/types/brick';
+import type { ISchemaTreeMoveRequest } from '../types/composables';
 
 // Vue
 import { computed, nextTick } from 'vue';
@@ -16,6 +17,7 @@ import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
 
 // Composables
 import { useComponentEditorMetadata } from '../../../core/composables/useComponentEditorMetadata';
+import { useComponentMoveFeedback } from '../../../core/composables/useComponentMoveFeedback';
 
 // Utils
 import { scrollToComponentOnCanvas } from '../../../core/utils/scrollToComponent';
@@ -37,6 +39,7 @@ const { t } = useI18n();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const { resolveComponentEditorMetadata } = useComponentEditorMetadata();
+const { reportRefusedMove } = useComponentMoveFeedback();
 // #endregion
 
 // #region Computed
@@ -57,26 +60,30 @@ function handleClose(): void {
 }
 
 /**
- * Moves a component among the root ones according to the drop position.
+ * Performs the move a row resolved: the row knows its neighbors and its
+ * destination, the controller owns the store call and the answer to the user.
  *
- * The target is always a root component: a nested row does not accept a drop (see
- * `canReceiveDrop` in the tree item). A nested block can still be dragged onto a
- * root row, and it is raised to the top level by this very call.
+ * The refusal of the store is not swallowed: the rule was already asked while the
+ * cursor was hovering, so a refusal here means the schema changed under the drag
+ * — and a drop that does nothing without a word is exactly what the tree used to
+ * do on every nested row.
  *
- * @param draggedId - Id of the dragged component.
- * @param targetId - Id of the component it was dropped onto.
- * @param position - Position relative to the target: before or after.
+ * @param request - The dragged component, the destination and the index.
  */
-function handleReorder(draggedId: string, targetId: string, position: 'before' | 'after'): void {
-    const rootComponents = componentsStore.getRootComponents();
-    const targetIndex = rootComponents.findIndex((c) => c.id === targetId);
+function handleMove({ sourceId, destination, targetIndex }: ISchemaTreeMoveRequest): void {
+    if (destination.kind === 'root') {
+        componentsStore.moveComponentToRoot(sourceId, targetIndex);
 
-    if (targetIndex === -1) {
         return;
     }
 
-    const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
-    componentsStore.moveComponentToRoot(draggedId, newIndex);
+    const result = componentsStore.moveComponentToLayout(destination.parentId, sourceId, {
+        targetIndex,
+    });
+
+    if (!result.moved) {
+        reportRefusedMove(result.reason);
+    }
 }
 
 /**
@@ -177,7 +184,7 @@ async function handleSelectComponent(id: string): Promise<void> {
                     :depth="0"
                     :is-last="index === rootComponents.length - 1"
                     @select="handleSelectComponent"
-                    @reorder="handleReorder"
+                    @move="handleMove"
                 />
             </div>
 

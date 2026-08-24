@@ -377,14 +377,24 @@ export function useCanvasDrops({
 
         const childId = componentsStore.addComponent(componentData, { skipHistory: true });
         if (childId) {
-            componentsStore.moveComponentToSlot(
+            const result = componentsStore.moveComponentToSlot(
                 parentId,
                 slotName,
                 childId,
                 typeof targetIndex === 'number' ? targetIndex : undefined,
                 { skipHistory: true }
             );
-            componentsStore.saveToHistory();
+
+            if (result.moved) {
+                componentsStore.saveToHistory();
+            } else {
+                // The component was created before the move and would stay at the
+                // root level of the canvas — a block the user never asked for. The
+                // removal goes without a history entry of its own: the history does
+                // not deduplicate identical snapshots, and a pair of them would make
+                // the first undo look like it did nothing
+                componentsStore.removeComponent(childId, { skipHistory: true });
+            }
         }
 
         if (dragComposable?.draggedComponent) {

@@ -2,9 +2,10 @@
 // #region Imports
 // Types
 import type { IBricksComponent } from '../../../../common/types/brick';
+import type { ISchemaTreeMoveRequest } from '../types/composables';
 
 // Vue
-import { computed, ref } from 'vue';
+import { computed, toRef } from 'vue';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -12,6 +13,7 @@ import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Composables
 import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
+import { useSidebarSchemaTreeDrop } from '../composables/useSidebarSchemaTreeDrop';
 
 // Utils
 import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
@@ -35,7 +37,7 @@ const props = withDefaults(defineProps<ISidebarSchemaTreeItemProps>(), {
 // #region Emits
 const emit = defineEmits<{
     select: [id: string];
-    reorder: [componentId: string, targetId: string, position: 'before' | 'after'];
+    move: [request: ISchemaTreeMoveRequest];
 }>();
 // #endregion
 
@@ -45,7 +47,19 @@ const canvasStore = useCanvasStore();
 // The tree stays navigation for every role, but moving blocks around with the mouse
 // is an edit of the schema: without the edit permission a row does not drag
 const { canEdit } = useBuilderPermissions();
-const dragOverPosition = ref<'before' | 'after' | null>(null);
+// The drop of a row lives in a composable of its own: the three landing zones plus
+// the rule of a permitted move would not fit the size ceiling of an SFC here
+const {
+    dropPosition,
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
+    handleDragEnd,
+    handleDrop,
+} = useSidebarSchemaTreeDrop({
+    component: toRef(props, 'component'),
+    onMove: (request: ISchemaTreeMoveRequest) => emit('move', request),
+});
 // #endregion
 
 // #region Computed
@@ -79,26 +93,6 @@ const isLayout = computed<boolean>(() => props.component.type === 'layout');
 
 const hasChildren = computed<boolean>(() => childComponents.value.length > 0);
 
-/**
- * A row may be dropped ONTO only at the root level.
- *
- * A nested row used to accept a drop too — it drew the position indicator and
- * emitted the reorder — while the handler above looks the target up among the
- * root components only and left silently on a nested one: the user saw "you can
- * drop it here" and nothing happened.
- *
- * Making the nested move actually work is not a matter of an index: nothing keeps
- * the invariants of such a move. The store would move an ancestor into its own
- * descendant (there is no cycle check in `moveComponentToLayout`), the chain could
- * end up deeper than the schema contract allows, a Grid has its own capacity and
- * swap semantics on the canvas, and a slot child is not represented in this tree
- * at all — its slot membership would be lost. That is a job of its own with a
- * shared policy in the core, not a branch in the sidebar.
- *
- * A nested row stays a drag SOURCE: dropping it onto a root row raises the block
- * to the top level, and that has always worked.
- */
-const canReceiveDrop = computed<boolean>(() => canEdit.value && props.depth === 0);
 // #endregion
 
 // #region Methods
@@ -109,77 +103,6 @@ function handleSelect(): void {
     emit('select', props.component.id);
 }
 
-/**
- * Starts the drag of a tree row.
- *
- * @param event - The dragstart event.
- */
-function handleDragStart(event: DragEvent): void {
-    if (!event.dataTransfer) {
-        return;
-    }
-
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('tree-component-id', props.component.id);
-}
-
-/**
- * Works out the drop position (before or after) from the cursor coordinates.
- *
- * @param event - The dragover event.
- */
-function handleDragOver(event: DragEvent): void {
-    event.stopPropagation();
-
-    // Without preventDefault the browser refuses the drop itself and shows the
-    // "not allowed" cursor — a nested row must not promise what would not happen
-    if (!canReceiveDrop.value) {
-        return;
-    }
-
-    event.preventDefault();
-
-    if (!event.dataTransfer) {
-        return;
-    }
-
-    event.dataTransfer.dropEffect = 'move';
-
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    dragOverPosition.value = event.clientY < midY ? 'before' : 'after';
-}
-
-/**
- * Clears the indicator when the cursor leaves.
- */
-function handleDragLeave(): void {
-    dragOverPosition.value = null;
-}
-
-/**
- * Handles the drop: works out the position and emits the reorder.
- *
- * @param event - The drop event.
- */
-function handleDrop(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (!canReceiveDrop.value) {
-        return;
-    }
-
-    const draggedId = event.dataTransfer?.getData('tree-component-id');
-    if (!draggedId || draggedId === props.component.id) {
-        dragOverPosition.value = null;
-        return;
-    }
-
-    const position = dragOverPosition.value || 'after';
-    emit('reorder', draggedId, props.component.id, position);
-    dragOverPosition.value = null;
-}
 // #endregion
 </script>
 
@@ -197,20 +120,25 @@ function handleDrop(event: DragEvent): void {
                 <div :class="$style.horizontalLine" />
             </div>
 
-            <div v-if="dragOverPosition === 'before'" :class="$style.dropIndicator" />
+            <div v-if="dropPosition === 'before'" :class="$style.dropIndicator" />
 
             <button
                 type="button"
                 :draggable="canEdit"
                 :class="[
                     $style.row,
-                    { [$style._selected]: isSelected, [$style._hidden]: isHidden },
+                    {
+                        [$style._selected]: isSelected,
+                        [$style._hidden]: isHidden,
+                        [$style._dropInside]: dropPosition === 'inside',
+                    },
                 ]"
                 :style="{ paddingLeft: `${props.depth * 1.6 + 0.8}rem` }"
                 @click="handleSelect"
                 @dragstart="handleDragStart"
                 @dragover="handleDragOver"
                 @dragleave="handleDragLeave"
+                @dragend="handleDragEnd"
                 @drop="handleDrop"
             >
                 <span :class="$style.name">
@@ -236,7 +164,7 @@ function handleDrop(event: DragEvent): void {
                 </span>
             </button>
 
-            <div v-if="dragOverPosition === 'after'" :class="$style.dropIndicator" />
+            <div v-if="dropPosition === 'after'" :class="$style.dropIndicator" />
         </div>
 
         <div v-if="hasChildren" :class="$style.children">
@@ -247,10 +175,7 @@ function handleDrop(event: DragEvent): void {
                 :depth="props.depth + 1"
                 :is-last="index === childComponents.length - 1"
                 @select="(id: string) => emit('select', id)"
-                @reorder="
-                    (draggedId: string, targetId: string, position: 'before' | 'after') =>
-                        emit('reorder', draggedId, targetId, position)
-                "
+                @move="(request: ISchemaTreeMoveRequest) => emit('move', request)"
             />
         </div>
     </div>
@@ -288,6 +213,11 @@ function handleDrop(event: DragEvent): void {
 
     &._hidden {
         opacity: 0.5;
+    }
+
+    &._dropInside {
+        outline: 0.2rem solid var(--bricks-primary);
+        outline-offset: -0.2rem;
     }
 
     &:active {

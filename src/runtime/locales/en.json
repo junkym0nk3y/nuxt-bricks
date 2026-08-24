@@ -551,7 +551,16 @@
             "importErrorDevices": "Device set in the file failed validation: {detail}",
             "importErrorParse": "Failed to parse the JSON file",
             "importErrorRead": "Failed to read the file",
-            "importedWithOrphanDevices": "Schema imported. Overrides for devices outside the page device set are kept but not applied: {keys}"
+            "importedWithOrphanDevices": "Schema imported. Overrides for devices outside the page device set are kept but not applied: {keys}",
+            "moveRefused": {
+                "descendant": "A block cannot be moved into its own content",
+                "depthLimit": "Nesting is too deep: the block does not fit here",
+                "gridCapacity": "The grid has no free cells left",
+                "slotCapacity": "The slot is already taken by another block",
+                "targetNotContainer": "This block cannot hold other blocks",
+                "invalidGraph": "The page structure is corrupted — reload the editor",
+                "fallback": "The block cannot be moved here"
+            }
         },
         "canvas": {
             "emptyTitle": "Add new components",

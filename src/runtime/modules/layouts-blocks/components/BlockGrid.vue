@@ -20,6 +20,7 @@ import {
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
 import { calculateGridDropTargetIndex } from '../utils/gridDropPlacement';
+import { normalizeGridTrackCount } from '../utils/gridDimensions';
 import { countSlotContent } from '../utils/slotContent';
 
 // Composables
@@ -54,19 +55,11 @@ const actualRowSizes = ref<number[]>([]);
 
 const childCount = computed<number>(() => countSlotContent(slots.default?.()));
 
-const normalizedColumns = computed<number>(() => {
-    if (!props.layoutProps.columns || props.layoutProps.columns < 1) {
-        return 1;
-    }
-    return Math.floor(props.layoutProps.columns);
-});
+const normalizedColumns = computed<number>(() =>
+    normalizeGridTrackCount(props.layoutProps.columns)
+);
 
-const normalizedRows = computed<number>(() => {
-    if (!props.layoutProps.rows || props.layoutProps.rows < 1) {
-        return 1;
-    }
-    return Math.floor(props.layoutProps.rows);
-});
+const normalizedRows = computed<number>(() => normalizeGridTrackCount(props.layoutProps.rows));
 
 const accentSpan = computed<number>(() => Math.max(1, Math.round(normalizedColumns.value / 2)));
 

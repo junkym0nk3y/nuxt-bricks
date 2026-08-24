@@ -1,46 +1,14 @@
 import type { IBricksComponent } from '../../../../common/types/brick';
 import { cloneBricksComponent } from '../../../../common/utils/bricks/components';
 import { generateComponentId } from '../../utils/ids';
+import { buildComponentAdjacency } from '../../utils/componentTree';
 import { useComponentEditorMetadata } from '../../composables/useComponentEditorMetadata';
 import type {
     IComponentsClipboardActions,
     IComponentsStore,
     IComponentClipboardSnapshot,
 } from '../types';
-
-/**
- * Works out every direct child of a component, wherever the reference is kept —
- * `children`, a slot, or the `parent` field of the child itself.
- *
- * @param store - Components store.
- * @param component - Component whose subtree is being resolved.
- * @returns Unique ids of the children.
- */
-function resolveDirectChildren(store: IComponentsStore, component: IBricksComponent): string[] {
-    const directIds = new Set<string>();
-
-    component.children?.forEach((childId) => {
-        if (childId) {
-            directIds.add(childId);
-        }
-    });
-
-    component.slots?.forEach((slot) => {
-        slot.children.forEach((childId) => {
-            if (childId) {
-                directIds.add(childId);
-            }
-        });
-    });
-
-    store.components.forEach((candidate) => {
-        if (candidate.parent === component.id) {
-            directIds.add(candidate.id);
-        }
-    });
-
-    return [...directIds];
-}
+import type { TComponentMoveResult } from '../../types/componentMove';
 
 /**
  * Collects the whole tree of a component and all of its descendants.
@@ -50,6 +18,11 @@ function resolveDirectChildren(store: IComponentsStore, component: IBricksCompon
  * @returns Clones of the components, still carrying the original ids.
  */
 function collectComponentTree(store: IComponentsStore, rootId: string): IBricksComponent[] {
+    // The links of the graph are read out of all three sources at once — `children`,
+    // the slots and the `parent` of the child — by the shared adjacency: a copy of
+    // that rule of its own would go out of sync with the one the move policy uses,
+    // and the two would then disagree about what a subtree even is
+    const adjacency = buildComponentAdjacency(store.components);
     const queue: string[] = [rootId];
     const visited = new Set<string>();
     const result: IBricksComponent[] = [];
@@ -68,8 +41,7 @@ function collectComponentTree(store: IComponentsStore, rootId: string): IBricksC
 
         result.push(cloneBricksComponent(component));
 
-        const childIds = resolveDirectChildren(store, component);
-        childIds.forEach((childId) => {
+        adjacency.get(id)?.forEach((childId) => {
             if (!visited.has(childId)) {
                 queue.push(childId);
             }
@@ -77,6 +49,43 @@ function collectComponentTree(store: IComponentsStore, rootId: string): IBricksC
     }
 
     return result;
+}
+
+/**
+ * Puts the clone where the original stood: into the same slot, into the same
+ * layout or at the root level.
+ *
+ * @param store - Components store.
+ * @param snapshot - Clipboard snapshot of the original.
+ * @param cloneId - Id of the clone being placed.
+ * @param parent - Parent of the original, when it had one.
+ * @returns The result of the placement.
+ */
+function resolveClonePlacement(
+    store: IComponentsStore,
+    snapshot: IComponentClipboardSnapshot,
+    cloneId: string,
+    parent: IBricksComponent | undefined
+): TComponentMoveResult {
+    if (snapshot.slotName && parent?.slots?.length) {
+        return store.addComponentToSlot(
+            snapshot.parentId as string,
+            snapshot.slotName,
+            cloneId,
+            snapshot.insertIndex,
+            { skipHistory: true }
+        );
+    }
+
+    if (parent?.type === 'layout') {
+        return store.addChildToLayout(snapshot.parentId as string, cloneId, snapshot.insertIndex, {
+            skipHistory: true,
+        });
+    }
+
+    store.moveComponentToRoot(cloneId, snapshot.insertIndex, { skipHistory: true });
+
+    return { moved: true };
 }
 
 /**
@@ -221,23 +230,22 @@ function pasteClipboardSnapshot(
 
     if (snapshot.parentId) {
         const parent = store.getComponentById(snapshot.parentId);
+        const placement = resolveClonePlacement(store, snapshot, rootClone.id, parent);
 
-        if (snapshot.slotName && parent?.slots?.length) {
-            store.addComponentToSlot(
-                snapshot.parentId,
-                snapshot.slotName,
-                rootClone.id,
-                snapshot.insertIndex,
-                {
-                    skipHistory: true,
-                }
-            );
-        } else if (parent?.type === 'layout') {
-            store.addChildToLayout(snapshot.parentId, rootClone.id, snapshot.insertIndex, {
-                skipHistory: true,
+        if (!placement.moved) {
+            // The clones are already in the store, and the place they were meant for
+            // refused them — a single slot is the everyday case, the original sits
+            // there. Left as they are they would become blocks nobody references:
+            // invisible on the canvas, and enough for the schema contract to refuse
+            // the save of the page
+            console.warn('[Bricks Store] Refused to paste the clipboard', {
+                parentId: snapshot.parentId,
+                slotName: snapshot.slotName,
+                reason: placement.reason,
             });
-        } else {
-            store.moveComponentToRoot(rootClone.id, snapshot.insertIndex, { skipHistory: true });
+            store.removeComponent(rootClone.id, { skipHistory: true });
+
+            return null;
         }
     } else {
         store.moveComponentToRoot(rootClone.id, snapshot.insertIndex, { skipHistory: true });

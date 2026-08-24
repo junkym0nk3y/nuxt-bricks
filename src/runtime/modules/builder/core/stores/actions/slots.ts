@@ -1,6 +1,8 @@
 import type { IComponentSlotDefinition } from '../../../../common/types/brick';
 import { applySlotDefinitions, findSlot } from '../../utils/slots';
+import { evaluateComponentMove } from '../../utils/componentMovePolicy';
 import type { IComponentsSlotActions, IComponentsStore, THistoryOptions } from '../types';
+import type { TComponentMoveResult } from '../../types/componentMove';
 import { adjustReorderTargetIndex } from './order';
 
 /**
@@ -41,8 +43,8 @@ export const slotActions: IComponentsSlotActions = {
         childId: string,
         index?: number | null,
         options?: THistoryOptions
-    ) {
-        this.moveComponentToSlot(parentId, slotName, childId, index, options);
+    ): TComponentMoveResult {
+        return this.moveComponentToSlot(parentId, slotName, childId, index, options);
     },
 
     /**
@@ -108,19 +110,40 @@ export const slotActions: IComponentsSlotActions = {
         childId: string,
         index?: number | null,
         options?: THistoryOptions
-    ) {
+    ): TComponentMoveResult {
         const parent = this.getComponentById(parentId);
         const child = this.getComponentById(childId);
 
         if (!parent || !child || !parent.slots?.length) {
             console.warn('[Bricks Store] moveComponentToSlot: invalid parent or slots missing');
-            return;
+
+            return { moved: false, reason: 'target-not-found' };
         }
 
         const targetSlot = findSlot(parent, slotName);
         if (!targetSlot) {
             console.warn('[Bricks Store] moveComponentToSlot: slot not found', slotName);
-            return;
+
+            return { moved: false, reason: 'slot-not-found' };
+        }
+
+        // Before the detach: it is the detach that makes the first write, and a
+        // refusal after it would leave the component with no parent at all
+        const decision = evaluateComponentMove({
+            components: this.components,
+            sourceId: childId,
+            destination: { kind: 'slot', parentId, slotName },
+        });
+
+        if (!decision.allowed) {
+            console.warn('[Bricks Store] Refused to move component to slot', {
+                parentId,
+                slotName,
+                childId,
+                reason: decision.reason,
+            });
+
+            return { moved: false, reason: decision.reason };
         }
 
         const currentIndex =
@@ -150,5 +173,7 @@ export const slotActions: IComponentsSlotActions = {
         if (!options?.skipHistory) {
             this.saveToHistory();
         }
+
+        return { moved: true };
     },
 };

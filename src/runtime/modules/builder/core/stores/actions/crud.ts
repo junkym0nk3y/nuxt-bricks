@@ -6,8 +6,8 @@ import {
     removeChildFromLayout as removeChildFromLayoutHelper,
 } from '../../../../common/utils/bricks/components';
 import { normalizeBrickPath } from '../../../../common/utils/bricks/paths';
-import { getBlockDefinition } from '../../../../layouts-blocks/registry';
 import { generateComponentId } from '../../utils/ids';
+import { evaluateComponentMove } from '../../utils/componentMovePolicy';
 import { useSidebarStore } from '../sidebar';
 import { adjustReorderTargetIndex } from './order';
 import type {
@@ -17,38 +17,8 @@ import type {
     THistoryOptions,
     TMoveComponentToLayoutOptions,
 } from '../types';
-
-/**
- * Works out the value of a grid property (gridColumn / gridRow) when a component is
- * moved.
- *
- * In order of precedence:
- * 1. A value passed explicitly in the options
- * 2. A targetIndex was given (positioning follows the DOM order) — clear it
- * 3. A grid layout — keep the current value of the component
- * 4. Anything else — clear it
- */
-function resolveGridProperty(
-    explicitValue: string | undefined,
-    currentValue: string | undefined,
-    hasExplicitIndex: boolean,
-    isGridLayout: boolean
-): string | undefined {
-    if (explicitValue !== undefined) {
-        return explicitValue || undefined;
-    }
-
-    if (hasExplicitIndex) {
-        return undefined;
-    }
-
-    return isGridLayout ? currentValue : undefined;
-}
-
-/** Checks whether a schema component names the Grid layout block */
-function isGridLayout(componentName: string): boolean {
-    return getBlockDefinition(componentName)?.name === 'Grid';
-}
+import type { TComponentMoveResult } from '../../types/componentMove';
+import { isGridLayout, reorderWithinLayout, resolveGridProperty } from '../../utils/layoutChildren';
 
 /**
  * The CRUD operations over the canvas components and their hierarchy.
@@ -96,7 +66,7 @@ export const crudActions: IComponentsCrudActions = {
      *
      * @param id - Id of the component to remove.
      */
-    removeComponent(this: IComponentsStore, id: string) {
+    removeComponent(this: IComponentsStore, id: string, options?: THistoryOptions) {
         const target = this.getComponentById(id);
         if (!target) {
             return;
@@ -157,7 +127,9 @@ export const crudActions: IComponentsCrudActions = {
             sidebarStore.hidePropertiesPanel();
         }
 
-        this.saveToHistory();
+        if (!options?.skipHistory) {
+            this.saveToHistory();
+        }
     },
 
     /**
@@ -174,7 +146,15 @@ export const crudActions: IComponentsCrudActions = {
 
         const parent = this.getComponentById(child.parent);
 
-        parent?.children?.splice(parent.children.indexOf(childId), 1);
+        // The index is checked before the splice: a slot child is NOT listed in
+        // `children`, and `splice(-1, 1)` would carry off the last child of the
+        // parent instead — someone else's block, silently
+        const childIndex = parent?.children?.indexOf(childId) ?? -1;
+
+        if (childIndex !== -1) {
+            parent?.children?.splice(childIndex, 1);
+        }
+
         parent?.slots?.forEach((slot) => {
             const idx = slot.children.indexOf(childId);
             if (idx !== -1) {
@@ -207,16 +187,37 @@ export const crudActions: IComponentsCrudActions = {
         childId: string,
         index?: number | null,
         options?: THistoryOptions
-    ) {
+    ): TComponentMoveResult {
         const layout = this.getComponentById(layoutId);
         const child = this.getComponentById(childId);
         if (!layout || !child || !isLayoutComponent(layout)) {
-            return;
+            return { moved: false, reason: 'target-not-container' };
         }
 
         layout.children = layout.children || [];
         if (layout.children.includes(childId)) {
-            return;
+            return { moved: true };
+        }
+
+        // The same rule as for a move: this is a second way of writing into
+        // `children`, and it is a live one — a new block out of the library and a
+        // paste of the clipboard travel through it. Without the check a block could
+        // be added to a container at the depth limit, and the schema contract would
+        // then refuse to save the page
+        const decision = evaluateComponentMove({
+            components: this.components,
+            sourceId: childId,
+            destination: { kind: 'layout', parentId: layoutId },
+        });
+
+        if (!decision.allowed) {
+            console.warn('[Bricks Store] Refused to add component to layout', {
+                layoutId,
+                childId,
+                reason: decision.reason,
+            });
+
+            return { moved: false, reason: decision.reason };
         }
 
         const insertIndex =
@@ -236,6 +237,8 @@ export const crudActions: IComponentsCrudActions = {
         if (!options?.skipHistory) {
             this.saveToHistory();
         }
+
+        return { moved: true };
     },
 
     /**
@@ -286,7 +289,7 @@ export const crudActions: IComponentsCrudActions = {
         layoutId: string,
         childId: string,
         options?: TMoveComponentToLayoutOptions
-    ) {
+    ): TComponentMoveResult {
         const layout = this.getComponentById(layoutId);
         const component = this.getComponentById(childId);
 
@@ -295,11 +298,37 @@ export const crudActions: IComponentsCrudActions = {
                 layoutId,
                 childId,
             });
-            return;
+
+            return { moved: false, reason: 'target-not-container' };
+        }
+
+        // The rule is asked BEFORE the first write, `layout.children` included:
+        // a refusal must leave the schema and the history untouched, otherwise
+        // undo would be rewinding a move that never happened
+        const decision = evaluateComponentMove({
+            components: this.components,
+            sourceId: childId,
+            destination: { kind: 'layout', parentId: layoutId },
+        });
+
+        if (!decision.allowed) {
+            console.warn('[Bricks Store] Refused to move component to layout', {
+                layoutId,
+                childId,
+                reason: decision.reason,
+            });
+
+            return { moved: false, reason: decision.reason };
         }
 
         layout.children = layout.children || [];
-        const isSameLayout = component.parent === layoutId;
+        // The same container means the same LIST: a child sitting in a slot of
+        // this very component arrives into `children` from the outside, and
+        // treating it as a rearrangement would leave it referenced twice
+        const isSameLayout =
+            component.parent === layoutId &&
+            component.slotName === undefined &&
+            layout.children.includes(childId);
 
         if (!isSameLayout) {
             this.detachComponentFromParent(childId, { skipHistory: true });
@@ -312,32 +341,13 @@ export const crudActions: IComponentsCrudActions = {
                 : currentChildren.length;
 
         if (isSameLayout) {
-            const currentIndex = currentChildren.indexOf(childId);
-            if (currentIndex === -1) {
-                currentChildren.splice(desiredIndex, 0, childId);
-            } else if (currentIndex !== desiredIndex) {
-                const clampedTarget = Math.min(desiredIndex, currentChildren.length - 1);
-
-                if (options?.swap) {
-                    // Swap: the two entries trade places in the array
-                    const swappedId = currentChildren[clampedTarget];
-                    currentChildren[clampedTarget] = childId;
-                    currentChildren[currentIndex] = swappedId;
-
-                    // The grid placement of both components is cleared, so that CSS
-                    // Grid lays them out in DOM order
-                    const swappedComponent = this.getComponentById(swappedId);
-                    if (swappedComponent) {
-                        swappedComponent.gridColumn = undefined;
-                        swappedComponent.gridRow = undefined;
-                    }
-                } else {
-                    currentChildren.splice(currentIndex, 1);
-                    const adjustedIndex =
-                        currentIndex < desiredIndex ? desiredIndex - 1 : desiredIndex;
-                    currentChildren.splice(adjustedIndex, 0, childId);
-                }
-            }
+            reorderWithinLayout({
+                children: currentChildren,
+                childId,
+                desiredIndex,
+                swap: options?.swap === true,
+                getComponentById: (id) => this.getComponentById(id),
+            });
         } else {
             const insertIndex = Math.max(0, Math.min(desiredIndex, currentChildren.length));
             currentChildren.splice(insertIndex, 0, childId);
@@ -362,6 +372,8 @@ export const crudActions: IComponentsCrudActions = {
         );
 
         this.saveToHistory();
+
+        return { moved: true };
     },
 
     /**

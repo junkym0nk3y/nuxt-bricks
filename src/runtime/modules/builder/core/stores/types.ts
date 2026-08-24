@@ -7,6 +7,7 @@ import type {
     TBricksDeviceKey,
     TBrickPropValue,
 } from '../../../common/types/brick';
+import type { TComponentMoveResult } from '../types/componentMove';
 
 export interface IComponentClipboardSnapshot {
     rootId: string;
@@ -57,7 +58,7 @@ export interface IComponentsCrudActions {
         component: TComponentInsertPayload,
         options?: THistoryOptions
     ): string;
-    removeComponent(this: IComponentsStore, id: string): void;
+    removeComponent(this: IComponentsStore, id: string, options?: THistoryOptions): void;
     detachComponentFromParent(
         this: IComponentsStore,
         childId: string,
@@ -69,7 +70,7 @@ export interface IComponentsCrudActions {
         childId: string,
         index?: number | null,
         options?: THistoryOptions
-    ): void;
+    ): TComponentMoveResult;
     removeChildFromLayout(
         this: IComponentsStore,
         layoutId: string,
@@ -81,7 +82,7 @@ export interface IComponentsCrudActions {
         layoutId: string,
         childId: string,
         options?: TMoveComponentToLayoutOptions
-    ): void;
+    ): TComponentMoveResult;
     moveComponentToRoot(
         this: IComponentsStore,
         childId: string,
@@ -104,7 +105,7 @@ export interface IComponentsSlotActions {
         childId: string,
         index?: number | null,
         options?: THistoryOptions
-    ): void;
+    ): TComponentMoveResult;
     removeComponentFromSlot(
         this: IComponentsStore,
         parentId: string,
@@ -119,7 +120,7 @@ export interface IComponentsSlotActions {
         childId: string,
         index?: number | null,
         options?: THistoryOptions
-    ): void;
+    ): TComponentMoveResult;
 }
 
 export interface IComponentsPropertyActions {

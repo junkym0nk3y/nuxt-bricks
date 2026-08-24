@@ -11,7 +11,8 @@ import type {
     TSpacingSideKey,
 } from '../components/property-editors/types';
 import type { ComputedRef, Ref } from 'vue';
-import type { IBricksSchema } from '../../../../common/types/brick';
+import type { IBricksComponent, IBricksSchema } from '../../../../common/types/brick';
+import type { TComponentMoveDestination } from '../../../core/types/componentMove';
 import type { TPublishFormState } from '../../../../common/types/bricks-api';
 import type { IMediaItem } from '../../../../common/types/media';
 import type { TBrickDemoValues } from '../../../../common/types/index';
@@ -109,5 +110,47 @@ export interface IUseSidebarPublishFormReturn {
 export interface IComponentCardDrag {
     handleDragStart: (event: DragEvent) => void;
     handleDragEnd: () => void;
+}
+// #endregion
+
+// #region useSidebarSchemaTreeDrop
+/**
+ * Where a dragged row is about to land relative to the row under the cursor:
+ * next to it as a sibling, or inside it as a child.
+ */
+export type TSchemaTreeDropPosition = 'before' | 'inside' | 'after';
+
+/**
+ * Request of a move, resolved by the row and performed by the tree controller.
+ * The row knows the neighbors and the destination, the controller owns the store
+ * call and the answer to the user.
+ */
+export interface ISchemaTreeMoveRequest {
+    sourceId: string;
+    destination: TComponentMoveDestination;
+    targetIndex: number;
+}
+
+/**
+ * Options of the `useSidebarSchemaTreeDrop` composable.
+ */
+export interface ISidebarSchemaTreeDropOptions {
+    /** Row the drop is being resolved against. */
+    component: Ref<IBricksComponent>;
+    /** Reports the resolved move upward. */
+    onMove: (request: ISchemaTreeMoveRequest) => void;
+}
+
+/**
+ * Return value of the `useSidebarSchemaTreeDrop` composable.
+ */
+export interface ISidebarSchemaTreeDrop {
+    /** Position the indicator is drawn for, or null when the drop is refused. */
+    dropPosition: Ref<TSchemaTreeDropPosition | null>;
+    handleDragStart: (event: DragEvent) => void;
+    handleDragOver: (event: DragEvent) => void;
+    handleDragLeave: (event: DragEvent) => void;
+    handleDragEnd: () => void;
+    handleDrop: (event: DragEvent) => void;
 }
 // #endregion
