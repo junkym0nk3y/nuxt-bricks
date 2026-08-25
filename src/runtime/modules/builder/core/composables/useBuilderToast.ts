@@ -14,8 +14,17 @@ import { computed, reactive } from 'vue';
  */
 const DEFAULT_TOAST_DURATION = 4000;
 
+/**
+ * Token of a toast that was never shown. `hideToast` compares tokens, and this one
+ * matches nothing: a caller that stored it can call `hideToast` safely and hide
+ * nobody else's notification.
+ */
+const NO_TOAST_TOKEN = -1;
+
 // Module singleton: one state for the whole application, so that a toast can be
-// shown both by the builder page and by deep descendants (the canvas context menu)
+// shown both by the builder page and by deep descendants (the canvas context menu).
+// On the server that same singleton is shared by every request of the worker — see
+// the guard in `showToast`
 const toast = reactive<IBuilderToastState>({
     visible: false,
     message: '',
@@ -30,6 +39,20 @@ const toast = reactive<IBuilderToastState>({
 
 /** Duration of a toast awaiting an answer: it hides on the action, the cross or a swipe */
 const PERSISTENT_TOAST_DURATION = 0;
+
+/**
+ * Whether the caller runs where a toast can be seen at all.
+ *
+ * The presence of the frame is the marker rather than `import.meta.client`: that
+ * flag is replaced in tests for a pointed list of modules only, and switching this
+ * one onto it would take every existing toast spec off the branch it checks. In a
+ * browser and in `happy-dom` the frame is there, on the server it is not.
+ *
+ * @returns True in a browser render.
+ */
+function isVisibleToSomeone(): boolean {
+    return typeof requestAnimationFrame === 'function';
+}
 
 /**
  * State of the builder toast notification and the single function that shows it.
@@ -48,6 +71,18 @@ export function useBuilderToast() {
         variant: IBuilderToastState['variant'] = 'success',
         duration = DEFAULT_TOAST_DURATION
     ): number {
+        // A toast speaks to the person looking at the screen, and during the server
+        // render there is no such person. Two things go wrong if it is written anyway:
+        // the state above is a module singleton shared by every request of the worker,
+        // so the message would leak into the HTML of the next render, and the frame
+        // that restarts the animation does not exist on the server at all — an
+        // unguarded call answered the whole page with a 500 whenever anything reported
+        // a refusal during the render. A notification may neither leak nor decide the
+        // fate of the page
+        if (!isVisibleToSomeone()) {
+            return NO_TOAST_TOKEN;
+        }
+
         toast.message = message;
         toast.variant = variant;
         toast.duration = duration;
@@ -58,6 +93,8 @@ export function useBuilderToast() {
         toast.token += 1;
         toast.visible = false;
 
+        // The frame is what restarts the appearance animation: without dropping
+        // `visible` for one frame a toast replacing another one slides in from nowhere
         requestAnimationFrame(() => {
             toast.visible = true;
         });
@@ -75,7 +112,15 @@ export function useBuilderToast() {
      * @returns Sequence number of the toast, to pass to `hideToast`.
      */
     function showActionToast(options: IBuilderActionToastOptions): number {
-        showToast(options.message, options.variant ?? 'info', PERSISTENT_TOAST_DURATION);
+        const token = showToast(
+            options.message,
+            options.variant ?? 'info',
+            PERSISTENT_TOAST_DURATION
+        );
+
+        if (token === NO_TOAST_TOKEN) {
+            return token;
+        }
 
         toast.autoHide = false;
         toast.actionLabel = options.actionLabel;
