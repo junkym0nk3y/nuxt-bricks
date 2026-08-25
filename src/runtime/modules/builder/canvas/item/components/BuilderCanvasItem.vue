@@ -7,8 +7,10 @@
  * of activating what is inside it. Nested canvas items are exempt from that ban, and the
  * container blocks put `pointer-events: auto` back on themselves; both halves are needed —
  * an explicit ban on a nested item hands the click to its parent, and the child block
- * stops being selectable. Inline editing and interactive preview lift the ban for their
- * own subtree.
+ * stops being selectable. The slot of a brick component gets the same treatment from the
+ * style section (`[data-slot-drop-zone]`), and for the same reason: the exempt nested item
+ * inside a slot had nothing to inherit `auto` from, so a click on it selected the brick.
+ * Inline editing and interactive preview lift the ban for their own subtree.
  *
  * The context menu is teleported into body because the canvas sheet carries a
  * `transform: scale()`: a `position: fixed` element inside it takes the scaled sheet as
@@ -282,6 +284,10 @@ const {
 
     > * *:not([data-layout-drop-item]) {
         pointer-events: none;
+    }
+
+    > * :global([data-slot-drop-zone='true']) {
+        pointer-events: auto;
     }
 
     &:hover {

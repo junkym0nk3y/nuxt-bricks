@@ -9,7 +9,10 @@ import { inject, reactive, watch, type ComponentPublicInstance, type VNodeRef } 
 import { applyDropEffect } from '../../../../common/utils/dragAndDrop';
 
 // Constants
-import { CANVAS_DRAG_ACTIVE_KEY } from '../../../../common/constants/injectionKeys';
+import {
+    CANVAS_DRAG_ACTIVE_KEY,
+    COMPONENT_DROP_GUARD_KEY,
+} from '../../../../common/constants/injectionKeys';
 // #endregion
 
 /**
@@ -28,9 +31,28 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     const slotStates = reactive(new Map<string, ISlotState>());
     const slotContainerRefs = new Map<string, HTMLElement>();
     const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, null);
+    const dropGuard = inject(COMPONENT_DROP_GUARD_KEY, null);
     // #endregion
 
     // #region Methods
+    /**
+     * Whether the store would carry out a move into this slot.
+     *
+     * The same guard the layout zones ask, and for the same reason: a slot promised a
+     * place the rule of a permitted move refuses — an ancestor into its own descendant, a
+     * full slot, a chain past the depth of the schema — and the drop ended in silence.
+     *
+     * @param slotName - Slot name.
+     * @returns The move into the slot would go through.
+     */
+    function isSlotDropPermitted(slotName: string): boolean {
+        if (!dropGuard) {
+            return true;
+        }
+
+        return dropGuard.canDrop({ kind: 'slot', parentId: componentId, slotName });
+    }
+
     /**
      * Position of the flow placeholder among the children of the slot (read by the
      * template).
@@ -208,7 +230,7 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
 
         const state = ensureSlotState(slotName);
 
-        if (!applyDropEffect(event)) {
+        if (!applyDropEffect(event) || !isSlotDropPermitted(slotName)) {
             resetSlotState(slotName);
             return;
         }
@@ -227,7 +249,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
         event.preventDefault();
         event.stopPropagation();
 
-        if (!applyDropEffect(event)) {
+        if (!applyDropEffect(event) || !isSlotDropPermitted(slotName)) {
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'none';
+            }
             resetSlotState(slotName);
             return;
         }
@@ -269,6 +294,11 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
     function handleSlotDrop(slotName: string, event: DragEvent): void {
         event.preventDefault();
         event.stopPropagation();
+
+        if (!isSlotDropPermitted(slotName)) {
+            resetSlotState(slotName);
+            return;
+        }
 
         updateSlotDropTarget(slotName, event);
         emitSlotDrop(slotName, event);

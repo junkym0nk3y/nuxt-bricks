@@ -9,6 +9,9 @@ import { computed, ref, watch } from 'vue';
 // Pinia
 import { useCanvasStore } from '../../../core/stores/canvas';
 
+// Composables
+import { useComponentMoveFeedback } from '../../../core/composables/useComponentMoveFeedback';
+
 // Utils
 import { applyDropEffect } from '../../../../common/utils/dragAndDrop';
 import { suspendCanvasFlowTransitions } from '../../../core/utils/canvasFlow';
@@ -26,6 +29,7 @@ export function useCanvasDrops({
     containerRef,
 }: ICanvasDropsOptions) {
     const canvasStore = useCanvasStore();
+    const { reportRefusedMove } = useComponentMoveFeedback();
     /**
      * Index of the upcoming insertion into the root: also the position of the flow
      * placeholder in the template.
@@ -237,23 +241,28 @@ export function useCanvasDrops({
         const detail = event.detail as ILayoutDropDetail;
         const { movedComponentId } = detail;
 
-        if (detail.layoutId && movedComponentId && detail.layoutId === movedComponentId) {
-            console.warn('[TheBuilderCanvas] Ignoring layout drop on self', detail);
-            return;
-        }
+        // The session is closed on every path, refusals included: an early return used to
+        // rely on the native `dragend`, which arrives a frame or two later — and until it
+        // did, the vacated spot of the block stayed collapsed
+        try {
+            if (movedComponentId) {
+                moveExistingComponent(detail);
+                return;
+            }
 
-        if (movedComponentId) {
-            moveExistingComponent(detail);
+            addComponentFromLibrary(detail);
+        } finally {
             finishDrag();
-            return;
         }
-
-        addComponentFromLibrary(detail);
-        finishDrag();
     }
 
     /**
      * Moves an existing component into the given layout.
+     *
+     * A refusal of the store is not swallowed: the drop zone asks the same rule before it
+     * draws the insertion point, so a refusal here means the state changed between the
+     * promise and the release of the button — and then the reason has to be said out loud,
+     * exactly as the schema tree says it.
      *
      * @param layoutDropDetail - Move parameters.
      */
@@ -269,12 +278,16 @@ export function useCanvasDrops({
             return;
         }
 
-        componentsStore.moveComponentToLayout(layoutId, movedComponentId, {
+        const result = componentsStore.moveComponentToLayout(layoutId, movedComponentId, {
             targetIndex: typeof targetIndex === 'number' ? targetIndex : undefined,
             gridColumn,
             gridRow,
             swap,
         });
+
+        if (!result.moved) {
+            reportRefusedMove(result.reason);
+        }
     }
 
     /**
@@ -313,13 +326,30 @@ export function useCanvasDrops({
                 : undefined,
         };
 
-        const childId = componentsStore.addComponent(componentData);
+        // The creation and the attachment are one step for the history and for the
+        // schema: the store may refuse the attachment (the depth of the schema, a full
+        // Grid), and a component created with a history entry of its own stayed at the
+        // root level — a block nobody asked for, in a place nobody dropped it. The slot
+        // branch below has always done this dance; this one had no rollback at all
+        const childId = componentsStore.addComponent(componentData, { skipHistory: true });
+
         if (childId) {
-            componentsStore.addChildToLayout(
+            const result = componentsStore.addChildToLayout(
                 layoutId,
                 childId,
-                typeof targetIndex === 'number' ? targetIndex : undefined
+                typeof targetIndex === 'number' ? targetIndex : undefined,
+                { skipHistory: true }
             );
+
+            if (result.moved) {
+                componentsStore.saveToHistory();
+            } else {
+                // Without a history entry of its own: the history does not deduplicate
+                // identical snapshots, and a pair of them would make the first undo look
+                // like it did nothing
+                componentsStore.removeComponent(childId, { skipHistory: true });
+                reportRefusedMove(result.reason);
+            }
         }
 
         if (dragComposable?.draggedComponent) {
@@ -343,12 +373,17 @@ export function useCanvasDrops({
         }
 
         if (movedComponentId) {
-            componentsStore.moveComponentToSlot(
+            const result = componentsStore.moveComponentToSlot(
                 parentId,
                 slotName,
                 movedComponentId,
                 typeof targetIndex === 'number' ? targetIndex : undefined
             );
+
+            if (!result.moved) {
+                reportRefusedMove(result.reason);
+            }
+
             finishDrag();
             return;
         }
@@ -394,6 +429,7 @@ export function useCanvasDrops({
                 // not deduplicate identical snapshots, and a pair of them would make
                 // the first undo look like it did nothing
                 componentsStore.removeComponent(childId, { skipHistory: true });
+                reportRefusedMove(result.reason);
             }
         }
 

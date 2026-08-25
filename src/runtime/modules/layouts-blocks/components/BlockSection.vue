@@ -131,7 +131,6 @@ const {
 } = useLayoutDropZone({
     containerRef: sectionRef,
     layoutId: () => props.layoutId,
-    useDragDepth: true,
     onDragMove: updateDropTarget,
     onReset: clearDropTarget,
     resolveDropIndex: () => dropInsertIndex.value,

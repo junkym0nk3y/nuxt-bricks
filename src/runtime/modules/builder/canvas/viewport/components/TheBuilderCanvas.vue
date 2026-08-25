@@ -20,6 +20,7 @@ import { usePublishStore } from '../../../publish/stores/publish';
 import { useCanvas } from '../composables/useCanvas';
 import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
+import { useCanvasDropGuard } from '../composables/useCanvasDropGuard';
 import { useCanvasDragAutoScroll } from '../composables/useCanvasDragAutoScroll';
 import { useCanvasPan } from '../composables/useCanvasPan';
 import { useCanvasWheel } from '../composables/useCanvasWheel';
@@ -84,6 +85,13 @@ provide(
     CANVAS_VIEWPORT_KEY,
     computed(() => canvasStore.viewport)
 );
+
+/**
+ * The rule of a permitted move, for the drop zones of the blocks and of the slots: they
+ * ask it before promising a place. In Figma mode each viewport publishes its own — the
+ * cells of a Grid are counted per sheet.
+ */
+useCanvasDropGuard(() => canvasStore.viewport);
 
 /** Rem compensation for the per-viewport scaling of Figma mode */
 provide('getRemCompensation', getRemCompensation);

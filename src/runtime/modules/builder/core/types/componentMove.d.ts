@@ -54,6 +54,16 @@ export interface IComponentMoveQuery {
 }
 
 /**
+ * Input of the check for a NEW component: there is no source in the schema yet, so the
+ * query carries the destination alone.
+ */
+export interface IComponentInsertionQuery {
+    components: readonly IBricksComponent[];
+    destination: TComponentMoveDestination;
+    viewport?: TBricksDeviceKey;
+}
+
+/**
  * Result of a move performed by the store: a refusal is an expected outcome and
  * not an exception, so every caller has to look at it — the ones that write a
  * history entry of their own above all.

@@ -22,6 +22,7 @@
 // Types
 import type { IBricksComponent } from '../../../common/types/brick';
 import type {
+    IComponentInsertionQuery,
     IComponentMoveQuery,
     TComponentMoveDecision,
     TComponentMoveDestination,
@@ -69,10 +70,14 @@ function isContainerComponent(component: IBricksComponent): boolean {
  * @param viewport - Viewport the cells are counted for.
  * @returns true when the move fits the declared cells.
  */
-function fitsGridCapacity(target: IBricksComponent, sourceId: string, viewport: string): boolean {
+function fitsGridCapacity(
+    target: IBricksComponent,
+    sourceId: string | null,
+    viewport: string
+): boolean {
     const children = target.children ?? [];
 
-    if (children.includes(sourceId)) {
+    if (sourceId !== null && children.includes(sourceId)) {
         return true;
     }
 
@@ -85,14 +90,15 @@ function fitsGridCapacity(target: IBricksComponent, sourceId: string, viewport: 
  *
  * @param byId - Index of the components by id.
  * @param destination - Destination of the move.
- * @param sourceId - Component being moved.
+ * @param sourceId - Component being moved, or null when it does not exist yet (a block
+ * out of the library): then no "it is already here" exemption applies to it.
  * @param viewport - Viewport for the capacity of a Grid (optional).
  * @returns The verdict on the destination alone.
  */
 function checkDestination(
     byId: Map<string, IBricksComponent>,
     destination: TComponentMoveDestination,
-    sourceId: string,
+    sourceId: string | null,
     viewport: string | undefined
 ): TComponentMoveDecision {
     if (destination.kind === 'root') {
@@ -112,7 +118,7 @@ function checkDestination(
             return { allowed: false, reason: 'slot-not-found' };
         }
 
-        const isAlreadyInSlot = slot.children.includes(sourceId);
+        const isAlreadyInSlot = sourceId !== null && slot.children.includes(sourceId);
 
         if (slot.allowMultiple === false && slot.children.length > 0 && !isAlreadyInSlot) {
             return { allowed: false, reason: 'slot-capacity' };
@@ -134,6 +140,53 @@ function checkDestination(
         !fitsGridCapacity(target, sourceId, viewport)
     ) {
         return { allowed: false, reason: 'grid-capacity' };
+    }
+
+    return { allowed: true };
+}
+
+/**
+ * Decides whether a NEW component may be put into the destination — a block dragged in
+ * from the library, which is not in the schema yet.
+ *
+ * A separate entry point rather than a move with an empty source: half of the move checks
+ * (a cycle, an ancestor into its own descendant, the height of the travelling subtree)
+ * have nothing to look at here, while the other half — a container, the room in a slot and
+ * in a Grid, the depth of the schema — decides exactly the same way. Without this the drop
+ * zones let every library drag through: the canvas promised a place in an occupied single
+ * slot, and the store then refused it.
+ *
+ * @param query - The schema, the destination and (optionally) the viewport.
+ * @returns Permission, or a refusal with a machine-readable reason.
+ */
+export function evaluateComponentInsertion({
+    components,
+    destination,
+    viewport,
+}: IComponentInsertionQuery): TComponentMoveDecision {
+    const byId = buildComponentIndex(components);
+    const destinationCheck = checkDestination(byId, destination, null, viewport);
+
+    if (!destinationCheck.allowed) {
+        return destinationCheck;
+    }
+
+    if (destination.kind === 'root') {
+        return { allowed: true };
+    }
+
+    const targetDepth = measureComponentDepth(byId, destination.parentId);
+
+    if (targetDepth === null) {
+        // The graph is already corrupted, and a permission granted by a number pulled out
+        // of a cycle is a guess
+        return { allowed: false, reason: 'invalid-graph' };
+    }
+
+    // A block from the library arrives as a leaf, so its own height is zero — unlike a
+    // move, where the whole subtree travels
+    if (targetDepth + 1 >= MAX_COMPONENT_TREE_DEPTH) {
+        return { allowed: false, reason: 'depth-limit' };
     }
 
     return { allowed: true };

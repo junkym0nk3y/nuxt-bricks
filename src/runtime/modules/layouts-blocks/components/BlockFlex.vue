@@ -144,7 +144,6 @@ const {
 } = useLayoutDropZone({
     containerRef: flexRef,
     layoutId: () => props.layoutId,
-    useDragDepth: true,
     onDragMove: updateDropTarget,
     onReset: clearDropTarget,
     resolveDropIndex: () => dropInsertIndex.value,

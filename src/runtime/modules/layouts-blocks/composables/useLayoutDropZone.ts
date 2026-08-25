@@ -13,7 +13,10 @@ import { inject, onBeforeUnmount, ref, toValue, watch } from 'vue';
 import { animateFlowPlaceholder, applyDropEffect } from '../../common/utils/dragAndDrop';
 
 // Constants
-import { CANVAS_DRAG_ACTIVE_KEY } from '../../common/constants/injectionKeys';
+import {
+    CANVAS_DRAG_ACTIVE_KEY,
+    COMPONENT_DROP_GUARD_KEY,
+} from '../../common/constants/injectionKeys';
 // #endregion
 
 /**
@@ -55,8 +58,8 @@ function removeForeignDropPlaceholders(current: HTMLElement | null): void {
 
 /**
  * Drag&drop logic shared by the layout blocks (Grid/Flex/Section/Slider): dropEffect
- * by payload type, drag-over state with an optional nesting counter, a guard against
- * self-drop and dispatch of the `layout-drop` event. Whatever is specific to a block
+ * by payload type, drag-over state, a guard against self-drop and dispatch of the
+ * `layout-drop` event. Whatever is specific to a block
  * (grid capacity, the drop indicator) is plugged in through the option hooks.
  *
  * @param options - Zone configuration and hooks for the block specifics.
@@ -65,14 +68,13 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
     // #region Data
     const isDragOver = ref(false);
 
-    /** Depth of nested dragenter/dragleave (cursor over the children of the zone) */
-    const dragDepth = ref(0);
     let dropPlaceholder: HTMLElement | null = null;
     let activeDropContainer: HTMLElement | null = null;
 
     /** Last applied insertion index: for out-of-flow zones the DOM position never changes */
     let placeholderTargetIndex: number | null = null;
     const isCanvasDragActive = inject(CANVAS_DRAG_ACTIVE_KEY, ref(false));
+    const dropGuard = inject(COMPONENT_DROP_GUARD_KEY, null);
     // #endregion
 
     // #region Methods
@@ -81,6 +83,29 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
      */
     function isEnabled(): boolean {
         return toValue(options.isEnabled) ?? true;
+    }
+
+    /**
+     * Whether the surface that owns the schema would carry out a move into this zone.
+     *
+     * Asked before the highlight and the placeholder: the rule of a permitted move (a
+     * cycle, an ancestor into its own descendant, the depth of the schema, the capacity of
+     * a Grid or a slot) lives in the builder, and the zone used to know only about a drop
+     * onto itself. So the canvas showed a place, the store refused the move, and the drop
+     * did nothing without saying why.
+     *
+     * Without a guard — a published page, where nothing is moved — everything is allowed.
+     *
+     * @returns The move into this zone would go through.
+     */
+    function isDropPermitted(): boolean {
+        const layoutId = toValue(options.layoutId);
+
+        if (!dropGuard || !layoutId) {
+            return true;
+        }
+
+        return dropGuard.canDrop({ kind: 'layout', parentId: layoutId });
     }
 
     /**
@@ -222,7 +247,6 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
      */
     function resetDropState(): void {
         isDragOver.value = false;
-        dragDepth.value = 0;
         setActiveDropContainer(null);
         removeDropPlaceholder();
         options.onReset?.();
@@ -241,11 +265,7 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         event.preventDefault();
         event.stopPropagation();
 
-        if (options.useDragDepth) {
-            dragDepth.value += 1;
-        }
-
-        if (!applyDropEffect(event)) {
+        if (!applyDropEffect(event) || !isDropPermitted()) {
             resetDropState();
             return;
         }
@@ -267,7 +287,10 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         event.preventDefault();
         event.stopPropagation();
 
-        const isAccepted = applyDropEffect(event) && (options.canAcceptDragOver?.(event) ?? true);
+        const isAccepted =
+            applyDropEffect(event) &&
+            isDropPermitted() &&
+            (options.canAcceptDragOver?.(event) ?? true);
 
         if (!isAccepted) {
             if (event.dataTransfer) {
@@ -293,16 +316,18 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         }
         event.stopPropagation();
 
+        // The nesting check is the whole answer: `dragleave` on a move between children
+        // carries a `relatedTarget` inside the container, and only a real exit carries one
+        // outside it. A counter of enters used to stand next to this — and it never came
+        // back to zero, because enters bubble from the children while these leaves return
+        // early, so the first real exit left the zone highlighted until the end of the
+        // drag session.
+        //
+        // A `null` target (the pointer left for another window) counts as a real exit: a
+        // placeholder taken down a moment early beats one that sticks.
         const nextTarget = event.relatedTarget;
         if (nextTarget instanceof Node && options.containerRef.value?.contains(nextTarget)) {
             return;
-        }
-
-        if (options.useDragDepth) {
-            dragDepth.value = Math.max(0, dragDepth.value - 1);
-            if (dragDepth.value > 0) {
-                return;
-            }
         }
 
         resetDropState();
@@ -325,8 +350,9 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         const movedComponentId = event.dataTransfer?.getData('component-id') || null;
         const layoutId = toValue(options.layoutId);
 
-        if (movedComponentId && layoutId && movedComponentId === layoutId) {
-            console.warn('[useLayoutDropZone] Ignoring self drop attempt', layoutId);
+        // The self-drop check of the zone is gone: the guard covers it, and along with it
+        // every other reason the store would refuse — one decision instead of three
+        if (!isDropPermitted()) {
             resetDropState();
             return;
         }

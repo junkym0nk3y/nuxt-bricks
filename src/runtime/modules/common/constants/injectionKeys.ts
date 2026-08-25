@@ -2,6 +2,7 @@
 import type { InjectionKey, Ref } from 'vue';
 import type { TBricksDeviceKey } from '../types/brick';
 import type { TBricksResolvedDeviceSet } from '../types/devices';
+import type { IComponentDropGuard } from '../types/componentDrop';
 import type { IInlineEditorHost } from '../types/inlineEditing';
 // #endregion
 
@@ -33,6 +34,17 @@ export const BRICKS_DEVICES_KEY: InjectionKey<Ref<TBricksResolvedDeviceSet>> =
 export const CANVAS_DRAG_ACTIVE_KEY = Symbol.for('nuxt-bricks.canvasDragActive') as InjectionKey<
     Ref<boolean>
 >;
+
+/**
+ * The guard of a drop zone: whether the surface that owns the schema would carry out the
+ * move the zone is about to promise.
+ *
+ * Provided by the canvas (`useCanvasDropGuard`, one provider per viewport — the nearest
+ * one wins, as with `CANVAS_VIEWPORT_KEY`). Without a provider — a published page — the
+ * zones let everything through: there is nothing to move there.
+ */
+export const COMPONENT_DROP_GUARD_KEY: InjectionKey<IComponentDropGuard> =
+    Symbol('componentDropGuard');
 
 /**
  * The port of inline editing into the builder state (props + history).

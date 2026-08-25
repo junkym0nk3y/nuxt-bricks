@@ -232,7 +232,6 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
         containerRef: sliderRef,
         layoutId: () => props.layoutId,
         isEnabled: isEditor,
-        useDragDepth: true,
         onDragMove: updateDropTarget,
         onReset: clearDropTarget,
         resolveDropIndex: () => dropInsertIndex.value,

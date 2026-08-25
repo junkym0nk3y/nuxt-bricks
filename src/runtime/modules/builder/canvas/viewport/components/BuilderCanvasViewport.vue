@@ -16,6 +16,7 @@ import { usePublishStore } from '../../../publish/stores/publish';
 // Composables
 import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
+import { useCanvasDropGuard } from '../composables/useCanvasDropGuard';
 import { useCanvasFlowGuard } from '../composables/useCanvasFlowGuard';
 
 // Constants
@@ -54,6 +55,13 @@ provide(
     CANVAS_VIEWPORT_KEY,
     computed(() => props.viewport)
 );
+
+/**
+ * The rule of a permitted move for the zones of THIS sheet: the capacity of a Grid is
+ * counted in the cells of its own viewport, so a sheet must not be judged by the viewport
+ * the canvas store considers active.
+ */
+useCanvasDropGuard(() => props.viewport);
 
 const canvasRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);

@@ -26,9 +26,6 @@ export interface ILayoutDropZoneOptions {
     /** The drop zone is active (slider: in editor mode only). Defaults to true */
     isEnabled?: MaybeRefOrGetter<boolean>;
 
-    /** Count nested dragenter/dragleave (zones where the cursor passes over children) */
-    useDragDepth?: boolean;
-
     /** Cursor movement carrying a payload (enter/over/drop) — recompute the drop indicator */
     onDragMove?: (event: DragEvent) => void;
 
