@@ -6,25 +6,23 @@
  * glyph surfaces in the preview banner as well — `builderIcons` is not loaded there
  * at all, and a chosen "laptop" would give an "Icon not found".
  *
- * Three of the four are in the core registry `systemIconsRegistry.ts` already —
- * they are the glyphs of the default project set, which the preview device switcher
- * reaches for; re-registering them here costs nothing. The laptop lives in this
- * chunk alone: a set gets it either from `bricks.devices` at build time or from a
- * page in the builder, and the entry bundle has no business carrying a glyph no
- * published page renders.
+ * All four live here and none in the core registry: the entry bundle of a published
+ * page would otherwise carry glyphs no published page renders. Nothing races the
+ * chunk — `runOnBricksSurface` awaits the install before the render on both entries
+ * onto a served surface, the initial bootstrap and the SPA transition from a
+ * published page (see `plugins/utils/builderRouteScope.ts`).
  */
 // Types
 import type { Component } from 'vue';
 
-// Every icon imported by name, but through the package root — and that root is a
-// full barrel (`icons/all.js`). The other icon modules take the pack subpath
-// (`@kalimahapps/vue-icons/ta`), and this one should follow.
+// Icons: the pack subpath, not the package root — the root is a full barrel
+// (`icons/all.js`)
 import {
     TaOutlineDeviceDesktop,
     TaOutlineDeviceLaptop,
     TaOutlineDeviceMobile,
     TaOutlineDeviceTablet,
-} from '@kalimahapps/vue-icons';
+} from '@kalimahapps/vue-icons/ta';
 
 export const DEVICE_ICONS: Record<string, Component> = {
     'ta:outline-device-mobile': TaOutlineDeviceMobile,

@@ -330,25 +330,7 @@ House-style — американское `toward` (пять вхождений �
 
 # Границы доменов
 
-## 22. Tech-debt-исключение для `useInlineEditor` в `.dependency-cruiser.cjs` устарело
-
-**Файл:** `.dependency-cruiser.cjs` (`text-editor-deps` — `pathNot` на строке 60,
-плюс правило `text-editor-tech-debt-scope` целиком, строки 65+)
-
-Конфиг выводит `text-editor/composables/useInlineEditor.ts` из-под правила
-`text-editor-deps` с пометкой про tech debt и отдельным правилом разрешает ему
-`builder/core/stores`. Долг закрыт: файл не импортирует ничего из `builder` вовсе —
-состояние билдера приходит через `inject` по ключу `INLINE_EDITOR_HOST_KEY` из
-`common`, то есть DI, которого правило и ждало. Проверено прогоном
-`npx depcruise src/runtime/modules/text-editor/composables/useInlineEditor.ts`: в
-зависимостях только `common` и `text-editor`.
-
-То есть исключение сейчас не отражает код и **держит границу открытой**: возврат
-импорта `builder/core/stores` в этот файл `deps:check` не заметит.
-
-**Чинить:** снять `pathNot` и удалить правило `text-editor-tech-debt-scope`.
-
-## 23. Тип `IInlineEditableProp` ре-экспортируется через util вместо импорта у владельца
+## 22. Тип `IInlineEditableProp` ре-экспортируется через util вместо импорта у владельца
 
 **Файл:** `builder/core/utils/inlineEditableProp.ts:15`
 
@@ -360,7 +342,7 @@ House-style — американское `toward` (пять вхождений �
 Развязка лишняя: `common` доступен canvas напрямую, и после её снятия у типа
 остаётся одно место объявления и одно место импорта.
 
-## 24. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
+## 23. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
 
 **Файл:** `common/constants/templates.ts:27-32`
 (`TEMPLATE_PICKER_SEARCH_THRESHOLD`), потребитель —
@@ -379,7 +361,7 @@ House-style — американское `toward` (пять вхождений �
 шаблона — с того, на котором список начинает прокручиваться. Остаётся только место
 объявления константы.
 
-## 25. Стили документации в глобальной таблице
+## 24. Стили документации в глобальной таблице
 
 См. пункт «Стили документации билдера лежат в глобальной таблице `default.scss`»
 выше — это одновременно и нарушение границ домена: билдерский класс живёт в таблице,
@@ -387,7 +369,7 @@ House-style — американское `toward` (пять вхождений �
 
 ---
 
-## 26. Статья документации уходит в `v-html` мимо `sanitize`
+## 25. Статья документации уходит в `v-html` мимо `sanitize`
 
 **Файлы:** `builder/documentation/components/TheBuilderDocumentationModal.vue:126`,
 источник HTML — `builder/documentation/composables/useMarkdownRenderer.ts:35`

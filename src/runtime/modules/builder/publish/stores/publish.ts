@@ -278,7 +278,6 @@ export const usePublishStore = defineStore('bricksPublish', {
         async deletePage(id: string | number): Promise<void> {
             try {
                 await deletePageRequest(id);
-                console.log('[Publish Store] Page deleted successfully');
 
                 const index = this.publishedPages.findIndex(
                     (page) => String(page.id) === String(id)

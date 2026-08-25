@@ -24,10 +24,11 @@ import { BRICKS_MANIFEST_ASSET_BASE } from './runtime/modules/common/constants/b
 import { BRICKS_PUBLIC_ASSETS_BASE } from './runtime/modules/common/utils/bricks/assetPaths';
 import { DEFAULT_BRICKS_ROUTE_PREFIXES } from './runtime/modules/common/utils/bricks/routePaths';
 import {
-    disableBuilderChunkPrefetch,
+    disableNonPublishedChunkPrefetch,
     registerBricksPages,
     registerBricksServerHandlers,
     resolveBricksSurfaces,
+    resolveViteOptimizeInclude,
     setupBricksBuilderModules,
 } from './module-setup';
 import { applyBricksRuntimeConfig, resolveBricksDevices } from './module-runtime-config';
@@ -38,30 +39,6 @@ import type { IBricksRegistrationContext } from './types/moduleSetup';
 // The module options are part of the public package API (`export *` in
 // dist/types.d.mts)
 export type { IBricksModuleOptions };
-
-// #region Constants
-const VITE_OPTIMIZE_INCLUDE = [
-    'yup',
-    'tiny-case',
-    '@vueuse/core',
-    '@tiptap/core',
-    '@tiptap/vue-3',
-    '@tiptap/starter-kit',
-    '@tiptap/extension-image',
-    '@tiptap/extension-underline',
-    '@tiptap/extension-text-style',
-    '@tiptap/extension-color',
-    '@tiptap/extension-font-family',
-    '@tiptap/extension-text-align',
-    'markdown-it',
-    '@tiptap/pm/state',
-    'swiper/vue',
-    '@tiptap/extension-document',
-    '@tiptap/extension-paragraph',
-    '@tiptap/extension-text',
-    '@tiptap/extension-hard-break',
-];
-// #endregion
 
 export default defineNuxtModule<IBricksModuleOptions>({
     meta: {
@@ -103,12 +80,17 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // #endregion
 
         // #region runtimeConfig + fail-fast backend.mode
+        // The device set is resolved once for the whole build: the public runtime
+        // config and the SCSS map of the mixins are fed by the same object, so the
+        // validator cannot answer differently for the two of them
+        const devices = resolveBricksDevices(options.devices);
         const runtimeConfig = nuxt.options.runtimeConfig as Record<string, unknown>;
         const backendResolution = applyBricksRuntimeConfig(
             runtimeConfig,
             options,
             surfaces.routePrefixes,
-            surfaces.arePublishedPagesEnabled
+            surfaces.arePublishedPagesEnabled,
+            devices
         );
         // An invalid backend configuration (database auth + external) fails the
         // build right away — there will be no silently broken production
@@ -151,8 +133,8 @@ export default defineNuxtModule<IBricksModuleOptions>({
 
         // The prefetch hints of builder-only chunks must not download the editor
         // stack for visitors of published pages (see
-        // disableBuilderChunkPrefetch).
-        disableBuilderChunkPrefetch(nuxt);
+        // disableNonPublishedChunkPrefetch).
+        disableNonPublishedChunkPrefetch(nuxt);
         // #endregion
 
         // #region Styles
@@ -180,21 +162,15 @@ export default defineNuxtModule<IBricksModuleOptions>({
         // #region Public SCSS API
         // Why the map goes through a buildDir file and an alias, and why there is no
         // automatic prepend — the header of module-scss.ts
-        setupBricksScss(
-            nuxt,
-            resolveBricksDevices(options.devices),
-            resolveBricksMixinsPath(runtimeDir)
-        );
+        setupBricksScss(nuxt, devices, resolveBricksMixinsPath(runtimeDir));
         // #endregion
 
         // #region Vite (optimizeDeps)
-        // The prebundle list is the dependencies of the builder UI; render-only
-        // does not need it
-        if (isBuilderEnabled) {
+        const optimizeDepsInclude = resolveViteOptimizeInclude(surfaces);
+
+        if (optimizeDepsInclude.length > 0) {
             nuxt.options.vite = defu(nuxt.options.vite, {
-                optimizeDeps: {
-                    include: VITE_OPTIMIZE_INCLUDE,
-                },
+                optimizeDeps: { include: optimizeDepsInclude },
             });
         }
         // #endregion

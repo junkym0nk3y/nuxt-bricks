@@ -1,12 +1,10 @@
 # П4 — дубли и упрощения
 
-Один и тот же код в двух-трёх местах, лишние вычисления, шум в консоли
-потребителя. Поведение верное; цена — в поддержке: правка одной копии оставляет
-остальные с прежним поведением, и расходятся они молча. Индекс —
-[README.md](README.md).
+Один и тот же код в двух-трёх местах, лишние вычисления. Поведение верное;
+цена — в поддержке: правка одной копии оставляет остальные с прежним поведением,
+и расходятся они молча. Индекс — [README.md](README.md).
 
-Разделы: [Дубли кода](#дубли-кода) · [Упрощения](#упрощения) ·
-[Шум в консоли потребителя](#шум-в-консоли-потребителя)
+Разделы: [Дубли кода](#дубли-кода) · [Упрощения](#упрощения)
 
 **Закрыл пункт — удали его из этого файла** и перенумеруй остальные: список
 сокращается, а не помечается галочками. Отметка «сделано» превращает файл в
@@ -475,69 +473,7 @@ slug».
 
 ---
 
-## 28. `deviceIcons.ts` импортирует из корневого barrel прямо под комментарием про отказ от barrel
-
-**Файл:** `src/runtime/plugins/icons/deviceIcons.ts:20-27`
-
-Единственный модуль иконок в репозитории, берущий импорт из корня пакета
-`@kalimahapps/vue-icons`. Корень — полный barrel: `exports['.']` пакета указывает на
-`./icons/all.js`. Остальные берут подпуть пака: `systemIconsRegistry.ts:13` (`/ta`),
-`builderIcons.ts` (`/ta`, `/ph`, `/bs`, `/md`, `/la`); подпуть предписывает и
-`.claude/commands/add-icon.md:37`.
-
-Комментарий уже приведён к факту и называет нужное направление; сам импорт не
-тронут.
-
----
-
-## 29. Три device-глифа и `ta:outline-photo` регистрируются дважды
-
-**Файлы:** `src/runtime/plugins/icons/systemIconsRegistry.ts:23-28`,
-`icons/deviceIcons.ts:23-28`, `icons/builderIcons.ts:198`
-
-`device-mobile`, `device-tablet`, `device-desktop` лежат в entry-реестре и повторно
-приезжают в lazy-чанке `deviceIcons`; `ta:outline-photo` продублирован между ядром и
-builder-набором. Дублирование безвредно по поведению (`Object.assign` перезаписывает
-тем же компонентом), но три device-глифа сидят в entry-бандле published-страниц, где
-не показывается ни один из четырёх: на превью их и так дольёт чанк, который там всё
-равно загружается и await'ится.
-
-**Кандидат:** вынос из ядра целиком — с проверкой, что превью на SSR не остаётся без
-глифа до прихода чанка.
-
----
-
-## 30. Набор устройств резолвится и валидируется дважды
-
-**Файлы:** `src/module.ts:185`, `src/module-runtime-config.ts:327`
-
-`resolveBricksDevices(options.devices)` вызывается двумя независимыми потребителями —
-SCSS-мостом в `module.ts` и публичным конфигом в `module-runtime-config.ts`, — и
-каждый вызов заново прогоняет `validateDeviceSet`.
-
-Дёшево, но противоречит собственному обоснованию обеих механик («той же резолвнутой
-картой кормится SCSS-карта миксинов»): карта не та же, а вторая такая же. Резолвить
-один раз и передать обоим.
-
----
-
-## 31. `swiper/vue` лежит в prebundle-списке, применяемом только при включённом билдере
-
-**Файл:** `src/module.ts:43-63, 190-199`
-
-`VITE_OPTIMIZE_INCLUDE` применяется под `if (isBuilderEnabled)`, и комментарий
-называет список «зависимостями UI билдера». Одна запись из него — `swiper/vue` — к
-билдеру не относится: её импортирует
-`layouts-blocks/components/BlockSlider.vue`, то есть блок published-страницы, и
-`module-setup.ts` отдельно отмечает, что чанк Swiper нужен странице со слайдером
-сразу.
-
-В render-only деплое (`features.builder: false`) prebundle до неё не доходит, и
-dev-сервер платит холодным ре-оптимизом при первом открытии страницы со слайдером.
-
----
-
-## 32. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
+## 28. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
 
 **Файлы:** `persistence/server/http/httpMediaMethods.ts` (`getMediaByUrl`),
 `src/runtime/server/api/bricks/media/s3-proxy.post.ts:59`
@@ -551,7 +487,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 33. `IImageLocation` собирает семь полей, читается одно
+## 29. `IImageLocation` собирает семь полей, читается одно
 
 **Файлы:** `builder/media/types/schemaImageResolver.d.ts:22-30`, заполнение —
 `utils/schemaImageExtractor.ts` (`createLocation`), единственное чтение —
@@ -571,7 +507,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 # Упрощения
 
-## 34. `inferPropertyType` — карта, написанная цепочкой `if` с отключённым правилом
+## 30. `inferPropertyType` — карта, написанная цепочкой `if` с отключённым правилом
 
 **Файл:** `builder/core/composables/useComponentProperties.ts:31`
 
@@ -587,7 +523,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 35. `validatePropertyValue` разбирает тип через `switch`
+## 31. `validatePropertyValue` разбирает тип через `switch`
 
 **Файл:** `builder/core/composables/useComponentProperties.ts:173`
 
@@ -600,7 +536,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 36. `findSiblingContext` возвращает поле с двумя разными смыслами, и вызывающий его перевычисляет
+## 32. `findSiblingContext` возвращает поле с двумя разными смыслами, и вызывающий его перевычисляет
 
 **Файл:** `builder/core/stores/actions/order.ts:22-56`, `:67-116`
 
@@ -615,7 +551,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 37. `handleNormalizeProps` игнорирует второй аргумент, объявленный контрактом
+## 33. `handleNormalizeProps` игнорирует второй аргумент, объявленный контрактом
 
 **Файлы:** `builder/shell/sidebar/composables/usePropertyVariants.ts:148-153`,
 `sidebar/types/composables.d.ts:32-35`
@@ -631,7 +567,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 38. Инлайновый SVG-шеврон вместо иконки кита
+## 34. Инлайновый SVG-шеврон вместо иконки кита
 
 **Файл:** `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:405-422`
 
@@ -644,7 +580,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 39. `isPasswordActionVisible` — псевдоним `canChangePassword`
+## 35. `isPasswordActionVisible` — псевдоним `canChangePassword`
 
 **Файл:** `builder/users/components/BuilderUsersListRow.vue:114-125`
 
@@ -660,7 +596,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 40. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
+## 36. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
 
 **Файл:** `builder/app/composables/useBuilderPage.ts`
 
@@ -674,7 +610,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 41. Пустые делегаты в composition root
+## 37. Пустые делегаты в composition root
 
 **Файл:** `builder/app/pages/[pagename].vue`
 
@@ -689,7 +625,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 42. `previewCurrentPage`: два `Date.now()` и строка ради числа
+## 38. `previewCurrentPage`: два `Date.now()` и строка ради числа
 
 **Файл:** `builder/publish/composables/usePublishPreview.ts` (`previewCurrentPage`)
 
@@ -705,7 +641,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 43. `openGeneration` инкрементируется дважды подряд
+## 39. `openGeneration` инкрементируется дважды подряд
 
 **Файл:** `builder/auth/composables/useAuthAvatarCrop.ts:139-143`
 
@@ -717,7 +653,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 44. `normalizeSvgContent` — обёртка над `trim()` с JSDoc на пять строк
+## 40. `normalizeSvgContent` — обёртка над `trim()` с JSDoc на пять строк
 
 **Файл:** `layouts-blocks/utils/inlineContent.ts`
 
@@ -730,7 +666,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 45. `sliderRootStyle` — computed из одного неизменного свойства
+## 41. `sliderRootStyle` — computed из одного неизменного свойства
 
 **Файл:** `layouts-blocks/components/BlockSlider.vue:182`
 
@@ -748,7 +684,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 46. Отступ попавера над медиа — безымянное число рядом с именованным
+## 42. Отступ попавера над медиа — безымянное число рядом с именованным
 
 **Файл:** `text-editor/components/TextEditorImageFloatPopover.vue`
 (`updatePosition`)
@@ -760,7 +696,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 47. Условие `editorTransactionCount.value < 0` читается как барьер
+## 43. Условие `editorTransactionCount.value < 0` читается как барьер
 
 **Файл:** `text-editor/composables/useToolbarStateSync.ts` (`toolbarGroups`)
 
@@ -773,7 +709,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 48. Линейный поиск детей по всему списку компонентов
+## 44. Линейный поиск детей по всему списку компонентов
 
 **Файл:** `src/runtime/modules/render/composables/useRendererLayouts.ts`
 (`getChildComponents`)
@@ -787,7 +723,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 49. Двойной вызов `needsContainerWrapper` на каждый компонент
+## 45. Двойной вызов `needsContainerWrapper` на каждый компонент
 
 **Файл:** `src/runtime/modules/render/components/TheRenderer.vue`
 
@@ -796,43 +732,3 @@ dev-сервер платит холодным ре-оптимизом при п
 самое второй раз. Решение «aria на обёртку, если она есть, иначе на сам компонент»
 размазано по двум функциям и держится на том, что обе получают одинаковый ответ.
 Дешевле и честнее считать один раз и передавать флаг аргументом.
-
----
-
-# Шум в консоли потребителя
-
-## 50. `exportSchema` печатает всю схему в консоль на каждый вызов
-
-**Файл:** `builder/core/stores/actions/schema.ts:117`
-
-`console.log('[Bricks Store] Exporting schema:', …)` выводит число компонентов и
-`props` каждого из них. Вызывается экшен не по требованию разработчика:
-`usePreviewSync` дёргает его на каждый снимок для открытой вкладки превью (debounce
-300 мс на любое изменяющее схему действие), плюс сохранение, публикация и сохранение
-шаблона (`useBuilderPageWrite.ts:97,204`, `useBuilderPage.ts:272`,
-`useBuilderTemplateSave.ts:75`).
-
-То есть в потребительском приложении при открытом превью консоль получает полный
-дамп страницы на каждую правку.
-
----
-
-## 51. Семь `console.log` в drag-пути
-
-**Файл:** `builder/app/composables/useDraggableComponent.ts`
-
-Семь из девяти `console.log` всего `src/runtime/modules` живут в этом файле и
-печатают на каждый drop: «Drop event triggered», «Component added with id», список
-корневых компонентов после перемещения. `no-console` в `.oxlintrc.json` выключен,
-поэтому линтер их не ловит. Для публикуемого пакета это шум в консоли потребителя.
-
----
-
-## 52. `console.log` об успешном удалении страницы
-
-**Файл:** `builder/publish/stores/publish.ts` (`deletePage`)
-
-`console.log('[Publish Store] Page deleted successfully')` — единственный
-success-лог домена: остальные удачные пути (создание, обновление, PATCH, откат
-версии) молчат, а отказы идут через `console.error`/`console.warn`. В пакете,
-который ставит себе потребитель, это лог без адресата.

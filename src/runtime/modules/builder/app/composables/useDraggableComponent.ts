@@ -1,11 +1,7 @@
 // #region Imports
 // Types
 import type { IDropZoneData, IDropEventData, IDropOptions } from '../types/draggable';
-import type {
-    IBricksComponent,
-    IComponentLibraryItem,
-    IDragVisualSize,
-} from '../../../common/types/brick';
+import type { IComponentLibraryItem, IDragVisualSize } from '../../../common/types/brick';
 import type { TBricksComponentsStore } from '../../core/stores/components';
 
 // Vue
@@ -137,16 +133,11 @@ export function useComponentLibraryDrag() {
         // Broken off when released into a layout zone (handled by the layout
         // component)
         if (dropZoneData.layoutDropZone && !dropZoneData.isSelfDrop) {
-            console.log('[useDraggableComponent] Dropped into layout, waiting for event...');
             return true;
         }
 
         // Broken off on a self-drop onto a layout
         if (dropZoneData.isSelfDrop) {
-            console.log(
-                '[useDraggableComponent] Ignoring self drop on layout:',
-                dropZoneData.dropLayoutId
-            );
             return true;
         }
 
@@ -165,8 +156,6 @@ export function useComponentLibraryDrag() {
         store: TBricksComponentsStore,
         rootTargetIndex: number | null
     ): void {
-        console.log('[useDraggableComponent] Moving existing component:', componentId);
-
         const component = store.getComponentById(componentId);
 
         if (!component) {
@@ -177,10 +166,6 @@ export function useComponentLibraryDrag() {
         // The action detaches the block from its layout and drops the grid
         // positioning by itself — there is nothing left to clean up after it here
         store.moveComponentToRoot(componentId, rootTargetIndex, { skipHistory: true });
-        console.log(
-            '[useDraggableComponent] Root components after move:',
-            store.getRootComponents()?.map((rootComp: IBricksComponent) => rootComp?.id) || []
-        );
 
         // Recorded into the history
         store.saveToHistory();
@@ -211,7 +196,6 @@ export function useComponentLibraryDrag() {
             componentData,
             shouldControlHistory ? { skipHistory: true } : undefined
         );
-        console.log('[useDraggableComponent] Component added with id:', id);
 
         // Moved into the target position when an index is given
         if (id && rootTargetIndex !== null) {
@@ -233,8 +217,6 @@ export function useComponentLibraryDrag() {
         options?: IDropOptions
     ): void {
         event.preventDefault();
-        console.log('[useDraggableComponent] Drop event triggered', event);
-        console.log('[useDraggableComponent] Dragged component:', draggedComponent.value);
 
         const { movedComponentId, rootTargetIndex } = extractDropEventData(event, options);
         const dropZoneData = analyzeDropZones(event, movedComponentId);

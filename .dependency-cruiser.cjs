@@ -53,19 +53,8 @@ module.exports = {
         {
             name: 'text-editor-deps',
             severity: 'error',
-            from: {
-                path: `^${M}/text-editor`,
-                // tech debt: useInlineEditor → builder/core/stores/components (a candidate
-                // for DI)
-                pathNot: `^${M}/text-editor/composables/useInlineEditor\\.ts$`,
-            },
+            from: { path: `^${M}/text-editor` },
             to: { path: `^${M}/(?!text-editor|common|ui)` },
-        },
-        {
-            name: 'text-editor-tech-debt-scope',
-            severity: 'error',
-            from: { path: `^${M}/text-editor/composables/useInlineEditor\\.ts$` },
-            to: { path: `^${M}/(?!text-editor|common|ui|builder/core/stores)` },
         },
         {
             // the state core knows nothing about the feature subdomains — otherwise a

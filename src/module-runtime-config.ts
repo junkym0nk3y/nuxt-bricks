@@ -283,6 +283,7 @@ function applyBricksAuthRuntimeConfig(
  * @param routePrefixes - Validated route prefixes.
  * @param arePublishedPagesEnabled - Whether the live render of published pages is
  *   registered.
+ * @param devices - Project device set, already resolved by `resolveBricksDevices`.
  * @returns Result of the backend.mode resolver — module.ts fails the build on
  *   errors.
  */
@@ -290,7 +291,8 @@ export function applyBricksRuntimeConfig(
     runtimeConfig: Record<string, unknown>,
     options: IBricksModuleOptions,
     routePrefixes: IBricksRoutePrefixes,
-    arePublishedPagesEnabled: boolean
+    arePublishedPagesEnabled: boolean,
+    devices: TBricksProjectDeviceSet
 ): IBricksBackendResolution {
     runtimeConfig.basicAuthUsername =
         runtimeConfig.basicAuthUsername ??
@@ -323,8 +325,10 @@ export function applyBricksRuntimeConfig(
 
     // The project device set. Public and build-time: the same numbers feed the
     // SCSS map of the mixins, and an env override would take the runtime apart
-    // from the already built CSS
-    publicConfig.bricksDevices = resolveBricksDevices(options.devices);
+    // from the already built CSS. The set arrives already resolved — one
+    // resolve per build, shared with the SCSS bridge, so that the two cannot
+    // validate the same option into two different answers
+    publicConfig.bricksDevices = devices;
 
     // Whether the live render of published pages is registered. Public because
     // the address-taken check depends on it: with the live render off a page has

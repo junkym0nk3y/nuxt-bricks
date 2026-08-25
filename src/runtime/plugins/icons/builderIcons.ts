@@ -1,8 +1,9 @@
 /**
  * The full icon set of the builder UI. Loaded as a lazy chunk on the first hit of a
  * builder route (see plugins/vue-icons.ts) — it never enters the bundle of
- * published pages. The core (photo/video/x/device-*) lives in
- * systemIconsRegistry.ts.
+ * published pages. The core a published page renders itself (photo/video/x) lives
+ * in systemIconsRegistry.ts; the device glyphs are a chunk of their own, because
+ * the preview needs them and never loads this set (deviceIcons.ts).
  */
 // Types
 import type { Component } from 'vue';
@@ -78,7 +79,6 @@ import {
     TaOutlineLink,
     TaOutlineList,
     TaOutlineListNumbers,
-    TaOutlinePhoto,
     TaOutlineSeparator,
     TaOutlineTextSize,
     TaOutlineTypography,
@@ -196,7 +196,6 @@ export const BUILDER_ICONS: Record<string, Component> = {
     'ta:outline-list': TaOutlineList,
     'ta:outline-list-numbers': TaOutlineListNumbers,
     'ta:outline-separator': TaOutlineSeparator,
-    'ta:outline-photo': TaOutlinePhoto,
     'la:text-width-solid': LaTextWidthSolid,
     'ph:circle-half-tilt': PhCircleHalfTilt,
     'ph:code': PhCode,

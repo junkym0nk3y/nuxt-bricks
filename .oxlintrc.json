@@ -17,14 +17,25 @@
         "no-implied-eval": "error",
         "no-lone-blocks": "error",
         "no-self-compare": "error",
-        "no-unused-expressions": ["error", { "allowTernary": true }],
+        "no-unused-expressions": [
+            "error",
+            {
+                "allowTernary": true
+            }
+        ],
         "no-useless-call": "error",
         "no-useless-concat": "error",
         "no-useless-return": "error",
         "no-void": "error",
         "radix": "error",
         "no-label-var": "error",
-        "no-use-before-define": ["error", { "functions": false, "classes": false }],
+        "no-use-before-define": [
+            "error",
+            {
+                "functions": false,
+                "classes": false
+            }
+        ],
         "no-array-constructor": "error",
         "no-object-constructor": "error",
         "no-unneeded-ternary": "error",
@@ -38,10 +49,28 @@
         "no-console": "off",
         "max-lines": ["error", 500],
         "curly": "error",
-        "new-cap": ["error", { "newIsCap": true, "capIsNew": true, "properties": false }],
+        "new-cap": [
+            "error",
+            {
+                "newIsCap": true,
+                "capIsNew": true,
+                "properties": false
+            }
+        ],
         "no-implicit-coercion": "error",
-        "complexity": ["error", { "max": 20 }],
-        "func-style": ["error", "declaration", { "allowArrowFunctions": true }],
+        "complexity": [
+            "error",
+            {
+                "max": 20
+            }
+        ],
+        "func-style": [
+            "error",
+            "declaration",
+            {
+                "allowArrowFunctions": true
+            }
+        ],
         "operator-assignment": ["error", "always"],
         "typescript/return-await": "error",
         "typescript/no-unused-vars": "error",
@@ -60,5 +89,18 @@
         ".cache",
         "playground/.nuxt",
         "playground/.output"
+    ],
+    "overrides": [
+        {
+            "files": ["src/runtime/**/*.ts", "src/runtime/**/*.vue"],
+            "rules": {
+                "no-console": [
+                    "error",
+                    {
+                        "allow": ["warn", "error", "info"]
+                    }
+                ]
+            }
+        }
     ]
 }

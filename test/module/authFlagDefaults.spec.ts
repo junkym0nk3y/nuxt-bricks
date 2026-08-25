@@ -7,7 +7,7 @@ import type { IBricksModuleOptions } from '../../src/types/module';
 import type { IAuthFlagResolution } from '../helpers/types';
 
 // Utils
-import { applyBricksRuntimeConfig } from '../../src/module-runtime-config';
+import { applyBricksRuntimeConfig, resolveBricksDevices } from '../../src/module-runtime-config';
 import { DEFAULT_BRICKS_ROUTE_PREFIXES } from '../../src/runtime/modules/common/utils/bricks/routePaths';
 // #endregion
 
@@ -28,7 +28,13 @@ import { DEFAULT_BRICKS_ROUTE_PREFIXES } from '../../src/runtime/modules/common/
 function resolveUserManagementFlag(options: IBricksModuleOptions = {}): IAuthFlagResolution {
     const runtimeConfig: Record<string, unknown> = {};
 
-    applyBricksRuntimeConfig(runtimeConfig, options, DEFAULT_BRICKS_ROUTE_PREFIXES, true);
+    applyBricksRuntimeConfig(
+        runtimeConfig,
+        options,
+        DEFAULT_BRICKS_ROUTE_PREFIXES,
+        true,
+        resolveBricksDevices(options.devices)
+    );
 
     const publicConfig = runtimeConfig.public as Record<string, unknown>;
 
@@ -47,7 +53,13 @@ function resolveUserManagementFlag(options: IBricksModuleOptions = {}): IAuthFla
 function resolvePasswordChangeFlag(options: IBricksModuleOptions = {}): IAuthFlagResolution {
     const runtimeConfig: Record<string, unknown> = {};
 
-    applyBricksRuntimeConfig(runtimeConfig, options, DEFAULT_BRICKS_ROUTE_PREFIXES, true);
+    applyBricksRuntimeConfig(
+        runtimeConfig,
+        options,
+        DEFAULT_BRICKS_ROUTE_PREFIXES,
+        true,
+        resolveBricksDevices(options.devices)
+    );
 
     const publicConfig = runtimeConfig.public as Record<string, unknown>;
 
@@ -131,7 +143,8 @@ describe('runtimeConfig: флаг смены пароля', () => {
             runtimeConfig,
             { auth: { allowPasswordChange: false } },
             DEFAULT_BRICKS_ROUTE_PREFIXES,
-            true
+            true,
+            resolveBricksDevices(undefined)
         );
 
         expect(runtimeConfig.bricksAuthAllowPasswordChange).toBe(false);

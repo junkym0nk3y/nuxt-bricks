@@ -19,6 +19,55 @@ import type { IBricksModuleOptions } from './types/module';
 import type { IBricksRegistrationContext, IBricksSurfaces } from './types/moduleSetup';
 
 /**
+ * Prebundled by any deploy that renders a page at all, builder or render-only: the
+ * slider block belongs to a published page and is reached without the builder ever
+ * being built. Left in the builder-only list it cost the dev server a cold
+ * re-optimize on the first page that carries a slider.
+ */
+const VITE_OPTIMIZE_INCLUDE_RENDER = ['swiper/vue'];
+
+/** Prebundled on a builder deploy alone: the dependencies of the builder UI */
+const VITE_OPTIMIZE_INCLUDE_BUILDER = [
+    'yup',
+    'tiny-case',
+    '@vueuse/core',
+    '@tiptap/core',
+    '@tiptap/vue-3',
+    '@tiptap/starter-kit',
+    '@tiptap/extension-image',
+    '@tiptap/extension-underline',
+    '@tiptap/extension-text-style',
+    '@tiptap/extension-color',
+    '@tiptap/extension-font-family',
+    '@tiptap/extension-text-align',
+    'markdown-it',
+    '@tiptap/pm/state',
+    '@tiptap/extension-document',
+    '@tiptap/extension-paragraph',
+    '@tiptap/extension-text',
+    '@tiptap/extension-hard-break',
+];
+
+/**
+ * Assembles the Vite prebundle list for the active surfaces.
+ *
+ * An empty list when both surfaces are off: the module then renders no page at
+ * all, and a dependency of a block nobody mounts would be prebundled for a deploy
+ * that never reaches it.
+ *
+ * @param surfaces - Active surfaces.
+ * @returns Dependencies to prebundle, empty when nothing is rendered.
+ */
+export function resolveViteOptimizeInclude(surfaces: IBricksSurfaces): string[] {
+    const { isBuilderEnabled, arePublishedPagesEnabled } = surfaces;
+
+    return [
+        ...(isBuilderEnabled || arePublishedPagesEnabled ? VITE_OPTIMIZE_INCLUDE_RENDER : []),
+        ...(isBuilderEnabled ? VITE_OPTIMIZE_INCLUDE_BUILDER : []),
+    ];
+}
+
+/**
  * Resolves the module surfaces from the options: prefixes (fail-fast validation)
  * and feature flags; logs the deviations from the defaults.
  *
@@ -291,16 +340,20 @@ export function registerBricksServerHandlers(context: IBricksRegistrationContext
     }
 }
 
-// The modules whose chunks must not be prefetched on published pages: the editor
-// stack (TipTap/ProseMirror), the builder documentation and all
-// the builder/text-editor code. Swiper is not among them: a page with a slider
-// needs its chunk right away (SSR fallback → hydration), and a page without a
-// slider does not render it anyway.
-const BUILDER_ONLY_CHUNK_PATTERN =
-    /@tiptap|prosemirror|markdown-it|\/modules\/(builder|text-editor)\/|\/docs\/guide\/|\/plugins\/builder\/|\/plugins\/icons\/builderIcons/;
+// The modules whose chunks a published page never needs: the editor stack
+// (TipTap/ProseMirror), the builder documentation and all the builder/text-editor
+// code, plus the two icon chunks. `deviceIcons` is not builder-only — the preview
+// banner needs it too — but no published page renders a device glyph, and both
+// surfaces that do await the chunk explicitly through a route gate rather than
+// leaning on a prefetch hint. Swiper is not among them: a page with a slider needs
+// its chunk right away (SSR fallback → hydration), and a page without a slider
+// does not render it anyway.
+const NON_PUBLISHED_CHUNK_PATTERN =
+    /@tiptap|prosemirror|markdown-it|\/modules\/(builder|text-editor)\/|\/docs\/guide\/|\/plugins\/builder\/|\/plugins\/icons\/(builderIcons|deviceIcons)/;
 
 /**
- * Turns `<link rel="prefetch">` off for builder-only chunks. Vite puts prefetch
+ * Turns `<link rel="prefetch">` off for the chunks a published page never needs.
+ * Vite puts prefetch
  * hints on the dynamic imports of rendered modules, so a visitor of a published
  * page would download the whole editor stack while idle (the TipTap inline-editing
  * chain through BlockText, for one). Entries are flagged by the pattern, plus the
@@ -311,10 +364,10 @@ const BUILDER_ONLY_CHUNK_PATTERN =
  *
  * @param nuxt - Nuxt instance.
  */
-export function disableBuilderChunkPrefetch(nuxt: Nuxt): void {
+export function disableNonPublishedChunkPrefetch(nuxt: Nuxt): void {
     nuxt.hook('build:manifest', (manifest) => {
         const flagged = new Set(
-            Object.keys(manifest).filter((key) => BUILDER_ONLY_CHUNK_PATTERN.test(key))
+            Object.keys(manifest).filter((key) => NON_PUBLISHED_CHUNK_PATTERN.test(key))
         );
 
         // The closure of the STATIC imports of the flagged entries. dynamicImports

@@ -109,20 +109,11 @@ export const schemaActions: IComponentsSchemaActions = {
     },
 
     /**
-     * Collects the current schema and prints a summary of it to the console.
+     * Collects the current schema of the page.
      *
      * @returns Serialized schema of the page.
      */
     exportSchema(this: IComponentsStore) {
-        console.log('[Bricks Store] Exporting schema:', {
-            components: this.components.length,
-            componentProps: this.components.map((component) => ({
-                id: component.id,
-                componentName: component.componentName,
-                props: component.props,
-            })),
-        });
-
         return serializeSchema(this.components, collectSchemaMeta());
     },
 
