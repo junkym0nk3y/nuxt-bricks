@@ -63,11 +63,12 @@ export function isCroppableImage(width: number, height: number): boolean {
  * Computes the cropping frame out of the zoom and the offset of the photo.
  *
  * The invariants of the frame are held by the ORDER of the operations rather than
- * by a check at the end: the side is rounded down and clipped by the shorter side
- * of the photo, and only then are the coordinates clamped — which is why
- * `left + side <= width` and `top + side <= height` hold by construction. Rounding
- * the side UP would give a frame a pixel past the edge, and that is the server
- * refusal "the frame is outside the image" on a legitimate crop.
+ * by a check at the end: the side comes out of the shorter side of the photo, which
+ * a zoom clamped from below by one can only shrink, and only then are the
+ * coordinates clamped — which is why `left + side <= width` and
+ * `top + side <= height` hold by construction. Rounding the side UP would give a
+ * frame a pixel past the edge, and that is the server refusal "the frame is outside
+ * the image" on a legitimate crop.
  *
  * The offset is given in those same source pixels and means the position of the top
  * left corner of the frame. Values outside the photo are not a caller's mistake: a
@@ -89,7 +90,7 @@ export function resolveCropFrame(
     offsetTop: number
 ): IAuthAvatarCropFrame {
     const shortestSide = Math.min(width, height);
-    const side = Math.min(Math.floor(shortestSide / Math.max(zoom, 1)), width, height);
+    const side = Math.floor(shortestSide / Math.max(zoom, 1));
 
     return {
         left: Math.round(clampCropOffset(offsetLeft, width - side)),

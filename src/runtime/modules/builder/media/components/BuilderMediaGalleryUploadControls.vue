@@ -147,7 +147,7 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
             @change="handleFileChange"
         />
 
-        <BricksTooltip bottom>
+        <BricksTooltip>
             <template #activator>
                 <BricksButton
                     :class="$style.uploadButton"

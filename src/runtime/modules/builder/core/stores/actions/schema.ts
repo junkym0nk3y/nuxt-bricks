@@ -1,6 +1,5 @@
 import type {
     IBricksSchema,
-    IDeviceVisibilityConfig,
     TBricksDeviceKey,
     IBricksSchemaMeta,
 } from '../../../../common/types/brick';
@@ -80,26 +79,6 @@ export const schemaActions: IComponentsSchemaActions = {
         }
 
         component.isHidden = hidden;
-        this.saveToHistory();
-    },
-
-    /**
-     * Sets the per-device visibility of a component.
-     *
-     * @param id - Target component.
-     * @param visibility - New visibility configuration.
-     */
-    setComponentDeviceVisibility(
-        this: IComponentsStore,
-        id: string,
-        visibility: Partial<IDeviceVisibilityConfig>
-    ) {
-        const component = this.getComponentById(id);
-        if (!component) {
-            return;
-        }
-
-        component.deviceVisibility = normalizeDeviceVisibility(visibility);
         this.saveToHistory();
     },
 

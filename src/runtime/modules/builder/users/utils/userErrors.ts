@@ -37,7 +37,6 @@ const USER_ACTION_ERROR_KEYS: Record<string, string> = {
 /** Refusals of an operation on an account by status — what carries no code */
 const USER_ACTION_STATUS_KEYS: Record<number, string> = {
     404: 'bricks.users.errors.userGone',
-    429: 'bricks.users.errors.tooManyRequests',
     503: 'bricks.users.errors.serverBusy',
 };
 

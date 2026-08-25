@@ -293,14 +293,5 @@ export default defineNuxtRouteMiddleware(async (to) => {
         } catch (error) {
             console.warn('[Bricks Middleware] Failed to apply layout:', layout, error);
         }
-    } else if (!isPreview && !page) {
-        // Unreachable under the current control flow: a live lookup either fills
-        // `page` or returns an error of its own, and a preview without a page row
-        // has already returned above. Kept as the last resort of a route that
-        // matches any URL of a fitting shape.
-        return createError({
-            statusCode: 404,
-            statusMessage: 'Page not found',
-        });
     }
 });

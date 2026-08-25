@@ -23,7 +23,6 @@ export type TPrimitiveArrayValue = Array<string | number | boolean | null | unde
 
 export type TInlineGalleryPayload = {
     action: 'append' | 'replace';
-    segmentIndex?: number;
     insertIndex?: number;
     itemIndex?: number;
 };
@@ -88,7 +87,6 @@ export interface ISidebarPropertyEditorRowProps extends ISidebarPropertyHandlers
     type: TPropertyEditorType;
     variant: IComponentVariant;
     componentEditors: Record<TPropertyEditorType, Component>;
-    showGroupLabel?: boolean;
 }
 
 export interface ISidebarPropertySpacingEditorProps {

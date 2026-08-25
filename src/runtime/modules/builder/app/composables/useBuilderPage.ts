@@ -148,13 +148,6 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     let mediaGalleryToken: number | null = null;
     // #endregion
 
-    // #region Computed
-    const hasSelectedComponent = computed(() => Boolean(componentsStore.selectedComponent));
-    const leftSidebarOffset = computed(() =>
-        sidebarStore.left.visible ? sidebarStore.left.width : '0px'
-    );
-    // #endregion
-
     // #region Sidebar toggles
     /**
      * Toggles the visibility of the component library in the sidebar.
@@ -220,7 +213,6 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     }
 
     const {
-        isEditingExistingPage,
         currentPublishPageTitle,
         handleSaveDraft: saveDraft,
         handleSaveAsCopy: saveAsCopy,
@@ -462,9 +454,6 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         sidebarRef,
         propertiesPanelRef,
         toast,
-        isEditingExistingPage,
-        hasSelectedComponent,
-        leftSidebarOffset,
         currentPublishPageTitle,
         handleKeyDown,
         showToast,

@@ -97,11 +97,6 @@ function collectModalEntries(bricks: IBrickManifestEntry[]): TCachedModal[] {
  * there is one manifest, and a second request for it would mean two independent
  * caches of one answer, each with a fate of its own under a refusal.
  *
- * Next to the entries lies the hash of the manifest out of the endpoint's answer.
- * It has no consumer yet: in dev an edit of a brick file reloads the whole page,
- * because that same file lies in the graph of Vite after the first preview of the
- * component too.
- *
  * A failed SSR run is recovered with one request from the client: without it a
  * refusal on the server would leave the sidebar empty until a full reload of the
  * page, and the reload would go into the same SSR again.
@@ -162,14 +157,12 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
             // deadline again. The incompleteness marker is there so that a degraded
             // answer does not settle in the payload as a complete one
             return {
-                hash: '',
                 isPartial: true,
                 bricks: [],
             };
         }
 
         return {
-            hash: response?.hash || '',
             isPartial: false,
             bricks: response?.bricks || [],
         };

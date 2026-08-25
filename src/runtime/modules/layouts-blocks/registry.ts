@@ -102,7 +102,6 @@ export function getLayoutLibraryItems(): IComponentLibraryItem[] {
         brickPath: `layout/${definition.name.toLowerCase()}`,
         description: definition.description,
         thumbnail: definition.thumbnail,
-        ...(definition.isInteractive ? { isInteractive: true } : {}),
         defaultProps: deriveDefaultProps(definition),
     }));
 }

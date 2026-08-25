@@ -17,7 +17,6 @@ export interface ITextEditorImageSizePanelProps {
 
 export interface ITextEditorAreaProps {
     value?: string;
-    label?: string;
     placeholder?: string;
     disabled?: boolean;
     toolbar?: boolean;

@@ -48,7 +48,6 @@ export interface IBlockDefinition {
     name: string; // 'Grid' — the componentName in the schema
     description: string;
     thumbnail: string; // module asset path 'images/layouts/grid.svg' (resolveBricksAssetUrl)
-    isInteractive?: boolean;
     hasChildren?: boolean; // a container: children go in the default slot
     /** Panel properties */
     properties: ILayoutProperty[];

@@ -18,9 +18,7 @@ import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<ISidebarPropertyEditorRowProps>(), {
-    showGroupLabel: false,
-});
+const props = withDefaults(defineProps<ISidebarPropertyEditorRowProps>(), {});
 // #endregion
 
 // #region Data
@@ -56,6 +54,15 @@ const resolvedEditorProps = computed<Record<string, unknown>>(() => {
             ...normalized,
             label: '',
         };
+    }
+
+    // The caption of the row is drawn by the row itself, and the text editor takes
+    // no `label` prop — left in, `v-bind` would put it on the root element of the
+    // editor as a stray DOM attribute
+    if (props.type === 'textarea') {
+        const withoutLabel = { ...normalized };
+        delete withoutLabel.label;
+        return withoutLabel;
     }
 
     return normalized;
@@ -188,14 +195,6 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
     &._bool {
         margin-bottom: 0.2rem;
     }
-}
-
-.groupLabel {
-    margin-bottom: 0.4rem;
-    text-transform: uppercase;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--bricks-base-500);
 }
 
 .fieldLabel {

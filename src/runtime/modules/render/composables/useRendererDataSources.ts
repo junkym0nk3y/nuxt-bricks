@@ -447,12 +447,12 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             );
         }
 
-        // Let it go: there is nobody to await the result, and the outcome is
-        // visible through `resolvedProps`. No `void` here — the `no-void` rule in
-        // oxlint
-        refreshDataSources().catch((error: unknown) => {
-            console.warn('[Bricks DataSources] Partial run recovery failed:', error);
-        });
+        // Let it go: there is nobody to await the result. A refusal cannot arrive
+        // here either — `useAsyncData` keeps it inside itself and puts it into its
+        // own `error`, so a `catch` on this call would never run; the outcome of
+        // the recovery is read through `resolvedProps` and that `error`. No `void`
+        // in front — the `no-void` rule in oxlint
+        refreshDataSources();
     }
 
     // `onScopeDispose` with the second argument stays silent outside a component:

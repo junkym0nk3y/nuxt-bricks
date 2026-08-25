@@ -28,7 +28,6 @@ import { useI18n } from 'vue-i18n';
 // #region Props
 const props = withDefaults(defineProps<IBricksCloseButtonProps>(), {
     disabled: false,
-    size: 'sm',
 });
 // #endregion
 

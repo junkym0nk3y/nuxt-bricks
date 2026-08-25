@@ -4,10 +4,7 @@
  * a contract shared with the runtime, in
  * `runtime/modules/common/types/brickManifest.d.ts`.
  */
-import type {
-    IBrickManifestEntry,
-    IBricksManifest,
-} from '../runtime/modules/common/types/brickManifest';
+import type { IBricksManifest } from '../runtime/modules/common/types/brickManifest';
 
 /** Manifest generation options */
 export interface IBricksManifestOptions {
@@ -15,17 +12,6 @@ export interface IBricksManifestOptions {
     srcDir: string;
     /** Manifest directory (see resolveBricksManifestDir) */
     manifestDir: string;
-}
-
-/**
- * A read brick file: the manifest entry plus the source the content hash is
- * computed from. The source does not enter the manifest — only the hash.
- */
-export interface IBrickManifestSource {
-    /** The entry that goes into the manifest */
-    entry: IBrickManifestEntry;
-    /** The whole contents of the `*.brick.ts` */
-    content: string;
 }
 
 /** Serialized manifest generation queue (see createBricksManifestQueue) */

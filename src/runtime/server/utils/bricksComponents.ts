@@ -6,7 +6,7 @@ import {
 } from '../../modules/common/constants/brickManifest';
 import type { IBricksManifest, TBrickManifestRef } from '../../modules/common/types/brickManifest';
 
-const EMPTY_MANIFEST: IBricksManifest = { bricks: [], hash: '' };
+const EMPTY_MANIFEST: IBricksManifest = { bricks: [] };
 
 /**
  * Reads the brick component manifest from the Nitro server assets: in dev the

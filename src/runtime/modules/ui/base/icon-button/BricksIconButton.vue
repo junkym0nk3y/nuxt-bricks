@@ -120,7 +120,6 @@ function handleClick(event: MouseEvent): void {
 <template>
     <BricksTooltip
         :top="props.tooltipSide === 'top'"
-        :bottom="props.tooltipSide === 'bottom'"
         :left="props.tooltipSide === 'left'"
         :right="props.tooltipSide === 'right'"
     >

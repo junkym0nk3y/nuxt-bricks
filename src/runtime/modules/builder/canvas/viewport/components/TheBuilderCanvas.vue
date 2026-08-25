@@ -118,7 +118,6 @@ provide(INLINE_EDITOR_HOST_KEY, {
 
 const canvasRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
-const canvasWrapperRef = ref<HTMLElement | null>(null);
 const isMounted = ref(false);
 
 const {
@@ -381,7 +380,6 @@ onBeforeUnmount(() => {
 
             <div
                 v-else
-                ref="canvasWrapperRef"
                 :class="$style.canvasWrapper"
                 :style="isMounted ? canvasWrapperStyle : undefined"
             >

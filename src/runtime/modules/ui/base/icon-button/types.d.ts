@@ -66,6 +66,10 @@ export interface IBricksIconButtonProps {
      * screen reader would announce every ordinary action as expanding.
      */
     expanded?: boolean;
+    /**
+     * Side of the button to show the hint on. `bottom` is the default of the
+     * tooltip itself, so that value passes no directional prop down at all.
+     */
     tooltipSide?: TBricksIconButtonTooltipSide;
     /**
      * Place in the tab order, for a button that lives inside a container with a

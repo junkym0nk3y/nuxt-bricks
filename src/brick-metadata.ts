@@ -10,9 +10,7 @@
  * source yields the same values more cheaply —
  * but only for literals, which is why computed forms are rejected with an
  * explicit build error: a silently substituted "default value" would diverge
- * from what the developer sees in the file. It also keeps the manifest hash over
- * the file contents honest — metadata moved out into an imported constant would
- * go unnoticed by it.
+ * from what the developer sees in the file.
  *
  * Exactly four fields are read. The rest (`dataSources` with their functions
  * first of all) are not parsed at all: they are needed by the runtime, which
@@ -51,8 +49,8 @@ const SLOTS_FIELD = 'slots';
  *
  * Exactly one form is supported — a direct local declaration through `const`.
  * A re-export and `export { brick }` from another module are deliberately
- * unsupported: the value would then live outside the parsed file, while the
- * manifest hash is computed over that file.
+ * unsupported: the value would then live outside the file the scan reads, and the
+ * metadata would go into the manifest empty.
  *
  * @param source - File being parsed.
  * @param program - The parsed program.

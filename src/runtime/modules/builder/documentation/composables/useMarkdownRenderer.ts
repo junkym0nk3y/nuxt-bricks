@@ -2,16 +2,12 @@
 // Types
 import type MarkdownIt from 'markdown-it';
 
-// Vue
-import { ref } from 'vue';
-
 // Composables
 import { useBricksAssetUrl } from '../../../common/composables/useBricksAssetUrl';
 // #endregion
 
 // #region Data
 let mdInstance: MarkdownIt | null = null;
-const isLoading = ref(false);
 // #endregion
 
 /**
@@ -34,18 +30,14 @@ export function useMarkdownRenderer() {
             return mdInstance;
         }
 
-        isLoading.value = true;
-        try {
-            const { default: MarkdownItModule } = await import('markdown-it');
-            mdInstance = new MarkdownItModule({
-                html: true,
-                breaks: true,
-                linkify: true,
-            });
-            return mdInstance;
-        } finally {
-            isLoading.value = false;
-        }
+        const { default: MarkdownItModule } = await import('markdown-it');
+        mdInstance = new MarkdownItModule({
+            html: true,
+            breaks: true,
+            linkify: true,
+        });
+
+        return mdInstance;
     }
 
     /**
@@ -75,6 +67,5 @@ export function useMarkdownRenderer() {
 
     return {
         renderMarkdown,
-        isLoading,
     };
 }

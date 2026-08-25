@@ -192,7 +192,7 @@ function onViewLeave(element: Element): void {
     <div :class="$style.TheBuilderPublishDashboard">
         <header :class="$style.header">
             <div :class="$style.headerLeft">
-                <BuilderLogo :class="$style.logo" text="" :to="null" />
+                <BuilderLogo :class="$style.logo" :to="null" />
                 <h1 :class="$style.title">{{ sectionTitle }}</h1>
             </div>
 

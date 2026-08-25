@@ -25,7 +25,6 @@ const TextEditorImageFloatPopover = defineAsyncComponent(
 // #region Props
 const props = withDefaults(defineProps<ITextEditorAreaProps>(), {
     value: '',
-    label: '',
     placeholder: '',
     disabled: false,
     toolbar: true,
@@ -233,13 +232,6 @@ function handleModalClose(): void {
         opacity: 0.6;
         pointer-events: none;
     }
-}
-
-.label {
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: var(--bricks-base-600);
-    user-select: none;
 }
 
 .editorWrapper {

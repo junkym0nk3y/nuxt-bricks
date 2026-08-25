@@ -33,7 +33,6 @@ function mockManifest(entries: Array<[name: string, category: string]>): IBricks
             brickPath: `/components/${name}.brick.ts`,
             values: {},
         })),
-        hash: 'test-hash',
     };
 
     getItemMock.mockResolvedValue(manifest);
@@ -107,7 +106,7 @@ describe('resolveBricksComponents: группировка по категори�
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         getItemMock.mockResolvedValue(null);
 
-        await expect(resolveBricksComponents()).resolves.toEqual({ bricks: [], hash: '' });
+        await expect(resolveBricksComponents()).resolves.toEqual({ bricks: [] });
         await expect(resolveBricksComponents('Marketing')).rejects.toMatchObject({
             statusCode: 404,
         });

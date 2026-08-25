@@ -4,11 +4,9 @@ import type { IDropZoneData, IDropEventData, IDropOptions } from '../types/dragg
 import type {
     IBricksComponent,
     IComponentLibraryItem,
-    IComponentSlotDefinition,
     IDragVisualSize,
 } from '../../../common/types/brick';
 import type { TBricksComponentsStore } from '../../core/stores/components';
-import type { TComponentInsertPayload } from '../../core/stores/types';
 
 // Vue
 import { onBeforeUnmount, ref } from 'vue';
@@ -17,6 +15,7 @@ import { onBeforeUnmount, ref } from 'vue';
 import { useCanvasStore } from '../../core/stores/canvas';
 
 // Utils
+import { buildComponentInsertPayload } from '../../core/utils/componentInsertPayload';
 import { setSkeletonDragImage } from '../../core/utils/dragVisuals';
 // #endregion
 
@@ -175,50 +174,16 @@ export function useComponentLibraryDrag() {
             return;
         }
 
-        // moveComponentToRoot is used when it is available
-        if (typeof store.moveComponentToRoot === 'function') {
-            store.moveComponentToRoot(componentId, rootTargetIndex, { skipHistory: true });
-            console.log(
-                '[useDraggableComponent] Root components after move:',
-                store.getRootComponents()?.map((rootComp: IBricksComponent) => rootComp?.id) || []
-            );
-        } else if (component.parent) {
-            // The fallback: the removal out of the layout by hand
-            store.removeChildFromLayout(component.parent, componentId, { skipHistory: true });
-            component.parent = undefined;
-        }
-
-        // The grid positioning is dropped
-        component.gridColumn = undefined;
-        component.gridRow = undefined;
+        // The action detaches the block from its layout and drops the grid
+        // positioning by itself — there is nothing left to clean up after it here
+        store.moveComponentToRoot(componentId, rootTargetIndex, { skipHistory: true });
+        console.log(
+            '[useDraggableComponent] Root components after move:',
+            store.getRootComponents()?.map((rootComp: IBricksComponent) => rootComp?.id) || []
+        );
 
         // Recorded into the history
-        if (typeof store.saveToHistory === 'function') {
-            store.saveToHistory();
-        }
-    }
-
-    /**
-     * Builds the data of a component for adding it onto the canvas.
-     *
-     * @param draggedComp - The component being dragged out of the library.
-     * @returns The data of the component for the store.
-     */
-    function createComponentData(draggedComp: IComponentLibraryItem): TComponentInsertPayload {
-        return {
-            componentName: draggedComp.name,
-            brickPath: draggedComp.brickPath,
-            props: JSON.parse(JSON.stringify(draggedComp.defaultProps || {})),
-            isInteractive: draggedComp.isInteractive || undefined,
-            slots: Array.isArray(draggedComp.slots)
-                ? draggedComp.slots.map((slot: IComponentSlotDefinition) => ({
-                      name: slot.name,
-                      label: slot.label,
-                      description: slot.description,
-                      allowMultiple: slot.allowMultiple,
-                  }))
-                : undefined,
-        };
+        store.saveToHistory();
     }
 
     /**
@@ -236,11 +201,11 @@ export function useComponentLibraryDrag() {
             return;
         }
 
-        const componentData = createComponentData(draggedComponent.value);
+        const componentData = buildComponentInsertPayload(draggedComponent.value);
 
-        // Whether the history has to be controlled by hand
-        const shouldControlHistory =
-            rootTargetIndex !== null && typeof store.moveComponentToRoot === 'function';
+        // With a target index the insertion and the move are one entry of the
+        // history: two of them would make the first undo look like it did nothing
+        const shouldControlHistory = rootTargetIndex !== null;
 
         const id = store.addComponent(
             componentData,
@@ -249,11 +214,9 @@ export function useComponentLibraryDrag() {
         console.log('[useDraggableComponent] Component added with id:', id);
 
         // Moved into the target position when an index is given
-        if (id && rootTargetIndex !== null && typeof store.moveComponentToRoot === 'function') {
+        if (id && rootTargetIndex !== null) {
             store.moveComponentToRoot(id, rootTargetIndex, { skipHistory: true });
-            if (typeof store.saveToHistory === 'function') {
-                store.saveToHistory();
-            }
+            store.saveToHistory();
         }
     }
 
@@ -261,13 +224,11 @@ export function useComponentLibraryDrag() {
      * Handles the drop event of a component onto the canvas.
      *
      * @param event - The drop event.
-     * @param canvasEl - The canvas element.
      * @param store - The store of the components.
      * @param options - Options of handling the drop.
      */
     function handleDrop(
         event: DragEvent,
-        canvasEl: HTMLElement,
         store: TBricksComponentsStore,
         options?: IDropOptions
     ): void {

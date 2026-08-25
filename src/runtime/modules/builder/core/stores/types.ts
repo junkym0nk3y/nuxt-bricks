@@ -3,7 +3,6 @@ import type {
     ISelectedComponent,
     IComponentSlotDefinition,
     IBricksSchema,
-    IDeviceVisibilityConfig,
     TBricksDeviceKey,
     TBrickPropValue,
 } from '../../../common/types/brick';
@@ -170,11 +169,6 @@ export interface IComponentsSchemaActions {
     setComponentFullWidth(this: IComponentsStore, id: string, fullWidth: boolean): void;
     setComponentHidden(this: IComponentsStore, id: string, hidden: boolean): void;
     setComponentHtmlId(this: IComponentsStore, id: string, htmlId: string): void;
-    setComponentDeviceVisibility(
-        this: IComponentsStore,
-        id: string,
-        visibility: Partial<IDeviceVisibilityConfig>
-    ): void;
     setComponentDeviceVisibilityFlag(
         this: IComponentsStore,
         id: string,

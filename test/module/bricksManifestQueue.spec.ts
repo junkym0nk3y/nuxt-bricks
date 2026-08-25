@@ -233,7 +233,7 @@ describe('манифест бриков: атомарная публикация
         expect(await readdir(manifestDir)).toEqual([BRICKS_MANIFEST_FILENAME]);
     });
 
-    it('записи отсортированы по brickPath, хеш не зависит от порядка скана', async () => {
+    it('записи отсортированы по brickPath, а не по порядку скана', async () => {
         await writeBrickFile('CardTeaser', 'Cards');
         await writeBrickFile('CardHero', 'Cards');
         probe.reverseListing = true;
@@ -245,37 +245,11 @@ describe('манифест бриков: атомарная публикация
             '/components/CardTeaser.brick.ts',
         ]);
 
-        // Тот же диск, порядок скана прямой — хеш обязан совпасть
+        // File-system traversal order does not affect the contents of the answer
         probe.reverseListing = false;
         const directScan = await generateBricksManifest({ srcDir, manifestDir });
 
-        expect(directScan.hash).toBe(reversedScan.hash);
-    });
-
-    it('хеш меняется от правки внутри brick-файла, хотя записи манифеста те же', async () => {
-        await writeBrickFile('CardHero', 'Cards', '[{ name: "old" }]');
-        const before = await generateBricksManifest({ srcDir, manifestDir });
-
-        // Записи манифеста неизменны: dataSources читает рендерер прямо из
-        // модуля, в манифест они не попадают
-        await writeBrickFile('CardHero', 'Cards', '[{ name: "new" }]');
-        const after = await generateBricksManifest({ srcDir, manifestDir });
-
-        expect(after.bricks).toEqual(before.bricks);
-        // Хеш по инвентарю записей на этой правке не менялся, то есть по нему
-        // нельзя было отличить правку файла от повторного скана — ради этого
-        // хеш и считается от исходников
-        expect(after.hash).not.toBe(before.hash);
-    });
-
-    it('повторный скан без правок даёт тот же хеш', async () => {
-        await writeBrickFile('CardHero', 'Cards', '[{ name: "same" }]');
-
-        const first = await generateBricksManifest({ srcDir, manifestDir });
-        const second = await generateBricksManifest({ srcDir, manifestDir });
-
-        // Иначе сверка хешей считала бы изменением каждое событие вотчера
-        expect(second.hash).toBe(first.hash);
+        expect(directScan.bricks).toEqual(reversedScan.bricks);
     });
 
     it('rename выполняется только после полной записи temp, цель до него не тронута', async () => {

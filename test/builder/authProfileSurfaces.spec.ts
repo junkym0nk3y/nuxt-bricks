@@ -69,10 +69,7 @@ describe('Тулбар билдера: выход появился там, гд�
     beforeEach(() => {
         wrapper = mount(TheBuilderShellToolbar, {
             props: {
-                isEditingExistingPage: false,
                 isSubmittingPublish: false,
-                hasSelectedComponent: false,
-                isPublishSettingsComplete: true,
                 isSessionReady: true,
             },
             shallow: true,

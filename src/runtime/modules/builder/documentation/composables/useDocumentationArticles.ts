@@ -96,7 +96,7 @@ export function useDocumentationArticles() {
     const activeArticlePath = ref('');
     const articleContent = ref('');
     const isContentLoading = ref(false);
-    const { renderMarkdown, isLoading: isMarkdownLoading } = useMarkdownRenderer();
+    const { renderMarkdown } = useMarkdownRenderer();
 
     /**
      * The generation of a read of an article. Both the chunk of the file and the
@@ -159,10 +159,6 @@ export function useDocumentationArticles() {
         return result.sort((a, b) => a.order - b.order);
     });
 
-    /** Position of the current article in the list */
-    const activeArticleIndex = computed<number>(() =>
-        articles.value.findIndex((a) => a.path === activeArticlePath.value)
-    );
     // #endregion
 
     // #region Methods
@@ -297,10 +293,8 @@ export function useDocumentationArticles() {
     return {
         articles,
         activeArticlePath,
-        activeArticleIndex,
         articleContent,
         isContentLoading,
-        isMarkdownLoading,
         navigateTo,
         initFirstArticle,
     };

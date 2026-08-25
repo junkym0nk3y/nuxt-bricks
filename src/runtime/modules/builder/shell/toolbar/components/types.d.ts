@@ -5,10 +5,7 @@
 import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
 
 export interface IToolbarProps {
-    isEditingExistingPage: boolean;
     isSubmittingPublish: boolean;
-    hasSelectedComponent: boolean;
-    isPublishSettingsComplete: boolean;
     /**
      * The session has opened into a consistent state. Until it has, saving, preview
      * and the media gallery are blocked: saving is out because `startEditingPage`
@@ -19,9 +16,7 @@ export interface IToolbarProps {
      * happen against a session that is not settled yet.
      */
     isSessionReady: boolean;
-    sidebarOffset?: string;
     pageTitle?: string;
-    isPublished?: boolean;
     /** Saved pages for the selector in the title */
     pages?: TPublishedPageSummary[];
     /** Identity of the open page: it is the one marked in the list */
@@ -41,7 +36,6 @@ export interface IToolbarEmits {
     saveAsTemplate: [];
     saveDraft: [];
     preview: [];
-    clear: [];
     openPageSelector: [];
     selectPage: [page: TPublishedPageSummary];
     createPage: [];

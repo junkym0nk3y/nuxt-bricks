@@ -11,7 +11,6 @@ import type { ComputedRef, Ref } from 'vue';
 import type { IBricksSchema } from '../../../common/types/brick';
 import type {
     IBricksTemplatePageMeta,
-    IBricksTemplateRow,
     TBricksTemplateSummary,
 } from '../../../common/types/templates';
 import type { TBricksToastVariant } from '../../../ui/feedback/types';
@@ -222,9 +221,3 @@ export interface ITemplatesPickerListProps {
 export interface ITemplatesPickerListEmits {
     select: [template: TBricksTemplateSummary];
 }
-
-/**
- * The whole template as read by a point lookup: the contents and the styling a page is
- * created from.
- */
-export type TTemplateContent = IBricksTemplateRow;

@@ -98,7 +98,6 @@ export interface ISlotDropDetail {
 export interface IDragComposableCanvas {
     handleDrop: (
         event: DragEvent,
-        element: HTMLElement,
         store: TBricksComponentsStore,
         options?: { rootTargetIndex?: number | null }
     ) => void;

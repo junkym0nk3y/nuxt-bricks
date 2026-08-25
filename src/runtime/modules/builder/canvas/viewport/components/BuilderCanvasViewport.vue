@@ -127,9 +127,8 @@ const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
  * Label of the sheet, taken from the device set: the names Mobile/Tablet/Desktop are gone
  * from the code — a device may be called anything and may be the fourth one.
  *
- * Its color is the workspace foreground rather than a theme-dependent `base-500`: the
- * label lies on the background of the working area, and that background is the same in
- * both themes, so `base-500` gave light text on a light surface in the dark theme.
+ * Its color is `--bricks-workspace-fg`; why that role and not a step of the palette is
+ * explained where the variable is declared (`assets/scss/shared/_variables.scss`).
  */
 const viewportLabel = computed<string>(
     () => `${device.value?.label ?? props.viewport} — ${viewportWidth.value}px`
@@ -176,35 +175,6 @@ function handleCanvasClick(event: MouseEvent): void {
     }
 }
 
-/**
- * Handles a drop on the canvas of this viewport: the positioning is delegated to
- * handleCanvasDrop, and with figmaDropPerViewport on, a block the drop has just created
- * is narrowed down to the current viewport. A block moved from elsewhere keeps the
- * visibility it already had.
- *
- * @param event - Native drop event.
- */
-function handleViewportDrop(event: DragEvent): void {
-    const idsBefore = new Set(componentsStore.components.map((c) => c.id));
-
-    handleCanvasDrop(event);
-
-    if (!canvasStore.figmaDropPerViewport) {
-        return;
-    }
-
-    const newComponent = componentsStore.components.find((c) => !idsBefore.has(c.id));
-    if (newComponent) {
-        // One-hot over the set rather than over three hardcoded keys: a block dropped on
-        // the laptop sheet has to be hidden on every other device of the set as well
-        componentsStore.setComponentDeviceVisibility(
-            newComponent.id,
-            Object.fromEntries(
-                canvasStore.devices.map((item) => [item.key, item.key === props.viewport])
-            )
-        );
-    }
-}
 // #endregion
 
 // #region Lifecycle
@@ -262,7 +232,7 @@ onBeforeUnmount(() => {
             :style="canvasStyle"
             :data-bricks-viewport="props.viewport"
             data-canvas-area="true"
-            @drop="handleViewportDrop"
+            @drop="handleCanvasDrop"
             @dragover="handleCanvasDragOver"
             @click="handleCanvasClick"
         >

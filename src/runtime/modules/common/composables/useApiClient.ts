@@ -22,7 +22,7 @@ import { BRICKS_CSRF_HEADER_NAME } from '../constants/auth';
 import { useBricksRoutePaths } from './useBricksRoutePaths';
 
 // Nuxt
-import { useCookie, useRequestEvent, useRuntimeConfig } from '#imports';
+import { useRequestEvent, useRuntimeConfig } from '#imports';
 // #endregion
 
 // #region Methods
@@ -58,7 +58,6 @@ function resolveLocalBaseUrl(appBaseURL: string): string {
  *   on the client through the dev proxy middleware
  *
  * Supports:
- * - CSRF token from a cookie (for a REST backend)
  * - Header forwarding on SSR (x-forwarded-*, the request IP and identity —
  *   session cookie and Authorization); identity goes to the local
  *   `/api/bricks/**` ONLY (common/utils/ssrRequestHeaders.ts)
@@ -98,12 +97,6 @@ export function useApiClient(): IUseApiClientReturn {
     // per-address, to requests hitting the local endpoints — see
     // applyLocalApiRouting
     const defaultHeaders = toExternalHeaders(headers);
-
-    // CSRF token of the host project from its cookie (`csrftoken` → `X-CSRFToken`)
-    const csrf = useCookie('csrftoken');
-    if (csrf.value) {
-        defaultHeaders['X-CSRFToken'] = csrf.value as string;
-    }
 
     // CSRF marker of unsafe bricks-API requests: a cross-origin document cannot
     // set a custom header without a CORS preflight (see csrfProtection.ts)

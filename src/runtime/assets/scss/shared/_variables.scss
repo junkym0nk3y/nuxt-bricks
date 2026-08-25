@@ -52,7 +52,6 @@
     --bricks-primary-400: #60a5fa;
     --bricks-primary-500: #3b82f6;
     --bricks-primary-600: #1d4ed8;
-    --bricks-primary-700: #1e40af;
     --bricks-primary: #2563eb;
 
     /* === Danger/Error red colors (light to dark) === */
@@ -69,16 +68,9 @@
     --bricks-rgb-base-900: 17 24 39; /* from #111827 */
     --bricks-rgb-base-0: 255 255 255; /* from #fff */
     --bricks-rgb-primary: 37 99 235; /* from --bricks-primary #2563eb */
-    --bricks-rgb-gray: 150 150 150; /* neutral gray */
     /* from --bricks-yellow: the warning backdrop is built out of transparency — the
        accent has no ready light tone, and in the dark theme one would not do */
     --bricks-rgb-yellow: 245 158 11;
-
-    /* Layout indicator colors */
-    --bricks-rgb-layout-flex: 255 120 0; /* orange */
-    --bricks-rgb-layout-grid: 0 120 255; /* blue */
-    --bricks-rgb-layout-slider: 125 87 255; /* purple */
-    --bricks-rgb-layout-section: 16 185 129; /* green/teal */
 
     /* === Shadows (layered, soft UI) === */
     --bricks-shadow-sm:
@@ -186,7 +178,6 @@
     --bricks-primary-400: #5589d6;
     --bricks-primary-500: #60a5fa;
     --bricks-primary-600: #2563eb;
-    --bricks-primary-700: #1d4ed8;
     --bricks-primary: #3b82f6;
 
     --bricks-danger-50: #2b1d20;
@@ -244,7 +235,6 @@
         --bricks-primary-400: #60a5fa;
         --bricks-primary-500: #3b82f6;
         --bricks-primary-600: #1d4ed8;
-        --bricks-primary-700: #1e40af;
         --bricks-primary: #2563eb;
 
         --bricks-danger-50: #fef2f2;

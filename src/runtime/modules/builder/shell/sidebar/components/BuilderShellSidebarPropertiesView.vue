@@ -143,7 +143,7 @@ defineExpose({
                     {{ store?.selectedComponentData ? selectedComponentName : '' }}
                 </h2>
 
-                <BricksTooltip v-if="selectedComponentDescription" bottom>
+                <BricksTooltip v-if="selectedComponentDescription">
                     <template #activator>
                         <div :class="$style.descriptionIcon">
                             <BricksIcon icon="ta:outline-info-circle" />
@@ -184,12 +184,6 @@ defineExpose({
         </div>
 
         <div :class="[$style.content, 'bricks-scrollbox']">
-            <div v-if="!store.selectedComponentData" :class="$style.debug">
-                <p>No component selected</p>
-                <p>selectedComponent: {{ store.selectedComponent }}</p>
-                <p>selectedComponentData: {{ store.selectedComponentData }}</p>
-            </div>
-
             <div v-if="hasPropertiesSection" :class="$style.section">
                 <BuilderShellSidebarPropertyEditors
                     :key="store.selectedComponent?.id ?? ''"
@@ -301,17 +295,5 @@ defineExpose({
 .buttonIcon {
     width: 1.8rem;
     height: 1.8rem;
-}
-
-.debug {
-    margin: 1rem 0;
-    padding: 2rem;
-    border: 1px solid var(--bricks-base-300);
-    background-color: var(--bricks-base-300);
-
-    p {
-        margin: 0.6rem 0;
-        font-size: 1.2rem;
-    }
 }
 </style>

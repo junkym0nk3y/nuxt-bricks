@@ -1,8 +1,5 @@
-import type { TBricksButtonSize } from '../button/types.d.ts';
-
 export interface IBricksCloseButtonProps {
     disabled?: boolean;
-    size?: TBricksButtonSize;
 }
 
 export interface IBricksCloseButtonEmits {

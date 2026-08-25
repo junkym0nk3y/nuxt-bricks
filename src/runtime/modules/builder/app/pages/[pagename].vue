@@ -206,9 +206,6 @@ const {
     sidebarRef,
     propertiesPanelRef,
     toast,
-    isEditingExistingPage,
-    hasSelectedComponent,
-    leftSidebarOffset,
     currentPublishPageTitle,
     handleKeyDown,
     handleToggleLibrary,
@@ -492,12 +489,8 @@ onBeforeUnmount(() => {
     <div :class="[$style.BricksBuilder, 'bricks-text']">
         <TheBuilderShellToolbar
             :inert="isBuilderLocked"
-            :is-editing-existing-page="isEditingExistingPage"
             :is-submitting-publish="publishStore.isSubmitting"
-            :has-selected-component="hasSelectedComponent"
-            :is-publish-settings-complete="isPublishSettingsComplete"
             :is-session-ready="isSessionReady"
-            :sidebar-offset="leftSidebarOffset"
             :page-title="currentPublishPageTitle"
             :pages="publishStore.publishedPages"
             :current-page-id="sessionPageId"

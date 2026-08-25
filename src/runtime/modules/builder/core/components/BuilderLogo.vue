@@ -19,30 +19,20 @@
  */
 
 // #region Imports
+// Types
+import type { IBuilderLogoProps } from '../types/components';
+
 // Vue
 import { computed, onMounted, ref, useCssModule } from 'vue';
 // #endregion
 
 // #region Props
-const props = withDefaults(
-    defineProps<{
-        text?: string;
-        isTouch?: boolean;
-        to?: string | null;
-        external?: boolean;
-        target?: '_blank' | '_self';
-        isInfiniteAnimation?: boolean;
-    }>(),
-    {
-        text: '',
-        isTouch: false,
-        to: null,
-        external: false,
-        target: '_blank',
-        isInfiniteAnimation: false,
-    }
-);
-
+const props = withDefaults(defineProps<IBuilderLogoProps>(), {
+    isTouch: false,
+    to: null,
+    target: '_blank',
+    isInfiniteAnimation: false,
+});
 // #endregion
 
 // #region Data
@@ -209,8 +199,6 @@ onMounted(() => {
                     </g>
                 </svg>
             </div>
-
-            <div v-if="props.text" :class="$style.text" v-html="props.text"></div>
         </component>
     </div>
 </template>
@@ -362,13 +350,5 @@ onMounted(() => {
         --cube-lift: -3.4rem;
         --cube-color: var(--cube-active-color);
     }
-}
-
-.text {
-    flex-shrink: 0;
-    margin-left: 2.4rem;
-    font-size: var(--bricks-font-size-sm);
-    font-weight: 500;
-    line-height: 1.6rem;
 }
 </style>

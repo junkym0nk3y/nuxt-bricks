@@ -97,7 +97,6 @@ export interface IBricksComponent {
     isHidden?: boolean;
     htmlId?: string; // Custom HTML id for anchor navigation
     deviceVisibility?: Partial<IDeviceVisibilityConfig>;
-    isInteractive?: boolean;
     // Grid positioning (for components inside a Grid Layout)
     gridColumn?: string; // e.g. '1 / 3' or 'span 2'
     gridRow?: string; // e.g. '2 / 4' or 'span 2' or 'auto'
@@ -112,7 +111,6 @@ export interface IComponentLibraryItem {
     thumbnail?: string;
     defaultProps?: Record<string, unknown>;
     slots?: IComponentSlotDefinition[];
-    isInteractive?: boolean;
 }
 
 export interface INavigationItem {
@@ -154,8 +152,6 @@ export interface ICanvasState {
     hasManualZoom: boolean;
     /** In Figma mode — the viewport where a component was clicked last */
     activeViewport: TBricksDeviceKey | null;
-    /** Confine a new component to the viewport it was dropped into (Figma mode) */
-    figmaDropPerViewport: boolean;
     /** Transient drag state: not serialized into the schema/history */
     dragState: ICanvasDragState;
     /** Canvas width and height before entering Figma mode (to restore them on exit) */

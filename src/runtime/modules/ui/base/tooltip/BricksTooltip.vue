@@ -42,12 +42,8 @@ defineOptions({
 
 // #region Props
 const props = withDefaults(defineProps<IBricksTooltipProps>(), {
-    attach: '#bricks-app',
     nudge: 8,
-    offsetY: 12,
-    offsetX: 12,
     top: false,
-    bottom: false,
     left: false,
     right: false,
     hoverable: false,

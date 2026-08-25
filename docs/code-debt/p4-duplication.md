@@ -121,7 +121,7 @@ Swiper без loop-дубликатов).
 ## 7. `debouncedSaveToHistory` объявлен дважды, с двумя независимыми таймерами
 
 **Файлы:** `builder/core/stores/actions/properties.ts:12`,
-`stores/actions/schema.ts:16`
+`stores/actions/schema.ts:15`
 
 Оба файла создают свой `useDebounceFn((store) => store.saveToHistory(), 300)`. Это
 не только дубль кода: таймеры разные, поэтому правка свойства и правка `htmlId`,
@@ -159,7 +159,7 @@ Swiper без loop-дубликатов).
 ## 10. Замер высоты по контенту и пара watch-ей продублированы кодом
 
 **Файлы:** `builder/canvas/viewport/composables/useCanvasContainerMetrics.ts:26-37`,
-`:65-69` и `viewport/components/BuilderCanvasViewport.vue:135-158`, `:207-211`
+`:65-69` и `viewport/components/BuilderCanvasViewport.vue:135-158`, `:187-191`
 
 Приём «снять `minHeight`, прочитать `scrollHeight`, вернуть `minHeight`» написан
 дважды, и дважды написана пара watch-ей на состав компонентов; в компоненте вдобавок
@@ -173,25 +173,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 11. Сборка `componentData` из перетаскиваемой карточки написана трижды
-
-**Файлы:** `builder/canvas/viewport/composables/useCanvasDrops.ts:298-314`,
-`:362-376`, плюс маппинг слотов в `item/composables/useCanvasItemDrag.ts:45-52`
-
-`addComponentFromLibrary` и `handleSlotDrop` строят один и тот же объект —
-`componentName`, `brickPath`, нулевые `width`/`height`, глубокое копирование
-`defaultProps` через `JSON.parse(JSON.stringify(...))` и маппинг `slots` из четырёх
-полей. Отличий два: `gridColumn`/`gridRow` в первом и флаги истории во втором. Тот
-же маппинг слотов в третий раз лежит в `useCanvasItemDrag`.
-
-Правка формы слота (новое поле определения) требует сейчас трёх согласованных
-правок в двух файлах. **Решать заодно** с «`isInteractive`: поле схемы, которое
-теряется на части путей вставки» в [П3](p3-dead-code.md) — это следствие того же
-дубля.
-
----
-
-## 12. Ключ базового устройства трижды написан литералом мимо `BASE_DEVICE_KEY`
+## 11. Ключ базового устройства трижды написан литералом мимо `BASE_DEVICE_KEY`
 
 **Файлы:** `builder/shell/sidebar/components/BuilderShellSidebarComponentCard.vue:139,162`,
 `sidebar/composables/useSidebarPropertiesPanel.ts:195`,
@@ -210,7 +192,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 13. Редакторы аккордеона и галереи повторяют один и тот же список операций
+## 12. Редакторы аккордеона и галереи повторяют один и тот же список операций
 
 **Файлы:** `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:49-146`,
 `property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue:69-186`
@@ -224,7 +206,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 14. `clampToPropertyRange` дублирует `clampValue`
+## 13. `clampToPropertyRange` дублирует `clampValue`
 
 **Файлы:** `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyGridSizeEditor.vue:168-181`,
 `sidebar/composables/useSpacingEditor.ts:61-71`
@@ -236,7 +218,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 15. Три watcher-а превью карточки с одинаковым телом
+## 14. Три watcher-а превью карточки с одинаковым телом
 
 **Файл:** `builder/shell/sidebar/composables/useComponentCardPreview.ts:295-316`
 
@@ -247,7 +229,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 16. Высота превью продублирована из CSS константами
+## 15. Высота превью продублирована из CSS константами
 
 **Файлы:** `builder/shell/sidebar/composables/useComponentCardPreview.ts:45-49`,
 `sidebar/components/BuilderShellSidebarComponentCard.vue:285`
@@ -259,7 +241,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 17. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
+## 16. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
 
 **Файлы:** `builder/users/utils/userFormatting.ts:26-47`, владелец —
 `common/utils/bricks/dates.ts:1-34`
@@ -279,7 +261,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 18. Задержка поиска втроена по трём доменам, а рационал — у копий
+## 17. Задержка поиска втроена по трём доменам, а рационал — у копий
 
 **Файлы:** `builder/users/composables/useUsersList.ts:14-15`,
 `builder/templates/composables/useTemplatesList.ts:14-15`,
@@ -295,7 +277,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 19. Список ролей продублирован в двух компонентах
+## 18. Список ролей продублирован в двух компонентах
 
 **Файлы:** `builder/users/components/BuilderUsersRolePill.vue:64-69`,
 `builder/users/components/TheBuilderUsersCreateModal.vue:71-72`, владелец набора —
@@ -311,7 +293,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 20. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
+## 19. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryCategoryTabs.vue`,
 владелец вида — `ui/base/tabs/BricksTabBarItem.vue` (вариант `underline`, размер `sm`)
@@ -357,7 +339,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 21. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
+## 20. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
 
 **Файлы:** `plugins/builder/veeValidateSetup.ts`,
 `plugins/builder/textEditorToolbarSetup.ts`,
@@ -376,7 +358,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 22. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
+## 21. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
 
 **Файлы:** `builder/media/components/TheBuilderMediaGalleryModal.vue:104-195`,
 `components/TheBuilderMediaSection.vue:106-152`
@@ -391,7 +373,7 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 23. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
+## 22. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryMetaPanel.vue:88-131`,
 `components/BuilderMediaSectionDetailsPanel.vue:90-171`
@@ -406,7 +388,7 @@ slug».
 
 ---
 
-## 24. Нативный `<select>` вместо кит-компонента в резолвере изображений
+## 23. Нативный `<select>` вместо кит-компонента в резолвере изображений
 
 **Файлы:** `builder/media/components/BuilderMediaImageResolverItem.vue:95-103,177-181`,
 `components/TheBuilderMediaImageResolverModal.vue:114-123,199-203`
@@ -424,7 +406,7 @@ slug».
 
 ---
 
-## 25. Формы сохранения и переименования шаблона — копия друг друга
+## 24. Формы сохранения и переименования шаблона — копия друг друга
 
 **Файлы:** `builder/templates/composables/useTemplateSaveForm.ts` (171 строка),
 `useTemplateRenameForm.ts` (146 строк)
@@ -445,7 +427,7 @@ slug».
 
 ---
 
-## 26. Мета-строка шаблона собирается дважды
+## 25. Мета-строка шаблона собирается дважды
 
 **Файлы:** `builder/templates/components/BuilderTemplatesCard.vue:70-75`
 (`metaLine`), `BuilderTemplatesPickerList.vue:84-89` (`buildMetaLine`)
@@ -460,7 +442,7 @@ slug».
 
 ---
 
-## 27. Исход `window.open` проверяет одна функция из трёх
+## 26. Исход `window.open` проверяет одна функция из трёх
 
 **Файлы:** `builder/publish/composables/usePublishPreview.ts`
 (`previewCurrentPage` против `previewPageVersion`), `usePublishPageActions.ts`
@@ -477,7 +459,7 @@ slug».
 
 ---
 
-## 28. `DARK_MODE_COOKIE` против литерала в редакторе
+## 27. `DARK_MODE_COOKIE` против литерала в редакторе
 
 **Файлы:** `builder/publish/composables/usePublishDashboardPreferences.ts`
 (константа), `builder/app/pages/[pagename].vue` (литерал `'bricks-dark-mode'`)
@@ -493,7 +475,7 @@ slug».
 
 ---
 
-## 29. `deviceIcons.ts` импортирует из корневого barrel прямо под комментарием про отказ от barrel
+## 28. `deviceIcons.ts` импортирует из корневого barrel прямо под комментарием про отказ от barrel
 
 **Файл:** `src/runtime/plugins/icons/deviceIcons.ts:20-27`
 
@@ -508,7 +490,7 @@ slug».
 
 ---
 
-## 30. Три device-глифа и `ta:outline-photo` регистрируются дважды
+## 29. Три device-глифа и `ta:outline-photo` регистрируются дважды
 
 **Файлы:** `src/runtime/plugins/icons/systemIconsRegistry.ts:23-28`,
 `icons/deviceIcons.ts:23-28`, `icons/builderIcons.ts:198`
@@ -525,9 +507,9 @@ builder-набором. Дублирование безвредно по пов�
 
 ---
 
-## 31. Набор устройств резолвится и валидируется дважды
+## 30. Набор устройств резолвится и валидируется дважды
 
-**Файлы:** `src/module.ts:196`, `src/module-runtime-config.ts:327`
+**Файлы:** `src/module.ts:185`, `src/module-runtime-config.ts:327`
 
 `resolveBricksDevices(options.devices)` вызывается двумя независимыми потребителями —
 SCSS-мостом в `module.ts` и публичным конфигом в `module-runtime-config.ts`, — и
@@ -539,9 +521,9 @@ SCSS-мостом в `module.ts` и публичным конфигом в `modu
 
 ---
 
-## 32. `swiper/vue` лежит в prebundle-списке, применяемом только при включённом билдере
+## 31. `swiper/vue` лежит в prebundle-списке, применяемом только при включённом билдере
 
-**Файл:** `src/module.ts:41-69, 201-210`
+**Файл:** `src/module.ts:43-63, 190-199`
 
 `VITE_OPTIMIZE_INCLUDE` применяется под `if (isBuilderEnabled)`, и комментарий
 называет список «зависимостями UI билдера». Одна запись из него — `swiper/vue` — к
@@ -555,7 +537,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 33. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
+## 32. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
 
 **Файлы:** `persistence/server/http/httpMediaMethods.ts` (`getMediaByUrl`),
 `src/runtime/server/api/bricks/media/s3-proxy.post.ts:59`
@@ -569,7 +551,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 34. `IImageLocation` собирает семь полей, читается одно
+## 33. `IImageLocation` собирает семь полей, читается одно
 
 **Файлы:** `builder/media/types/schemaImageResolver.d.ts:22-30`, заполнение —
 `utils/schemaImageExtractor.ts` (`createLocation`), единственное чтение —
@@ -589,7 +571,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 # Упрощения
 
-## 35. `inferPropertyType` — карта, написанная цепочкой `if` с отключённым правилом
+## 34. `inferPropertyType` — карта, написанная цепочкой `if` с отключённым правилом
 
 **Файл:** `builder/core/composables/useComponentProperties.ts:31`
 
@@ -605,7 +587,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 36. `validatePropertyValue` разбирает тип через `switch`
+## 35. `validatePropertyValue` разбирает тип через `switch`
 
 **Файл:** `builder/core/composables/useComponentProperties.ts:173`
 
@@ -618,7 +600,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 37. `findSiblingContext` возвращает поле с двумя разными смыслами, и вызывающий его перевычисляет
+## 36. `findSiblingContext` возвращает поле с двумя разными смыслами, и вызывающий его перевычисляет
 
 **Файл:** `builder/core/stores/actions/order.ts:22-56`, `:67-116`
 
@@ -633,7 +615,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 38. `handleNormalizeProps` игнорирует второй аргумент, объявленный контрактом
+## 37. `handleNormalizeProps` игнорирует второй аргумент, объявленный контрактом
 
 **Файлы:** `builder/shell/sidebar/composables/usePropertyVariants.ts:148-153`,
 `sidebar/types/composables.d.ts:32-35`
@@ -642,16 +624,16 @@ dev-сервер платит холодным ре-оптимизом при п
 принимает `_editorType` и не смотрит на него — вся работа в
 `normalizeVariantProps(data)`. Через панель аргумент честно протаскивается двумя
 слоями (`ISidebarPropertyHandlers` →
-`BuilderShellSidebarPropertyEditorRow.vue:53`).
+`BuilderShellSidebarPropertyEditorRow.vue:51`).
 
 Либо тип свойства нужен нормализации, и тогда она его не использует, либо не нужен —
 и тогда его протаскивают зря.
 
 ---
 
-## 39. Инлайновый SVG-шеврон вместо иконки кита
+## 38. Инлайновый SVG-шеврон вместо иконки кита
 
-**Файл:** `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:409-426`
+**Файл:** `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:405-422`
 
 Восемнадцать строк разметки `<svg>` с `width="12" height="12"` в пикселях там, где
 во всех соседних местах области стоит
@@ -662,7 +644,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 40. `isPasswordActionVisible` — псевдоним `canChangePassword`
+## 39. `isPasswordActionVisible` — псевдоним `canChangePassword`
 
 **Файл:** `builder/users/components/BuilderUsersListRow.vue:114-125`
 
@@ -678,7 +660,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 41. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
+## 40. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
 
 **Файл:** `builder/app/composables/useBuilderPage.ts`
 
@@ -692,7 +674,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 42. Пустые делегаты в composition root
+## 41. Пустые делегаты в composition root
 
 **Файл:** `builder/app/pages/[pagename].vue`
 
@@ -707,7 +689,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 43. `previewCurrentPage`: два `Date.now()` и строка ради числа
+## 42. `previewCurrentPage`: два `Date.now()` и строка ради числа
 
 **Файл:** `builder/publish/composables/usePublishPreview.ts` (`previewCurrentPage`)
 
@@ -723,7 +705,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 44. `openGeneration` инкрементируется дважды подряд
+## 43. `openGeneration` инкрементируется дважды подряд
 
 **Файл:** `builder/auth/composables/useAuthAvatarCrop.ts:139-143`
 
@@ -735,7 +717,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 45. `normalizeSvgContent` — обёртка над `trim()` с JSDoc на пять строк
+## 44. `normalizeSvgContent` — обёртка над `trim()` с JSDoc на пять строк
 
 **Файл:** `layouts-blocks/utils/inlineContent.ts`
 
@@ -748,7 +730,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 46. `sliderRootStyle` — computed из одного неизменного свойства
+## 45. `sliderRootStyle` — computed из одного неизменного свойства
 
 **Файл:** `layouts-blocks/components/BlockSlider.vue:182`
 
@@ -766,7 +748,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 47. Отступ попавера над медиа — безымянное число рядом с именованным
+## 46. Отступ попавера над медиа — безымянное число рядом с именованным
 
 **Файл:** `text-editor/components/TextEditorImageFloatPopover.vue`
 (`updatePosition`)
@@ -778,7 +760,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 48. Условие `editorTransactionCount.value < 0` читается как барьер
+## 47. Условие `editorTransactionCount.value < 0` читается как барьер
 
 **Файл:** `text-editor/composables/useToolbarStateSync.ts` (`toolbarGroups`)
 
@@ -791,7 +773,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 49. Линейный поиск детей по всему списку компонентов
+## 48. Линейный поиск детей по всему списку компонентов
 
 **Файл:** `src/runtime/modules/render/composables/useRendererLayouts.ts`
 (`getChildComponents`)
@@ -805,7 +787,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 50. Двойной вызов `needsContainerWrapper` на каждый компонент
+## 49. Двойной вызов `needsContainerWrapper` на каждый компонент
 
 **Файл:** `src/runtime/modules/render/components/TheRenderer.vue`
 
@@ -819,23 +801,23 @@ dev-сервер платит холодным ре-оптимизом при п
 
 # Шум в консоли потребителя
 
-## 51. `exportSchema` печатает всю схему в консоль на каждый вызов
+## 50. `exportSchema` печатает всю схему в консоль на каждый вызов
 
-**Файл:** `builder/core/stores/actions/schema.ts:138`
+**Файл:** `builder/core/stores/actions/schema.ts:117`
 
 `console.log('[Bricks Store] Exporting schema:', …)` выводит число компонентов и
 `props` каждого из них. Вызывается экшен не по требованию разработчика:
 `usePreviewSync` дёргает его на каждый снимок для открытой вкладки превью (debounce
 300 мс на любое изменяющее схему действие), плюс сохранение, публикация и сохранение
-шаблона (`useBuilderPageWrite.ts:93,193`, `useBuilderPage.ts:227`,
-`useBuilderTemplateSave.ts:72`).
+шаблона (`useBuilderPageWrite.ts:97,204`, `useBuilderPage.ts:272`,
+`useBuilderTemplateSave.ts:75`).
 
 То есть в потребительском приложении при открытом превью консоль получает полный
 дамп страницы на каждую правку.
 
 ---
 
-## 52. Семь `console.log` в drag-пути
+## 51. Семь `console.log` в drag-пути
 
 **Файл:** `builder/app/composables/useDraggableComponent.ts`
 
@@ -846,7 +828,7 @@ dev-сервер платит холодным ре-оптимизом при п
 
 ---
 
-## 53. `console.log` об успешном удалении страницы
+## 52. `console.log` об успешном удалении страницы
 
 **Файл:** `builder/publish/stores/publish.ts` (`deletePage`)
 

@@ -1252,7 +1252,6 @@
                 "passwordChangeDisabled": "Password change is disabled by the installation settings",
                 "insufficientRole": "Not enough permissions to manage accounts",
                 "userGone": "The account no longer exists — the list has been refreshed",
-                "tooManyRequests": "Too many requests. Try again in a moment",
                 "serverBusy": "The server is busy. Try again",
                 "timeout": "No answer in time: the outcome is unknown, the list has been refreshed",
                 "createOutcomeUnknown": "No answer in time, so the outcome is not known yet. Press \"Create\" once more: the repeat is safe — it creates no second account and reports the outcome of the first submission",

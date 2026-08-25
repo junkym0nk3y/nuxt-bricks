@@ -32,7 +32,7 @@
 **Файлы:** `builder/shell/toolbar/components/BuilderShellToolbarVerticalNav.vue:31,39`,
 `sidebar/components/BuilderShellSidebarPropertiesView.vue:33`,
 `sidebar/components/TheBuilderShellSidebarPropertiesPanel.vue:18`,
-`sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:21,36`,
+`sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:22,36`,
 `sidebar/components/BuilderShellSidebarSchemaTreeView.vue:30`,
 `sidebar/components/BuilderShellSidebarPublishView.vue:60`,
 `property-editors/BuilderShellSidebarPropertyMediaPicker.vue:19,33`,
@@ -196,7 +196,7 @@
 ## 12. Два мелких отступления в стилях сайдбара
 
 **Файлы:** `builder/shell/sidebar/components/BuilderShellSidebarNavigationEditor.vue:182`,
-`sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:259`
+`sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:208`
 
 `border-radius: 1rem` у счётчика навигации — пилюля числом, тогда как правило
 требует `var(--bricks-border-radius-pill)`.
@@ -204,7 +204,7 @@
 У выделенной строки дерева
 `background-color: var(--bricks-primary-100, var(--bricks-base-200))` — fallback
 никогда не срабатывает: `--bricks-primary-100` объявлена во всех трёх темах
-(`assets/scss/shared/_variables.scss:50,174,223`), и запасное значение только
+(`assets/scss/shared/_variables.scss:50,176,233`), и запасное значение только
 маскирует, какой токен на самом деле в силе.
 
 ## 13. Стили документации билдера лежат в глобальной таблице `default.scss`
@@ -257,8 +257,8 @@
 
 ## 16. Потолок истории и длительность переключения viewport — литералы без имени
 
-**Файлы:** `builder/core/utils/history.ts:21`, `builder/core/stores/canvas.ts:197`,
-`:227`
+**Файлы:** `builder/core/utils/history.ts:21`, `builder/core/stores/canvas.ts:212`,
+`:242`
 
 `clampHistory(history, historyIndex, limit = 50)` — единственный вызов
 (`stores/history.ts:43`) третьего аргумента не передаёт, поэтому потолок в 50
@@ -275,7 +275,7 @@
 
 Ждут завершения анимации переключения viewport, но анимации длительностью 450 мс в
 проекте нет: переход листа канваса — `transform 250ms ease`
-(`TheBuilderCanvas.vue:496`), общий токен — `--bricks-default-transition: 300ms ease`.
+(`TheBuilderCanvas.vue:502`), общий токен — `--bricks-default-transition: 300ms ease`.
 Число голое: константы у него нет, и связь с источником задержки не выражена ничем.
 
 Смежное: те же 400 мс литералом в сторе канваса — пункт выше. Обе задержки ждут
@@ -390,7 +390,7 @@ House-style — американское `toward` (пять вхождений �
 ## 26. Статья документации уходит в `v-html` мимо `sanitize`
 
 **Файлы:** `builder/documentation/components/TheBuilderDocumentationModal.vue:126`,
-источник HTML — `builder/documentation/composables/useMarkdownRenderer.ts:41`
+источник HTML — `builder/documentation/composables/useMarkdownRenderer.ts:35`
 (`markdown-it` с `html: true`)
 
 Правило `AGENTS.md` («любой недоверенный HTML/SVG перед `v-html` или `innerHTML`

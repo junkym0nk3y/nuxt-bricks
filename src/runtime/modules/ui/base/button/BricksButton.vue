@@ -42,8 +42,6 @@ const props = withDefaults(defineProps<IBricksButtonProps>(), {
     block: false,
     active: false,
     type: 'button',
-    round: false,
-    fill: false,
     equal: false,
 });
 // #endregion
@@ -63,8 +61,6 @@ const classList = computed(() => ({
     [$style._block]: props.block,
     [$style._active]: props.active,
     [$style._disabled]: props.disabled,
-    [$style._round]: props.round,
-    [$style._fill]: props.fill,
     [$style._equal]: props.equal,
 }));
 // #endregion
@@ -227,38 +223,6 @@ function onClick(event: MouseEvent): void {
         color: var(--bricks-primary);
     }
 
-    &._red {
-        border-color: transparent;
-        background-color: var(--bricks-danger-600);
-        box-shadow: var(--bricks-shadow-sm);
-        color: var(--bricks-static-white);
-    }
-
-    &._green {
-        border-color: transparent;
-        background-color: var(--bricks-green);
-        box-shadow: var(--bricks-shadow-sm);
-        color: var(--bricks-static-white);
-    }
-
-    &._yellow {
-        border-color: transparent;
-        background-color: var(--bricks-yellow);
-        box-shadow: var(--bricks-shadow-sm);
-        color: var(--bricks-static-white);
-    }
-
-    &._grey {
-        border-color: transparent;
-        background-color: var(--bricks-base-900);
-        box-shadow: var(--bricks-shadow-sm);
-        color: var(--bricks-static-white);
-    }
-
-    &._round {
-        border-radius: 100%;
-    }
-
     &._equal {
         padding: 0;
 
@@ -279,10 +243,6 @@ function onClick(event: MouseEvent): void {
             height: 4.4rem;
             font-size: 2rem;
         }
-    }
-
-    &._fill {
-        color: var(--bricks-primary);
     }
 }
 

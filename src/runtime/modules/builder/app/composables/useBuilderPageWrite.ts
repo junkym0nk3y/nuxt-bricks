@@ -263,7 +263,6 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
     // #endregion
 
     return {
-        isEditingExistingPage,
         currentPublishPageTitle,
         handleSaveDraft,
         handleSaveAsCopy,

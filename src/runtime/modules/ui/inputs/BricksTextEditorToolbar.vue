@@ -101,7 +101,7 @@ function getTooltipText(title: string): string {
         >
             <template v-for="item in group.items" :key="item.title">
                 <template v-if="!('type' in item)">
-                    <BricksTooltip v-if="props.useTooltips" bottom>
+                    <BricksTooltip v-if="props.useTooltips">
                         <template #activator>
                             <button
                                 type="button"
@@ -144,11 +144,7 @@ function getTooltipText(title: string): string {
                 </template>
 
                 <template v-else-if="'type' in item && item.type === 'select'">
-                    <BricksTooltip
-                        v-if="props.useTooltips"
-                        bottom
-                        :class="$style.toolbarSelectWrapper"
-                    >
+                    <BricksTooltip v-if="props.useTooltips" :class="$style.toolbarSelectWrapper">
                         <template #activator>
                             <div :class="$style.toolbarSelectInner">
                                 <span v-if="item.icon" :class="$style.toolbarSelectIcon">
@@ -202,7 +198,7 @@ function getTooltipText(title: string): string {
                 </template>
 
                 <template v-else-if="'type' in item && item.type === 'editable-select'">
-                    <BricksTooltip v-if="props.useTooltips" bottom>
+                    <BricksTooltip v-if="props.useTooltips">
                         <template #activator>
                             <BricksToolbarEditableSelect :item="item" />
                         </template>
@@ -212,7 +208,7 @@ function getTooltipText(title: string): string {
                 </template>
 
                 <template v-else-if="'type' in item && item.type === 'color'">
-                    <BricksTooltip v-if="props.useTooltips" bottom>
+                    <BricksTooltip v-if="props.useTooltips">
                         <template #activator>
                             <BricksToolbarColorPicker :item="item" />
                         </template>
@@ -224,7 +220,7 @@ function getTooltipText(title: string): string {
         </div>
 
         <div v-if="props.showImageInsert" :class="$style.imageInsertGroup">
-            <BricksTooltip v-if="props.useTooltips" bottom>
+            <BricksTooltip v-if="props.useTooltips">
                 <template #activator>
                     <button
                         type="button"

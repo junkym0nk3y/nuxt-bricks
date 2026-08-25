@@ -136,7 +136,7 @@ UTC. Файла с таким именем нет; читатель ищет н�
 
 - в сете `Button` подписи вариантов Primary и Danger привязаны к `color/base/0`, тогда
   как код красит их `var(--bricks-static-white)`
-  (`BricksButton.vue:132,170,174,183,213`). `base/0` — это фон, в тёмном моде он
+  (`BricksButton.vue:148,186,190,199`). `base/0` — это фон, в тёмном моде он
   тёмный, поэтому текст на цветной кнопке темнеет вместе с ним;
 - у `Confirm Modal` секции `header`/`content`/`actions` залиты голым белым без привязки
   к переменной — в тёмном моде фон не переключается. В коде фон даёт корневой
@@ -154,21 +154,7 @@ UTC. Файла с таким именем нет; читатель ищет н�
 
 ---
 
-## 8. Рационал `--bricks-workspace-fg` скопирован в потребителя переменной
-
-**Файл:** `builder/canvas/viewport/components/BuilderCanvasViewport.vue:299-300`
-
-Комментарий у `color: var(--bricks-workspace-fg)` повторяет причину, по которой
-переменная инвариантна к теме, — а объявлена и объяснена она в
-`shared/_variables.scss`. Копия при этом короче оригинала: в ней нет второй половины
-(фон рабочей области тоже инвариант, и именно поэтому тема-зависимый `base-500`
-давал светлое на светлом).
-
-**Чинить:** заменить копию ссылкой на файл переменных.
-
----
-
-## 9. Самоссылочный комментарий-путь в шапке `vue-icons.ts`
+## 8. Самоссылочный комментарий-путь в шапке `vue-icons.ts`
 
 **Файл:** `src/runtime/plugins/vue-icons.ts:1`
 
@@ -177,7 +163,7 @@ UTC. Файла с таким именем нет; читатель ищет н�
 
 ---
 
-## 10. Шапка файла приклеена к JSDoc константы
+## 9. Шапка файла приклеена к JSDoc константы
 
 **Файл:** `vitest.config.ts:5-17`
 
@@ -191,7 +177,7 @@ SFC-transform и алиас `#imports`), второй — константу `CL
 
 ---
 
-## 11. Раздел «Правила» в `common/composables/README.md` дублирует `.claude/rules`
+## 10. Раздел «Правила» в `common/composables/README.md` дублирует `.claude/rules`
 
 **Файл:** `src/runtime/modules/common/composables/README.md` (раздел «Правила»)
 
@@ -215,7 +201,7 @@ SFC-transform и алиас `#imports`), второй — константу `CL
 
 ---
 
-## 12. Строки-абзацы: `common/utils/README.md` пересказывает шапку файла
+## 11. Строки-абзацы: `common/utils/README.md` пересказывает шапку файла
 
 **Файл:** `src/runtime/modules/common/utils/README.md` (строки
 `bricks/routePaths.ts`, `apiRequestPolicy.ts`, `bricks/pageAddress.ts`,
@@ -236,7 +222,7 @@ SFC-transform и алиас `#imports`), второй — константу `CL
 
 ---
 
-## 13. Warning резолвера backend обещает отказ всего `/api/bricks/**`
+## 12. Warning резолвера backend обещает отказ всего `/api/bricks/**`
 
 **Файл:** `src/module-backend-config.ts:50-53, 81-85`
 

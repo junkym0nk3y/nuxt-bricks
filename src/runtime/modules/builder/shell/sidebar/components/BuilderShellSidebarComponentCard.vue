@@ -128,7 +128,7 @@ const previewHostStyle = computed(() => ({
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
     >
-        <BricksTooltip v-if="resolvedDescription" bottom :class="$style.infoTooltip">
+        <BricksTooltip v-if="resolvedDescription" :class="$style.infoTooltip">
             <template #activator>
                 <span :class="$style.infoIcon">
                     <BricksIcon icon="ta:outline-info-circle" />

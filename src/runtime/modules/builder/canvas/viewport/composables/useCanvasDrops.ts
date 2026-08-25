@@ -1,6 +1,6 @@
 // #region Imports
 // Types
-import type { IComponentSlotDefinition, TCanvasDragSource } from '../../../../common/types/brick';
+import type { TCanvasDragSource } from '../../../../common/types/brick';
 import type { ICanvasDropsOptions, ILayoutDropDetail, ISlotDropDetail } from '../../types/canvas';
 
 // Vue
@@ -15,6 +15,7 @@ import { useComponentMoveFeedback } from '../../../core/composables/useComponent
 // Utils
 import { applyDropEffect } from '../../../../common/utils/dragAndDrop';
 import { suspendCanvasFlowTransitions } from '../../../core/utils/canvasFlow';
+import { buildComponentInsertPayload } from '../../../core/utils/componentInsertPayload';
 // #endregion
 
 /**
@@ -76,7 +77,7 @@ export function useCanvasDrops({
             updateRootDropPlaceholder(event);
             commitFlowInstantly();
 
-            dragComposable.handleDrop(event, canvasRef.value, componentsStore, {
+            dragComposable.handleDrop(event, componentsStore, {
                 rootTargetIndex: rootDropIndex.value,
             });
 
@@ -308,23 +309,10 @@ export function useCanvasDrops({
             return;
         }
 
-        const componentData = {
-            componentName: draggedComponent.name,
-            brickPath: draggedComponent.brickPath,
-            width: 0,
-            height: 0,
-            gridColumn: gridColumn || undefined,
-            gridRow: gridRow || undefined,
-            props: JSON.parse(JSON.stringify(draggedComponent.defaultProps || {})),
-            slots: Array.isArray(draggedComponent.slots)
-                ? draggedComponent.slots.map((slot: IComponentSlotDefinition) => ({
-                      name: slot.name,
-                      label: slot.label,
-                      description: slot.description,
-                      allowMultiple: slot.allowMultiple,
-                  }))
-                : undefined,
-        };
+        const componentData = buildComponentInsertPayload(draggedComponent, {
+            gridColumn,
+            gridRow,
+        });
 
         // The creation and the attachment are one step for the history and for the
         // schema: the store may refuse the attachment (the depth of the schema, a full
@@ -394,21 +382,7 @@ export function useCanvasDrops({
             return;
         }
 
-        const componentData = {
-            componentName: draggedComponent.name,
-            brickPath: draggedComponent.brickPath,
-            width: 0,
-            height: 0,
-            props: JSON.parse(JSON.stringify(draggedComponent.defaultProps || {})),
-            slots: Array.isArray(draggedComponent.slots)
-                ? draggedComponent.slots.map((slot: IComponentSlotDefinition) => ({
-                      name: slot.name,
-                      label: slot.label,
-                      description: slot.description,
-                      allowMultiple: slot.allowMultiple,
-                  }))
-                : undefined,
-        };
+        const componentData = buildComponentInsertPayload(draggedComponent);
 
         const childId = componentsStore.addComponent(componentData, { skipHistory: true });
         if (childId) {

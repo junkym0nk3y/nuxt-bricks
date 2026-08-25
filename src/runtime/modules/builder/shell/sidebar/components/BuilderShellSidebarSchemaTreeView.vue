@@ -178,11 +178,10 @@ async function handleSelectComponent(id: string): Promise<void> {
         <div :class="[$style.content, 'bricks-scrollbox']">
             <div v-if="hasComponents" :class="$style.tree">
                 <BuilderShellSidebarSchemaTreeItem
-                    v-for="(component, index) in rootComponents"
+                    v-for="component in rootComponents"
                     :key="component.id"
                     :component="component"
                     :depth="0"
-                    :is-last="index === rootComponents.length - 1"
                     @select="handleSelectComponent"
                     @move="handleMove"
                 />

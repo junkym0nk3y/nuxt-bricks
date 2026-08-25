@@ -2,12 +2,12 @@
 /**
  * @description Tag editor: chips plus an input field in one box.
  *
- * The chip shell is `BricksBadge` — the same look as the status badges. The
- * earlier pair of `primary-100` + `primary-700` gave a contrast of about 2:1 in
- * the dark theme (#1e2d4d under #1d4ed8): both ends of the scale are dark there,
- * and the tag did not read. For the same reason the remove button highlights in
- * white rather than in `danger-500`: red on a blue fill fails contrast just as
- * the tag itself did.
+ * The chip shell is `BricksBadge` — the same look as the status badges. An earlier
+ * pair of two palette steps of one hue (a light fill under a dark text of the same
+ * scale) gave a contrast of about 2:1 in the dark theme, where both ends of the
+ * scale are dark, and the tag did not read. For the same reason the remove button
+ * highlights in white rather than in `danger-500`: red on a blue fill fails
+ * contrast just as the tag itself did.
  */
 
 // #region Imports

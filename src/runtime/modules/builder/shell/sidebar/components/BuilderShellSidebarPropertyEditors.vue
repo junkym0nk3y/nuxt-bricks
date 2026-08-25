@@ -130,8 +130,6 @@ const groupedEditorItems = computed(() => {
     return { ungrouped, groups };
 });
 
-const hasGroups = computed(() => groupedEditorItems.value.groups.size > 0);
-
 /**
  * Visibility toggles — one per device of the page set.
  *
@@ -388,7 +386,6 @@ watch(
                         :type="item.type"
                         :variant="item.componentData"
                         :component-editors="props.componentEditors"
-                        :show-group-label="false"
                         :handle-normalize-props="props.handleNormalizeProps"
                         :handle-change-values="emitChange"
                         :handle-open-media-gallery="openMedia"
@@ -441,7 +438,6 @@ watch(
                                     :type="item.type"
                                     :variant="item.componentData"
                                     :component-editors="props.componentEditors"
-                                    :show-group-label="false"
                                     :handle-normalize-props="props.handleNormalizeProps"
                                     :handle-change-values="emitChange"
                                     :handle-open-media-gallery="openMedia"
@@ -498,12 +494,6 @@ watch(
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
-}
-
-._bool {
-    :global(label) {
-        font-weight: 500;
-    }
 }
 
 .optTitle {

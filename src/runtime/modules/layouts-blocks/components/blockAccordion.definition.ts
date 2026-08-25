@@ -48,7 +48,6 @@ export const blockAccordionDefinition: IBlockDefinition = {
     name: 'Accordion',
     description: 'bricks.blocks.accordion.description',
     thumbnail: 'images/layouts/accordion.svg',
-    isInteractive: true,
     responsiveMode: 'none',
     // The prompt of an empty list is bound on the canvas alone: the published render
     // above passes no emptyLabel, so a visitor of a page with an empty accordion sees

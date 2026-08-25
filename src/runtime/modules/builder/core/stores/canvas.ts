@@ -55,7 +55,6 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         isViewportSwitching: false,
         hasManualZoom: false,
         activeViewport: null,
-        figmaDropPerViewport: false,
         dragState: { ...IDLE_DRAG_STATE },
         _preFigmaWidth: null,
         _preFigmaHeight: null,

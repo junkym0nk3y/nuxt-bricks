@@ -16,6 +16,17 @@ export interface IBricksSelectProps {
     ariaLabel?: string;
 }
 
+/**
+ * One row of a select drop-down. The option only shows itself and marks the chosen
+ * value: the click is handled by whoever owns the menu (`BricksActionButton` hands it
+ * to the reka menu item), so there is no event of its own here.
+ */
+export interface IBricksSelectOptionProps {
+    spec: IBrickUiCommonProp;
+    /** Value chosen in the field — the row marks itself against it */
+    value: TBrickDemoValues;
+}
+
 export interface IBricksSelectEmits {
     'update:value': [value: TBrickDemoValues | null];
 }

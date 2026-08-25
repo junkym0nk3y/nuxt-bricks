@@ -23,14 +23,12 @@ import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
 interface ISidebarSchemaTreeItemProps {
     component: IBricksComponent;
     depth?: number;
-    isLast?: boolean;
 }
 // #endregion
 
 // #region Props
 const props = withDefaults(defineProps<ISidebarSchemaTreeItemProps>(), {
     depth: 0,
-    isLast: false,
 });
 // #endregion
 
@@ -116,7 +114,7 @@ function handleSelect(): void {
                 :class="$style.treeLine"
                 :style="{ left: `${(props.depth - 1) * 1.6 + 1.2}rem` }"
             >
-                <div :class="[$style.verticalLine, { [$style._last]: props.isLast }]" />
+                <div :class="$style.verticalLine" />
                 <div :class="$style.horizontalLine" />
             </div>
 
@@ -173,7 +171,6 @@ function handleSelect(): void {
                 :key="child.id"
                 :component="child"
                 :depth="props.depth + 1"
-                :is-last="index === childComponents.length - 1"
                 @select="(id: string) => emit('select', id)"
                 @move="(request: ISchemaTreeMoveRequest) => emit('move', request)"
             />
@@ -289,10 +286,6 @@ function handleSelect(): void {
     width: 1px;
     height: calc(50% + 0.4rem);
     border-left: 1px dashed var(--bricks-base-300);
-
-    &._last {
-        height: calc(50% + 0.4rem);
-    }
 }
 
 .horizontalLine {

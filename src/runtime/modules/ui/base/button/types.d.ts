@@ -10,8 +10,6 @@ export interface IBricksButtonProps {
     block?: boolean;
     active?: boolean;
     type?: 'button' | 'submit' | 'reset';
-    round?: boolean;
-    fill?: boolean;
     equal?: boolean;
 }
 

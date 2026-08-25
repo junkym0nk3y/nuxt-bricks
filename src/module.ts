@@ -141,12 +141,6 @@ export default defineNuxtModule<IBricksModuleOptions>({
         }
         // #endregion
 
-        // #region Experimental flags (what defineRouteRules and appManifest need)
-        nuxt.options.experimental.appManifest = nuxt.options.experimental.appManifest ?? true;
-        nuxt.options.experimental.inlineRouteRules =
-            nuxt.options.experimental.inlineRouteRules ?? true;
-        // #endregion
-
         // #region Dependency modules + i18n (builder surface only)
         // Neither render nor published pages use Pinia or vue-i18n — in render-only
         // mode the host application gets no modules it does not need.

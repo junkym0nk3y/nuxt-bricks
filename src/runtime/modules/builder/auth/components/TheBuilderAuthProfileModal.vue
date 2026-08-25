@@ -275,7 +275,6 @@ watch(
                 <Transition name="bricks-view-switch" mode="out-in" @leave="onViewLeave">
                     <BuilderAuthProfileDetailsForm
                         v-if="profile && activeTab === 'profile'"
-                        key="profile"
                         :profile="profile"
                         @pick-photo="handlePickPhoto"
                         @close="handleClose"
@@ -284,7 +283,6 @@ watch(
 
                     <BuilderAuthProfilePasswordForm
                         v-else-if="props.canChangePassword && activeTab === 'password'"
-                        key="password"
                         @close="handleClose"
                     />
                 </Transition>

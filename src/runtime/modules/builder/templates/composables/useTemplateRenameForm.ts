@@ -27,8 +27,8 @@ import { useForm } from 'vee-validate';
  * A form of its own rather than a mode of the saving form: that one has a source of
  * contents, the card of a page and the explanation of what a template is made of — none
  * of which is here. The price of the split is a copy: only the schema of the validation
- * has been taken out into a utility, while the generation of the submission, the ladder
- * of refusals and the reset repeat the saving form line for line.
+ * has been taken out into a utility, while the ladder of refusals and the reset repeat
+ * the saving form line for line.
  *
  * @param options - The template being edited and the callback of a success.
  * @returns The fields of the form, the state of the submission and the operations.
@@ -58,8 +58,6 @@ export function useTemplateRenameForm(options: IUseTemplateRenameFormOptions) {
 
     const isSubmitting = ref(false);
     const generalError = ref('');
-    /** Generation of the submission — see the saving form for what it guards and why */
-    const submissionGeneration = ref(0);
     // #endregion
 
     // #region Methods
@@ -79,9 +77,6 @@ export function useTemplateRenameForm(options: IUseTemplateRenameFormOptions) {
 
         isSubmitting.value = true;
         generalError.value = '';
-        submissionGeneration.value += 1;
-
-        const generation = submissionGeneration.value;
 
         try {
             const updated = await updateTemplateRequest(template.id, {
@@ -91,16 +86,8 @@ export function useTemplateRenameForm(options: IUseTemplateRenameFormOptions) {
 
             upsertTemplate(toTemplateSummary(updated));
 
-            if (generation !== submissionGeneration.value) {
-                return;
-            }
-
             options.onSaved(toTemplateSummary(updated));
         } catch (error: unknown) {
-            if (generation !== submissionGeneration.value) {
-                return;
-            }
-
             if (isTemplateNameTakenError(error)) {
                 setFieldError('name', t('bricks.templates.errors.nameTaken'));
                 return;
@@ -114,16 +101,12 @@ export function useTemplateRenameForm(options: IUseTemplateRenameFormOptions) {
 
             generalError.value = t(resolveTemplateActionErrorKey(error));
         } finally {
-            if (generation === submissionGeneration.value) {
-                isSubmitting.value = false;
-            }
+            isSubmitting.value = false;
         }
     });
 
     /** Puts the current caption of the template into the form (on opening the modal) */
     function resetForm(): void {
-        submissionGeneration.value += 1;
-
         resetVeeForm({
             values: {
                 name: options.template.value?.name ?? '',

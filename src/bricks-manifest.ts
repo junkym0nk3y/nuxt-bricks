@@ -3,7 +3,6 @@
  * src/module.ts): called from the `build:before` hook and from the dev watcher
  * on `builder:watch`.
  */
-import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { globby } from 'globby';
 import { basename, isAbsolute, join, relative } from 'pathe';
@@ -12,12 +11,11 @@ import {
     BRICKS_MANIFEST_DIR,
     BRICKS_MANIFEST_FILENAME,
 } from './runtime/modules/common/constants/brickManifest';
-import type { IBricksManifest } from './runtime/modules/common/types/brickManifest';
 import type {
-    IBrickManifestSource,
-    IBricksManifestOptions,
-    IBricksManifestQueue,
-} from './types/bricksManifest';
+    IBrickManifestEntry,
+    IBricksManifest,
+} from './runtime/modules/common/types/brickManifest';
+import type { IBricksManifestOptions, IBricksManifestQueue } from './types/bricksManifest';
 
 // #region Constants
 const BRICK_FILE_SUFFIX = '.brick.ts';
@@ -79,36 +77,6 @@ export function isBrickFilePath(srcDir: string, path: string): boolean {
 }
 
 /**
- * Computes the manifest hash over the contents of the brick files.
- *
- * The hash is a "brick files changed" signal. It has no consumer yet: the one it
- * arrived for was removed together with the HMR layer, and it will come back
- * when refreshing the library in dev boils down to "compared the hash → refetched
- * the library". It is computed over the sources of the `*.brick.ts` rather than
- * over the inventory of entries: an edit of `dataSources` never reaches the
- * inventory, yet it does require a reload. An edit of the Vue component the brick
- * imports changes neither — the hash does not cover it.
- *
- * The path and the contents are separated by NUL: without a separator a pair
- * "path + source" could merge with another pair into the same byte sequence.
- *
- * @param sources - The brick files that were read, in manifest order.
- * @returns Hex representation of SHA-256.
- */
-function computeManifestHash(sources: IBrickManifestSource[]): string {
-    const hash = createHash('sha256');
-
-    for (const source of sources) {
-        hash.update(source.entry.brickPath, 'utf8');
-        hash.update('\0');
-        hash.update(source.content, 'utf8');
-        hash.update('\0');
-    }
-
-    return hash.digest('hex');
-}
-
-/**
  * Builds the absolute path of the manifest directory inside buildDir.
  *
  * @param buildDir - `nuxt.options.buildDir`.
@@ -143,12 +111,12 @@ function isMissingFileError(error: unknown): error is Error {
  *
  * @param srcDir - `nuxt.options.srcDir` (base of the loader key).
  * @param filePath - Absolute path of the brick file.
- * @returns Manifest entry with the source, or `null` when the file is gone.
+ * @returns Manifest entry, or `null` when the file is gone.
  */
 async function readManifestEntry(
     srcDir: string,
     filePath: string
-): Promise<IBrickManifestSource | null> {
+): Promise<IBrickManifestEntry | null> {
     let content: string;
 
     try {
@@ -164,12 +132,9 @@ async function readManifestEntry(
     const metadata = extractBrickMetadata(filePath, content);
 
     return {
-        entry: {
-            name: basename(filePath, BRICK_FILE_SUFFIX),
-            brickPath: `/${relative(srcDir, filePath)}`,
-            ...metadata,
-        },
-        content,
+        name: basename(filePath, BRICK_FILE_SUFFIX),
+        brickPath: `/${relative(srcDir, filePath)}`,
+        ...metadata,
     };
 }
 
@@ -220,17 +185,13 @@ export async function generateBricksManifest(
         onlyFiles: true,
     });
 
-    const sources = await Promise.all(files.map((file) => readManifestEntry(srcDir, file)));
-    // The globby order depends on the file system — sorting keeps both the order
-    // of entries and the hash stable (the hash is computed over this very
-    // sequence)
-    const ordered = sources
-        .filter((source): source is IBrickManifestSource => source !== null)
-        .toSorted((left, right) => left.entry.brickPath.localeCompare(right.entry.brickPath));
-
+    const entries = await Promise.all(files.map((file) => readManifestEntry(srcDir, file)));
+    // The globby order depends on the file system — sorting keeps the order of
+    // entries stable
     const manifest: IBricksManifest = {
-        bricks: ordered.map((source) => source.entry),
-        hash: computeManifestHash(ordered),
+        bricks: entries
+            .filter((entry): entry is IBrickManifestEntry => entry !== null)
+            .toSorted((left, right) => left.brickPath.localeCompare(right.brickPath)),
     };
 
     await publishManifest(manifestDir, manifest);

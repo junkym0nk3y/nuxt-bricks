@@ -77,7 +77,7 @@ describe('namespace и каталог server asset манифеста', () => {
     });
 
     it('читатель манифеста берёт тот же namespace и то же имя файла', async () => {
-        getItemMock.mockResolvedValue({ bricks: [], hash: 'test-hash' });
+        getItemMock.mockResolvedValue({ bricks: [] });
 
         await resolveBricksComponents();
 

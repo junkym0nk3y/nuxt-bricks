@@ -189,7 +189,7 @@ watch(
     }
 
     &._active {
-        background-color: var(--bricks-primary-50, rgb(37 99 235 / 8%));
+        background-color: var(--bricks-primary-50);
         color: var(--bricks-primary);
     }
 }

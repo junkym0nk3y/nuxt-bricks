@@ -8,6 +8,7 @@ import type { ComputedRef } from 'vue';
 import { useCanvasStore } from '../../../core/stores/canvas';
 
 // Utils
+import { toSlotDeclarations } from '../../../core/utils/componentInsertPayload';
 import { setSkeletonDragImage } from '../../../core/utils/dragVisuals';
 import { measureDragSize } from '../../../../common/utils/dragAndDrop';
 // #endregion
@@ -42,14 +43,7 @@ export function useCanvasItemDrag(
                 defaultProps: JSON.parse(JSON.stringify(props.component.props || {})),
                 category: 'Existing',
                 thumbnail: '',
-                slots: Array.isArray(props.component.slots)
-                    ? props.component.slots.map((slot) => ({
-                          name: slot.name,
-                          label: slot.label,
-                          description: slot.description,
-                          allowMultiple: slot.allowMultiple,
-                      }))
-                    : undefined,
+                slots: toSlotDeclarations(props.component.slots),
             };
             dragComposable.draggedComponent.value = snapshot;
         }

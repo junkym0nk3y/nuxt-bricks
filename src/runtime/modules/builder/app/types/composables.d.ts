@@ -219,16 +219,10 @@ export interface IBuilderSessionAddressSyncOptions {
 // #region useComponentLibrary
 /**
  * The data of the component library in the `useAsyncData('bricks-components')`
- * cache: the manifest entries and the hash the endpoint's answer arrived with. The
- * hash lies next to the entries so that there is something to compare against — a
- * groundwork for comparing hashes in dev, the field has no consumer yet.
- *
- * The metadata and the hash describe one and the same answer: both arrive in the
- * manifest the generator assembles by parsing the brick files at build time.
+ * cache: the manifest entries the endpoint's answer arrived with, metadata
+ * included — the generator parses it out of the brick files at build time.
  */
 export interface IComponentLibraryData {
-    /** The hash of the brick component manifest, out of the components endpoint answer. */
-    hash: string;
     /**
      * The run degraded: the manifest did not arrive within the SSR deadline, there
      * are no entries and the library is left with the layout blocks alone. The
@@ -314,7 +308,6 @@ export interface IBuilderPageWriteOptions {
  * Return value of the useBuilderPageWrite composable.
  */
 export interface IUseBuilderPageWriteReturn {
-    isEditingExistingPage: ComputedRef<boolean>;
     currentPublishPageTitle: ComputedRef<string>;
     handleSaveDraft: () => Promise<void>;
     handleSaveAsCopy: () => Promise<void>;
@@ -381,9 +374,6 @@ export interface IUseBuilderPageReturn {
     sidebarRef: Ref<ISidebarExpose | null>;
     propertiesPanelRef: Ref<ISidebarExpose | null>;
     toast: IBuilderToastState;
-    isEditingExistingPage: ComputedRef<boolean>;
-    hasSelectedComponent: ComputedRef<boolean>;
-    leftSidebarOffset: ComputedRef<string>;
     currentPublishPageTitle: ComputedRef<string>;
     handleKeyDown: (event: KeyboardEvent) => void;
     showToast: TShowToast;

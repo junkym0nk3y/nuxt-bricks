@@ -35,10 +35,9 @@ export interface IBrickManifestEntry {
     slots?: IComponentSlotDefinition[];
 }
 
-/** The whole manifest: the entries + the hash of the content */
+/** The whole manifest: the entries of every scanned brick */
 export interface IBricksManifest {
     bricks: IBrickManifestEntry[];
-    hash: string;
 }
 
 /**

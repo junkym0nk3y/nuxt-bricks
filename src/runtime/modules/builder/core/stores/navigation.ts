@@ -32,12 +32,6 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
      */
     const hasItems = computed<boolean>(() => items.value.length > 0);
 
-    /**
-     * Serialized navigation data for schema.meta.
-     */
-    const navigationMeta = computed<INavigationMeta>(() => ({
-        items: items.value,
-    }));
     // #endregion
 
     // #region Actions
@@ -122,6 +116,11 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
 
     /**
      * Returns the navigation data to be written into schema.meta.
+     *
+     * The entries are copied rather than handed over as they are: the result goes
+     * into the schema, and passing the live state array would leave the schema
+     * sharing references with the store — an edit of the navigation would then
+     * silently rewrite a schema already serialized.
      */
     function toMeta(): INavigationMeta {
         return {
@@ -133,7 +132,6 @@ export const useNavigationStore = defineStore('bricksNavigation', () => {
     return {
         items,
         hasItems,
-        navigationMeta,
         loadFromMeta,
         addItem,
         removeItem,

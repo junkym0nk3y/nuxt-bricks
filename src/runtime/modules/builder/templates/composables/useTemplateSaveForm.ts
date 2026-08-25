@@ -57,17 +57,6 @@ export function useTemplateSaveForm(options: IUseTemplateSaveFormOptions) {
     const isSubmitting = ref(false);
     const generalError = ref('');
 
-    /**
-     * The generation of the submission: a reset of the form declares every submission
-     * still in flight somebody else's, so a late answer cannot write into a form that
-     * is no longer the one it was sent from.
-     *
-     * The interface leaves no way there today — while a request runs, the closing of
-     * the modal is refused (`handleClose`), and the cross and the Cancel button are
-     * disabled, so the form cannot be reset from under a submission at all. The counter
-     * stands as a precaution, not as a fix for an observed defect.
-     */
-    const submissionGeneration = ref(0);
     // #endregion
 
     // #region Methods
@@ -93,9 +82,6 @@ export function useTemplateSaveForm(options: IUseTemplateSaveFormOptions) {
 
         isSubmitting.value = true;
         generalError.value = '';
-        submissionGeneration.value += 1;
-
-        const generation = submissionGeneration.value;
 
         try {
             const created = await createTemplateRequest({
@@ -111,16 +97,8 @@ export function useTemplateSaveForm(options: IUseTemplateSaveFormOptions) {
             // would be a lie
             upsertTemplate(toTemplateSummary(created));
 
-            if (generation !== submissionGeneration.value) {
-                return;
-            }
-
             options.onSaved(toTemplateSummary(created));
         } catch (error: unknown) {
-            if (generation !== submissionGeneration.value) {
-                return;
-            }
-
             if (isTemplateNameTakenError(error)) {
                 setFieldError('name', t('bricks.templates.errors.nameTaken'));
                 return;
@@ -134,23 +112,15 @@ export function useTemplateSaveForm(options: IUseTemplateSaveFormOptions) {
 
             generalError.value = t(resolveTemplateActionErrorKey(error));
         } finally {
-            if (generation === submissionGeneration.value) {
-                isSubmitting.value = false;
-            }
+            isSubmitting.value = false;
         }
     });
 
     /**
      * Puts the caption proposed by the source into the form (on the opening of the
      * modal).
-     *
-     * Any submission in flight is declared somebody else's, and the flag of the
-     * submission comes off together with it — otherwise a clean form would greet the
-     * person with a disabled button.
      */
     function resetForm(): void {
-        submissionGeneration.value += 1;
-
         resetVeeForm({
             values: {
                 name: options.source.value?.suggestedName ?? '',
