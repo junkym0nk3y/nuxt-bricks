@@ -58,7 +58,7 @@ function applyCustomDimension(
  * Uses ResizableNodeView from @tiptap/core directly (the same pattern the Image
  * extension follows). Float rides on CSS classes (float-left, float-right, float-none).
  * Vertical-align rides on CSS classes as well (valign-baseline, valign-middle,
- * valign-top).
+ * valign-top, valign-bottom).
  */
 const ResizableVideoBase = Node.create({
     name: 'video',
@@ -111,6 +111,13 @@ const ResizableVideoBase = Node.create({
                     }
                     if (element.classList.contains('float-right')) {
                         return 'right';
+                    }
+                    // Read for the same reason as in the image extension: the interface
+                    // clears a float by dropping the attribute, so `float-none` only ever
+                    // arrives from outside — and it means `float: none` plus zero margins,
+                    // which the absence of the class does not
+                    if (element.classList.contains('float-none')) {
+                        return 'none';
                     }
                     return element.getAttribute('data-float') || null;
                 },

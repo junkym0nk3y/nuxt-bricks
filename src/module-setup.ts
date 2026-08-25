@@ -118,7 +118,12 @@ export async function setupBricksBuilderModules(
     // The defaults are applied before i18n is installed (defu: the consumer
     // options from nuxt.options.i18n win) — a bare prefix_except_default strategy
     // would rewrite the routes and the dashboard would answer 404.
-    const defaultLocale = options.i18n?.defaultLocale ?? 'ru';
+    // The fallback of the detection follows the locale that wins the merge, not the
+    // bricks option alone: a consumer who set the top-level i18n.defaultLocale and left
+    // bricks.i18n untouched keeps their locale, and defu would then write the bricks
+    // default next to it as the fallback — the default locale and the detection fallback
+    // pointing at different languages.
+    const defaultLocale = nuxt.options.i18n?.defaultLocale ?? options.i18n?.defaultLocale ?? 'ru';
     nuxt.options.i18n = defu(nuxt.options.i18n, {
         strategy: 'no_prefix' as const,
         defaultLocale,

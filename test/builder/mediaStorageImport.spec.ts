@@ -19,10 +19,22 @@ import type { IMediaItem } from '../../src/runtime/modules/common/types/media';
  */
 
 // #region Mocks
-const { apiFetcherMock } = vi.hoisted(() => ({ apiFetcherMock: vi.fn() }));
+const { apiFetcherMock, nuxtContext } = vi.hoisted(() => ({
+    apiFetcherMock: vi.fn(),
+    // The app context, which on the server ends at the first await
+    nuxtContext: { isGone: false },
+}));
 
 vi.mock('../../src/runtime/modules/common/composables/useApiClient', () => ({
-    useApiClient: () => ({ apiFetcher: apiFetcherMock }),
+    useApiClient: () => {
+        if (nuxtContext.isGone) {
+            throw new Error(
+                'A composable that requires access to the Nuxt instance was called outside of a plugin, Nuxt hook, Nuxt middleware, or Vue setup function.'
+            );
+        }
+
+        return { apiFetcher: apiFetcherMock };
+    },
 }));
 // #endregion
 
@@ -60,6 +72,7 @@ describe('media store: импорт хранилища при пустом сп�
     beforeEach(() => {
         setActivePinia(createPinia());
         apiFetcherMock.mockReset();
+        nuxtContext.isGone = false;
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     });
 
@@ -74,6 +87,24 @@ describe('media store: импорт хранилища при пустом сп�
         expect(requestedPaths()).toEqual(['/api/bricks/media/', '/api/bricks/media/import']);
         expect(store.items).toHaveLength(1);
         expect(store.hasLoadedItemsSnapshot).toBe(true);
+    });
+
+    it('обход хранилища идёт с клиентом вызывающего, а не берёт свой после await', async () => {
+        // An empty library is the first run of an integrator: the walk over the storage is
+        // the only way to fill the gallery. On the server the app context ends at the first
+        // await, and a second useApiClient() inside the action threw
+        apiFetcherMock
+            .mockImplementationOnce(() => {
+                nuxtContext.isGone = true;
+                return Promise.resolve({ success: true, items: [] });
+            })
+            .mockResolvedValueOnce({ success: true, items: [buildItem()] });
+
+        const store = useMediaStore();
+        await store.loadItems();
+
+        expect(requestedPaths()).toEqual(['/api/bricks/media/', '/api/bricks/media/import']);
+        expect(store.items).toHaveLength(1);
     });
 
     it('не зовёт импорт, когда файлы уже есть', async () => {

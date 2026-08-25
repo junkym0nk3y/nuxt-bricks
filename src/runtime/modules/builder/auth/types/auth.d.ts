@@ -134,6 +134,11 @@ export interface IAuthDefaultPasswordNoticeProps {
      * `false` — the warning stays, but without the button: it would lead into a form
      * that does not exist. The warning itself stays true — the password is the same
      * one, it just has to be changed outside the builder.
+     *
+     * Absent means `false`, as it does for the "Password" tab of the profile modal: a
+     * host that forgot the prop hides the way in rather than offering a form that may not
+     * be there. The two neighbors used to fail in opposite directions on one and the same
+     * flag.
      */
     canChangePassword?: boolean;
 }
@@ -192,7 +197,8 @@ export interface IAuthProfileModalProps {
      * Whether the "Password" tab is available. It arrives as a prop from the host
      * instead of being read here: the flag lives in the builder permissions
      * (`useBuilderPermissions`), which the auth domain does not see by the module
-     * boundaries.
+     * boundaries. Absent means `false` — the same direction of failure the warning bar
+     * takes.
      */
     canChangePassword?: boolean;
     /**

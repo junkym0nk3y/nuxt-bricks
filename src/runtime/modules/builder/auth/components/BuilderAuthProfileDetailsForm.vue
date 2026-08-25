@@ -30,7 +30,7 @@ import type {
 } from '../types/auth';
 
 // Utils
-import { resolveAvatarErrorKey, resolveDisplayNameErrorKey } from '../utils/profileErrors';
+import { resolveAvatarRemovalErrorKey, resolveDisplayNameErrorKey } from '../utils/profileErrors';
 import { createAuthProfileValidationSchema } from '../utils/validationSchema';
 
 // Vue
@@ -122,9 +122,7 @@ async function handleRemovePhoto(): Promise<void> {
         await removeAvatar();
         emit('notify', t('bricks.auth.profile.toasts.photoRemoved'), 'success');
     } catch (error: unknown) {
-        generalError.value = t(resolveAvatarErrorKey(error), {
-            max: BRICKS_AVATAR_MAX_UPLOAD_MB,
-        });
+        generalError.value = t(resolveAvatarRemovalErrorKey(error));
         console.error('[Builder] Failed to remove the profile photo:', error);
     } finally {
         isRemovingPhoto.value = false;

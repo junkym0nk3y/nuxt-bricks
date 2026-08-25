@@ -42,7 +42,7 @@ import BricksButton from '../../../ui/base/button/BricksButton.vue';
 
 // #region Props
 const props = withDefaults(defineProps<IAuthDefaultPasswordNoticeProps>(), {
-    canChangePassword: true,
+    canChangePassword: false,
 });
 // #endregion
 

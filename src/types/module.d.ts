@@ -207,6 +207,24 @@ export interface IBricksModuleOptions {
         totalDeadlineMs?: number;
     };
     /**
+     * The media library of the builder.
+     */
+    media?: {
+        /**
+         * Hostnames whose absolute URLs are taken for images while an imported schema is
+         * being scanned, even when the URL carries no file extension (signed links, image
+         * proxies). The match is on the hostname, on a label boundary:
+         * `amazonaws.com` covers `bucket.s3.amazonaws.com`.
+         *
+         * Default: the two usual homes of the module storage
+         * (`storage.yandexcloud.net`, `amazonaws.com`). Replace it when the bucket of the
+         * installation lives at another provider — otherwise the images of an imported
+         * schema are not found, and the re-upload step is skipped in silence. A hostname
+         * whose first label is `cdn` is recognized regardless of this list.
+         */
+        imageHosts?: string[];
+    };
+    /**
      * Trust the x-forwarded-for header when determining the client IP (the keys of
      * the rate limiters: upload, thumbnail, login). Default false — the socket
      * address alone is used. Turn it on only behind a reverse proxy of your own

@@ -7,7 +7,7 @@ import type { ITextEditorImageFloatPopoverProps } from './types';
 import { findSelectedMediaNode } from '../utils/selectedMediaNode';
 
 // Vue
-import { ref, watchEffect, onBeforeUnmount } from 'vue';
+import { computed, ref, watchEffect, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
@@ -24,10 +24,19 @@ const props = defineProps<ITextEditorImageFloatPopoverProps>();
 // #region Data
 const { t } = useI18n();
 
+/**
+ * Vertical alignment of a selected image or video.
+ *
+ * `baseline` is the one that clears the alignment (it is what the CSS default gives), so
+ * it carries the same glyph as "no float" in the group above rather than an arrow. The
+ * four values are exactly what the node extensions parse and render — `bottom` used to be
+ * missing here, so markup carrying it could be read but never written.
+ */
 const VALIGN_OPTIONS = [
-    { value: 'baseline', icon: 'md:vertical-align-bottom', label: 'Baseline' },
+    { value: 'baseline', icon: 'ph:x', label: 'bricks.textEditor.alignBaseline' },
     { value: 'middle', icon: 'md:vertical-align-center', label: 'bricks.textEditor.alignMiddle' },
     { value: 'top', icon: 'md:vertical-align-top', label: 'bricks.textEditor.alignTop' },
+    { value: 'bottom', icon: 'md:vertical-align-bottom', label: 'bricks.textEditor.alignBottom' },
 ] as const;
 const POPOVER_WIDTH = 270;
 
@@ -38,6 +47,16 @@ const currentFloat = ref<string | null>(null);
 const currentVerticalAlign = ref<string | null>(null);
 const activeNodeType = ref<string | null>(null);
 const showSizePanel = ref(false);
+// #endregion
+
+// #region Computed
+/**
+ * Whether the media carries no floating: either no attribute at all — that is what the
+ * button writes — or the explicit `none` that only arrives with markup from outside.
+ */
+const isFloatCleared = computed<boolean>(
+    () => currentFloat.value === null || currentFloat.value === 'none'
+);
 // #endregion
 
 // #region Methods
@@ -115,20 +134,17 @@ watchEffect((onCleanup) => {
             currentFloat.value = 'left';
         } else if (editor.isActive(nodeType, { float: 'right' })) {
             currentFloat.value = 'right';
+        } else if (editor.isActive(nodeType, { float: 'none' })) {
+            currentFloat.value = 'none';
         } else {
             currentFloat.value = null;
         }
 
         // Work out the current verticalAlign
-        if (editor.isActive(nodeType, { verticalAlign: 'baseline' })) {
-            currentVerticalAlign.value = 'baseline';
-        } else if (editor.isActive(nodeType, { verticalAlign: 'middle' })) {
-            currentVerticalAlign.value = 'middle';
-        } else if (editor.isActive(nodeType, { verticalAlign: 'top' })) {
-            currentVerticalAlign.value = 'top';
-        } else {
-            currentVerticalAlign.value = null;
-        }
+        currentVerticalAlign.value =
+            VALIGN_OPTIONS.find((option) =>
+                editor.isActive(nodeType, { verticalAlign: option.value })
+            )?.value ?? null;
 
         updatePosition(media.element);
         isVisible.value = true;
@@ -191,7 +207,7 @@ onBeforeUnmount(() => {
                     <template #activator>
                         <button
                             type="button"
-                            :class="[$style.button, { [$style._active]: currentFloat === null }]"
+                            :class="[$style.button, { [$style._active]: isFloatCleared }]"
                             @mousedown.prevent="setFloat(null)"
                         >
                             <BricksIcon icon="ph:x" />
@@ -216,9 +232,7 @@ onBeforeUnmount(() => {
                             <BricksIcon :icon="option.icon" />
                         </button>
                     </template>
-                    <BricksTooltipHint
-                        :text="option.value === 'baseline' ? option.label : t(option.label)"
-                    />
+                    <BricksTooltipHint :text="t(option.label)" />
                 </BricksTooltip>
 
                 <div :class="$style.separator" />

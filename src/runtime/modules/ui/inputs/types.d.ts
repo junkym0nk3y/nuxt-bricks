@@ -131,7 +131,14 @@ export interface IBricksTextareaEmits {
 
 export interface IBricksSwitchProps {
     value: string | boolean;
+    /**
+     * Value the switch stands for when it is on. Defaults to `true`, and the pair of
+     * defaults has to stay `true`/`false`: with both of them `false` the switch reads
+     * as active on `value === false` and emits `false` from either side, that is, it
+     * cannot report being turned on at all.
+     */
     trueValue?: string | boolean;
+    /** Value the switch stands for when it is off. */
     falseValue?: string | boolean;
     disabled?: boolean;
     trueLabel?: string;

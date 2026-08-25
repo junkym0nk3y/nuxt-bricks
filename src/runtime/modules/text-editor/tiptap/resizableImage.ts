@@ -93,6 +93,15 @@ const ResizableImageBase = Image.extend({
                     if (element.classList.contains('float-right')) {
                         return 'right';
                     }
+                    // `float-none` is not what the interface writes — clearing the float
+                    // drops the attribute instead — but incoming markup carries it (the
+                    // code view keeps whatever was typed), and the class means something
+                    // of its own: `float: none` plus zero margins, unlike the absence of
+                    // the class. Without this branch an edit of such an image silently
+                    // dropped the class and the picture regained the default margins
+                    if (element.classList.contains('float-none')) {
+                        return 'none';
+                    }
 
                     // Backward compat: the data-float attribute of the old format
                     return element.getAttribute('data-float') || null;

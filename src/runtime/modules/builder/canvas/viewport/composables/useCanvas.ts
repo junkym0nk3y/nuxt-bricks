@@ -80,14 +80,12 @@ export function useCanvas() {
     /**
      * Geometry signature of the device set: only what changes sheet sizes.
      *
-     * The label and the glyph of a device stay out of it — otherwise typing a name in
-     * the set editor would refit the canvas on every character. Dropping the manual
-     * zoom is the store's business, and it skips a label-only edit for the same reason
-     * (`setDevices`).
+     * Taken from the store rather than assembled here, so the refit reacts to exactly
+     * what the store treats as a geometry change — a narrower local signature (keys and
+     * widths) missed a new rem base, which scales the sheet visually, and the fit stayed
+     * as it was for the previous geometry.
      */
-    const devicesGeometry = computed(() =>
-        canvasStore.devices.map((device) => `${device.key}:${device.width}`).join('|')
-    );
+    const devicesGeometry = computed(() => canvasStore.devicesSignature);
 
     // Refit on a sidebar toggle, on Figma mode, on a viewport switch (rem compensation)
     // and on a geometry change of the device set.

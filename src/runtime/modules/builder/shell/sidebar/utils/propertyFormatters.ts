@@ -2,14 +2,20 @@
  * Utilities that format the property values of components.
  */
 
+// Types
+import type { TPrimitiveArrayValue } from '../types/sidebarProperties';
+
 /**
  * Whether the array is a primitive one: every element is a string, a number, a boolean
  * — or empty, since `null` and `undefined` pass the check as well.
  *
+ * The holes stay in the narrowed type for that reason: promising an array of primitives
+ * would tell the next consumer the check rules them out, and it does not.
+ *
  * @param value - Value to check.
  * @returns True when the array holds no complex values.
  */
-export function isPrimitiveArrayValue(value: unknown): value is Array<string | number | boolean> {
+export function isPrimitiveArrayValue(value: unknown): value is TPrimitiveArrayValue {
     return (
         Array.isArray(value) &&
         value.every(

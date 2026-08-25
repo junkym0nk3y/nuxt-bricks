@@ -61,6 +61,22 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         _preFigmaHeight: null,
     }),
 
+    getters: {
+        /**
+         * Signature of the device set currently held by the store.
+         *
+         * Published because the canvas refits on a geometry change and must compare the
+         * set by the same measure the store uses: a local signature narrower than this
+         * one (keys and widths alone) left a new rem base out, and the sheet kept the
+         * fit computed for the previous geometry.
+         *
+         * @param state - Store state.
+         */
+        devicesSignature(state): string {
+            return getDevicesSignature(state.devices);
+        },
+    },
+
     actions: {
         /**
          * Replaces the device set of the canvas with the set of the page.
@@ -77,7 +93,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
          * @param devices - Resolved device set of the page.
          */
         setDevices(devices: TBricksResolvedDeviceSet) {
-            if (getDevicesSignature(this.devices) === getDevicesSignature(devices)) {
+            if (this.devicesSignature === getDevicesSignature(devices)) {
                 this.devices = devices;
                 return;
             }

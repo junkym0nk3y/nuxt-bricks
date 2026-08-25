@@ -2,7 +2,7 @@
 import type { IDraggableOverlayOptions } from '../../types/composables';
 
 // Vue
-import { ref, computed, watch } from 'vue';
+import { ref, computed, onScopeDispose, watch } from 'vue';
 
 // VueUse
 import { useElementBounding, useResizeObserver } from '@vueuse/core';
@@ -77,10 +77,20 @@ export function useDraggableOverlay(options: IDraggableOverlayOptions) {
     });
 
     /**
+     * Releases the document listeners and the body styles taken for the duration of a drag.
+     * Kept at composable scope so an unmount with the button still held down does not leave
+     * them behind: the listeners only ever removed themselves on mouseup, which never comes
+     * once the overlay host is gone.
+     */
+    let stopDrag: (() => void) | null = null;
+
+    /**
      * Starts dragging the overlay by its drag handle.
      */
     function onDragHandleMousedown(event: MouseEvent): void {
         event.preventDefault();
+
+        stopDrag?.();
 
         isDragging.value = true;
         document.body.style.cursor = 'grabbing';
@@ -102,11 +112,18 @@ export function useDraggableOverlay(options: IDraggableOverlayOptions) {
             document.body.style.userSelect = '';
             document.removeEventListener('mousemove', handleMousemove);
             document.removeEventListener('mouseup', handleMouseup);
+            stopDrag = null;
         }
+
+        stopDrag = handleMouseup;
 
         document.addEventListener('mousemove', handleMousemove);
         document.addEventListener('mouseup', handleMouseup);
     }
+
+    onScopeDispose(() => {
+        stopDrag?.();
+    });
 
     return { isDragging, overlayStyle, onDragHandleMousedown };
 }

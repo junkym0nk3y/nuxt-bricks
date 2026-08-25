@@ -29,5 +29,10 @@ export const TEMPLATE_CONFLICT_CODES = {
  * page. Below it the field would be one extra element above a list that scrolling alone
  * still covers — the same reasoning as for the page selector of the toolbar
  * (`SEARCH_VISIBLE_FROM_PAGES`).
+ *
+ * Tied to the height ceiling of that list: a row is 5.2rem and the ceiling is 28rem, so
+ * five rows are shown whole and the sixth template is the first one to need scrolling.
+ * A higher threshold left a list that already scrolled with no way to search it, so the
+ * two numbers move together — changing the ceiling means changing this one.
  */
-export const TEMPLATE_PICKER_SEARCH_THRESHOLD = 8;
+export const TEMPLATE_PICKER_SEARCH_THRESHOLD = 6;

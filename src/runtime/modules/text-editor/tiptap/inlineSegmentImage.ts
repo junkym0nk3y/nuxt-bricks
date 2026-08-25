@@ -10,6 +10,13 @@ const DEFAULT_MEDIA_SIZE = '2.4rem';
  * Read-only: `atom` plus `contenteditable=false` keep the insides out of editing,
  * `selectable: false` keeps the node out of a NodeSelection.
  * Shows a preview of the image or of the SVG inside the TipTap editor.
+ *
+ * Deletable, and on purpose: the standard Backspace chain of the editor removes the atom
+ * like any other inline node, and no barrier is put in its way. A hidden keydown guard
+ * would leave the segment in a document a person believes they have edited; taking a
+ * picture out of a line of text is an ordinary edit, and the serialization of the segments
+ * follows it. Making such a segment permanent would be a feature with an explicit way to
+ * remove it, not a silent refusal of the key.
  */
 export const InlineSegmentImage = Node.create({
     name: 'inlineSegmentImage',

@@ -7,6 +7,7 @@
 // #region Imports
 // Types
 import type { IBricksSchema } from '../../../common/types/brick';
+import type { IBricksPublicMediaConfig } from '../../../common/types/media';
 import type {
     IExtractedImageUrl,
     IImageResolverResult,
@@ -17,6 +18,7 @@ import type {
 
 // Vue
 import { reactive, ref } from 'vue';
+import { useRuntimeConfig } from '#imports';
 
 // Pinia
 import { useMediaStore } from '../stores/media';
@@ -30,6 +32,7 @@ import {
     getPlaceholderImageUrl,
     replaceSchemaImageUrls,
 } from '../utils/schemaImageExtractor';
+import { DEFAULT_SCHEMA_IMAGE_HOSTS } from '../utils/imageHosts';
 // #endregion
 
 /**
@@ -39,6 +42,14 @@ export function useSchemaImageResolver() {
     // #region Data
     const mediaStore = useMediaStore();
     const { baseURL } = useBricksAssetUrl();
+
+    // Hosts that serve the images of the installation (`bricks.media.imageHosts`): the
+    // scan of an imported schema takes an extension-less URL for an image by the host, and
+    // the bucket of an installation is not always at one of the default providers
+    const mediaConfig = useRuntimeConfig().public?.bricksMedia as
+        | IBricksPublicMediaConfig
+        | undefined;
+    const imageHosts = mediaConfig?.imageHosts ?? DEFAULT_SCHEMA_IMAGE_HOSTS;
 
     const isModalOpen = ref(false);
     const pendingSchema = ref<IBricksSchema | null>(null);
@@ -106,7 +117,7 @@ export function useSchemaImageResolver() {
         handleCancel();
 
         const startedIn = resolveGeneration;
-        const allImages = extractSchemaImageUrls(schema);
+        const allImages = extractSchemaImageUrls(schema, imageHosts);
 
         // A schema with no images does not need the media library at all — asking
         // for it here would mean waiting on the network to compare an empty list

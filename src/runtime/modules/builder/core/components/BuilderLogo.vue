@@ -36,7 +36,7 @@ const props = withDefaults(
     {
         text: '',
         isTouch: false,
-        to: '/',
+        to: null,
         external: false,
         target: '_blank',
         isInfiniteAnimation: false,
@@ -107,6 +107,15 @@ const componentBind = computed(() => ({
     href: props.to || undefined,
 }));
 
+/**
+ * Whether the mark renders as a link.
+ *
+ * No address means no link, and that is the default: the blocking loader mounts the mark
+ * without one, and a default of the site root turned it into an anchor there — pointer
+ * cursor and a click that opened the root in a new tab from a screen that blocks input.
+ * There is no place where a link to the root would be the sensible default: the two link
+ * consumers pass the address they need.
+ */
 const isLink = computed<boolean>(() => Boolean(props.to));
 // #endregion
 

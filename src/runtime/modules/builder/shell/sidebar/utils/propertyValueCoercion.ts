@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { IPropertyDefinition } from '../../../../common/types/brick';
+import type { TPrimitiveArrayValue } from '../types/sidebarProperties';
 
 // Utils
 import { isPrimitiveArrayValue, parseListInput } from './propertyFormatters';
@@ -17,7 +18,7 @@ import { isPrimitiveArrayValue, parseListInput } from './propertyFormatters';
 function resolvePrimitiveSource(
     currentArray?: unknown[],
     defaultArray?: unknown[]
-): Array<string | number | boolean> | null {
+): TPrimitiveArrayValue | null {
     if (currentArray && isPrimitiveArrayValue(currentArray)) {
         return currentArray;
     }
@@ -36,7 +37,7 @@ function resolvePrimitiveSource(
  */
 function parsePrimitiveArrayValue(
     rawValue: string,
-    primitiveSource: Array<string | number | boolean> | null
+    primitiveSource: TPrimitiveArrayValue | null
 ): unknown[] {
     const items = parseListInput(rawValue);
     if (!primitiveSource || primitiveSource.length === 0) {

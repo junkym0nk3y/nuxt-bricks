@@ -14,6 +14,7 @@ import type { IGalleryItem, IInlineContentSegment } from '../../../common/types/
 
 // Utils
 import { resolveBricksAssetUrl } from '../../../common/utils/bricks/assetPaths';
+import { DEFAULT_SCHEMA_IMAGE_HOSTS, isImageHostUrl } from './imageHosts';
 // #endregion
 
 // #region Constants
@@ -31,7 +32,7 @@ const PLACEHOLDER_IMAGE_ASSET_PATH = 'images/brick-empty.webp';
 const PLACEHOLDER_IMAGE_SUFFIX = '/images/brick-empty.webp';
 
 const IMAGE_EXTENSIONS_RE = /\.(webp|png|jpg|jpeg|gif|svg|avif)(\?|$)/i;
-const CDN_PATTERNS_RE = /storage\.yandexcloud\.net|amazonaws\.com|cdn\./i;
+
 /**
  * The `src` of an `<img>` split into three groups: everything up to the value,
  * the quote and the value itself. Extraction and replacement go through one and
@@ -77,9 +78,10 @@ function isPlaceholderImageUrl(url: string): boolean {
  * Checks whether the string as a whole is an image URL rather than a piece of HTML.
  *
  * @param value - The string to check.
+ * @param imageHosts - Hostnames whose URLs count as images with no extension.
  * @returns true when the string is a bare image URL.
  */
-function isBareImageUrl(value: string): boolean {
+function isBareImageUrl(value: string, imageHosts: readonly string[]): boolean {
     if (!value || typeof value !== 'string') {
         return false;
     }
@@ -113,8 +115,8 @@ function isBareImageUrl(value: string): boolean {
         return false;
     }
 
-    // Recognized either by the extension or by the CDN pattern
-    return IMAGE_EXTENSIONS_RE.test(trimmed) || CDN_PATTERNS_RE.test(trimmed);
+    // Recognized either by the extension or by the host serving images
+    return IMAGE_EXTENSIONS_RE.test(trimmed) || isImageHostUrl(trimmed, imageHosts);
 }
 
 /**
@@ -255,9 +257,14 @@ function replaceHtmlImageSources(html: string, urlMap: Map<string, string>): str
  * Extracts every unique image URL out of a landing schema.
  *
  * @param schema - The `IBricksSchema` to walk.
+ * @param imageHosts - Hostnames whose URLs count as images even with no file extension
+ * (`bricks.media.imageHosts`); the default list is used when it is not given.
  * @returns The unique URLs, each with every place it was met in.
  */
-export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUrl[] {
+export function extractSchemaImageUrls(
+    schema: IBricksSchema,
+    imageHosts: readonly string[] = DEFAULT_SCHEMA_IMAGE_HOSTS
+): IExtractedImageUrl[] {
     const urlMap = new Map<string, IImageLocation[]>();
 
     schema.components.forEach((component, componentIndex) => {
@@ -269,7 +276,7 @@ export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUr
             // String prop
             if (typeof value === 'string') {
                 // A bare URL (the whole string is the URL)
-                if (isBareImageUrl(value)) {
+                if (isBareImageUrl(value, imageHosts)) {
                     addUrlToMap(
                         urlMap,
                         value,
@@ -289,7 +296,7 @@ export function extractSchemaImageUrls(schema: IBricksSchema): IExtractedImageUr
             // Gallery array
             if (isGalleryArray(value)) {
                 value.forEach((item, arrayIndex) => {
-                    if (isBareImageUrl(item.url)) {
+                    if (isBareImageUrl(item.url, imageHosts)) {
                         addUrlToMap(
                             urlMap,
                             item.url,

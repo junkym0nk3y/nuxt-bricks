@@ -25,6 +25,15 @@ export interface IBricksMediaOptimization {
  * The effective bounds of the "maximum width" — shared by the input field and by
  * the upload endpoint. Computed from the value in the config, hence not constants.
  */
+/**
+ * The media settings of `runtimeConfig.public.bricksMedia` (the `bricks.media` option of
+ * the module). Every field is optional: an installation that says nothing keeps the
+ * defaults of the runtime.
+ */
+export interface IBricksPublicMediaConfig {
+    imageHosts?: string[];
+}
+
 export interface IMediaMaxWidthBounds {
     min: number;
     max: number;

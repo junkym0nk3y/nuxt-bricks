@@ -1,13 +1,13 @@
 // #region Imports
 import { defineStore } from 'pinia';
-import type { Composer } from 'vue-i18n';
-import { useNuxtApp } from '#imports';
+import { translateBricksKey as t } from '../../../common/utils/globalI18n';
 import type {
     IBricksMediaOptimization,
     IMediaItem,
     IMediaUpdateCategoryRequest,
     IMediaUpdateMetaRequest,
 } from '../../../common/types/media';
+import type { IApiFetcher } from '../../../common/types/composables';
 import { useApiClient } from '../../../common/composables/useApiClient';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 import { isMediaListResponse, toMediaRequestError } from '../utils/requestErrors';
@@ -20,15 +20,6 @@ import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCate
 // #endregion
 
 // #region Helpers
-/**
- * Translates a key through the global i18n (a store has no setup context).
- * `$i18n` is resolved lazily on every call — safe under any order of the plugins.
- */
-function t(key: string): string {
-    const i18n = useNuxtApp().$i18n as Composer | undefined;
-    return i18n ? i18n.t(key) : key;
-}
-
 /**
  * The storage walk in flight — one per instance of the store.
  *
@@ -108,7 +99,7 @@ export const useMediaStore = defineStore('bricksMedia', {
 
                 const items = response.items.length
                     ? response.items
-                    : await this.importFromStorage();
+                    : await this.importFromStorage(apiFetcher);
 
                 if (requestId !== this.itemsRequestId) {
                     return;
@@ -143,10 +134,15 @@ export const useMediaStore = defineStore('bricksMedia', {
          * administrator with an empty gallery until the page was reloaded. A refusal by
          * rights is final.
          *
+         * The fetcher is a required parameter: the only caller gets here after an await, and
+         * on the server `useApiClient()` throws by then — no Nuxt context is left. An empty
+         * library is the first run of an integrator, that is, the very case that hit it.
+         *
+         * @param apiFetcher - Fetcher of the caller, taken while the context was there.
          * @returns The contents of the library after the import; empty — there was
          * nothing to import, or the attempt failed.
          */
-        async importFromStorage(): Promise<IMediaItem[]> {
+        async importFromStorage(apiFetcher: IApiFetcher): Promise<IMediaItem[]> {
             // A second call made while the first is still in flight waits on that same
             // answer instead of getting an empty list: otherwise it would declare itself
             // the last request, show an empty gallery — and the result of an import that
@@ -163,7 +159,7 @@ export const useMediaStore = defineStore('bricksMedia', {
 
             this.hasAttemptedStorageImport = true;
 
-            const request = requestMediaStorageImport(useApiClient().apiFetcher);
+            const request = requestMediaStorageImport(apiFetcher);
             pendingStorageImports.set(this, request);
 
             try {

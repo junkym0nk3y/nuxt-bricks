@@ -34,6 +34,9 @@ import { useI18n } from 'vue-i18n';
 // Pinia
 import { useCanvasStore } from '../../../core/stores/canvas';
 
+// Utils
+import { isApplePlatform } from '../utils/platform';
+
 // Components
 import BricksCheckbox from '../../../../ui/base/checkbox/BricksCheckbox.vue';
 import BricksIconButton from '../../../../ui/base/icon-button/BricksIconButton.vue';
@@ -75,7 +78,8 @@ const submenuSide = ref<'right' | 'left'>('right');
 const SUBMENU_WIDTH = 160;
 const VIEWPORT_MARGIN = 8;
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform ?? '');
+/** Whether the shortcut captions follow macOS (⌘ and ⌫) */
+const isMac = isApplePlatform();
 // #endregion
 
 // #region Computed
@@ -383,7 +387,7 @@ onBeforeUnmount(() => {
     font-size: 1rem;
     font-weight: 600;
     letter-spacing: 0.05rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .separator {
@@ -449,7 +453,7 @@ onBeforeUnmount(() => {
 .shortcut {
     flex-shrink: 0;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .submenuArrow {

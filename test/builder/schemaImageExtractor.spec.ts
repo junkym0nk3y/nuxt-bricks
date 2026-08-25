@@ -45,6 +45,45 @@ describe('schemaImageExtractor: placeholder', () => {
     });
 });
 
+describe('schemaImageExtractor: узнавание картинки по хосту', () => {
+    it('ссылка без расширения узнаётся по хосту из настройки установки', () => {
+        const schema = makeSchema({
+            own: 'https://bucket.s3.amazonaws.com/signed/abc123',
+            configured: 'https://media.example.com/image/abc123',
+            foreign: 'https://api.example.org/v1/orders/17',
+        });
+
+        const urls = extractSchemaImageUrls(schema, ['media.example.com']).map((item) => item.url);
+
+        // The configured host is recognized; the configured list replaces the default one,
+        // so amazonaws is out of it here, and an unrelated URL in a string prop does not
+        // become an image: a string prop is free to be an ordinary link
+        expect(urls).toEqual(['https://media.example.com/image/abc123']);
+    });
+
+    it('сверка идёт по границе метки хоста, а не подстрокой', () => {
+        const schema = makeSchema({
+            lookalike: 'https://notamazonaws.com/signed/abc123',
+            real: 'https://bucket.s3.amazonaws.com/signed/abc123',
+        });
+
+        const urls = extractSchemaImageUrls(schema, ['amazonaws.com']).map((item) => item.url);
+
+        expect(urls).toEqual(['https://bucket.s3.amazonaws.com/signed/abc123']);
+    });
+
+    it('пустой список хостов оставляет узнавание по расширению файла', () => {
+        const schema = makeSchema({
+            extension: 'https://media.example.com/photo.webp',
+            signed: 'https://media.example.com/image/abc123',
+        });
+
+        const urls = extractSchemaImageUrls(schema, []).map((item) => item.url);
+
+        expect(urls).toEqual(['https://media.example.com/photo.webp']);
+    });
+});
+
 /**
  * Пересборка пропсов при замене картинок шла присваиванием
  * `newProps[propName] = value`. Имена пропов приходят из схемы, в том числе

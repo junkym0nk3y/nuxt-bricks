@@ -6,7 +6,6 @@ import type { ITextEditorArea } from '../types/composables';
 
 // Vue
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch, type Component } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 // Utils
 import { createTiptapEditor } from '../utils/createTiptapEditor';
@@ -25,9 +24,11 @@ import { useInlineEditingStore } from '../stores/inlineEditing';
  * client, destroy on unmount), syncing props.value and props.disabled into the editor,
  * the code-view and dark-background toggles, the content and media-insert handlers.
  *
- * The placeholder reaches the rich editor no further than the `data-placeholder`
- * attribute: no Placeholder extension is installed and no stylesheet reads that
- * attribute, so only the fallback textarea shows a placeholder at all.
+ * `props.placeholder` belongs to the fallback textarea alone. The rich editor has no
+ * placeholder: showing one inside a ProseMirror document takes an extension of its own
+ * (an empty paragraph is `<p><br></p>`, so neither `:empty` nor a plain attribute
+ * reaches it), and a `data-placeholder` attribute was written onto the editor without
+ * anything reading it — no extension, no selector in the whole tree.
  *
  * @param props - Props of TextEditorArea (the reactive defineProps object).
  * @param emit - The emit function of the component (the update:value event).
@@ -36,7 +37,6 @@ export function useTextEditorArea(
     props: ITextEditorAreaProps,
     emit: (event: 'update:value', value: string) => void
 ): ITextEditorArea {
-    const { t } = useI18n();
     const inlineEditingStore = useInlineEditingStore();
 
     const innerValue = ref<string>(props.value ?? '');
@@ -154,24 +154,6 @@ export function useTextEditorArea(
         }
         editor.value?.setEditable(!disabled && !codeView);
     });
-
-    watch(
-        () => props.placeholder,
-        (placeholder) => {
-            if (props.useRichEditor === false || !editor.value) {
-                return;
-            }
-            editor.value.setOptions({
-                editorProps: {
-                    ...editor.value.options.editorProps,
-                    attributes: {
-                        ...(editor.value.options.editorProps?.attributes || {}),
-                        'data-placeholder': placeholder || t('bricks.textEditor.textPlaceholder'),
-                    },
-                },
-            });
-        }
-    );
 
     onMounted(() => {
         isClient.value = true;

@@ -41,13 +41,12 @@ const OWN_PASSWORD_ERROR_KEYS: Record<number, string> = {
 // #endregion
 
 /**
- * Message key of a failed photo upload or removal.
+ * Message key of a failed photo upload.
  *
  * An abort on the waiting ceiling gets a text of its own: under it the outcome is
- * unknown (the server may have managed to write the new link — or to clear the old
- * one), and offering "try again" would be untrue, refreshing the page comes first.
- * The text of that message speaks of an upload, so on a removal it names the wrong
- * direction of the doubt.
+ * unknown (the server may have managed to write the new link), and offering "try
+ * again" would be untrue, refreshing the page comes first. A removal has the doubt
+ * running the other way and is parsed by `resolveAvatarRemovalErrorKey`.
  *
  * @param error - Request error.
  * @returns i18n key of the message.
@@ -63,6 +62,32 @@ export function resolveAvatarErrorKey(error: unknown): string {
         (statusCode ? AVATAR_UPLOAD_ERROR_KEYS[statusCode] : undefined) ??
         'bricks.auth.profile.errors.avatarFailed'
     );
+}
+
+/**
+ * Message key of a failed photo removal.
+ *
+ * Separate from the upload because both texts state what may have happened, and on a
+ * removal that is the opposite: the photo may already be gone, not saved. Sharing one
+ * key named the wrong direction of the doubt, and the ceiling of a write is reachable
+ * here — the endpoint clears the link and then deletes the file.
+ *
+ * The status fork is only the busy server: the removal carries no file, so the
+ * rejections of a picture (size, format, geometry) cannot come from it.
+ *
+ * @param error - Request error.
+ * @returns i18n key of the message.
+ */
+export function resolveAvatarRemovalErrorKey(error: unknown): string {
+    if (isRequestTimeoutError(error)) {
+        return 'bricks.auth.profile.errors.avatarRemoveTimeout';
+    }
+
+    if ((error as TRequestErrorLike).statusCode === 503) {
+        return 'bricks.auth.profile.errors.serverBusy';
+    }
+
+    return 'bricks.auth.profile.errors.avatarRemoveFailed';
 }
 
 /**

@@ -342,6 +342,11 @@ export function applyBricksRuntimeConfig(
         { allowedHosts: [] }
     );
 
+    // The media library settings the client needs. Public because the scan of an imported
+    // schema runs in the builder; the default of the host list lives in the runtime util
+    // (`DEFAULT_SCHEMA_IMAGE_HOSTS`), so an installation that says nothing keeps it
+    publicConfig.bricksMedia = defu(publicConfig.bricksMedia as object | undefined, options.media);
+
     applyBricksAuthRuntimeConfig(runtimeConfig, publicConfig, options);
 
     // The data backend mode is build-time: resolved from the merged options+env;

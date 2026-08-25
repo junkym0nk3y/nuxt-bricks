@@ -3,10 +3,12 @@
  * @description Card of one library component: the source of the drag, with a live
  * preview for a brick and a schematic icon for a layout block.
  *
- * The preview renders inside a wrapper of a fixed 144rem width. That width never
- * reaches the CSS media queries — they react to the browser viewport — but it does
- * set the context for grid and flex layouts and for CSS container queries, so the
- * block looks the way it will on the sheet. The hidden instance next to it is there
+ * The preview renders inside a wrapper as wide as the sheet of the base device
+ * (`previewHostStyle`). A fixed width stood here before, and the canvas never drew a
+ * sheet of that size — nor did the width follow a device set the consumer redefined. The
+ * width never reaches the CSS media queries — they react to the browser viewport — but
+ * it does set the context for grid and flex layouts and for CSS container queries, so
+ * the block looks the way it will on the sheet. The hidden instance next to it is there
  * for measuring (`useComponentCardPreview`), and its default slot is deliberately
  * empty: that reproduces the render of an empty container on the canvas
  * (`isEmpty=false`), while otherwise Flex shows "Drop components here" and the
@@ -27,6 +29,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Pinia
+import { useCanvasStore } from '../../../core/stores/canvas';
 import { useComponentsStore } from '../../../core/stores/components';
 
 // Components
@@ -40,6 +43,10 @@ import { useComponentCardDrag } from '../composables/useComponentCardDrag';
 
 // Utils
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
+import { convertPxToRem } from '../../../../common/utils/main';
+
+// Constants
+import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
 
 // #endregion
 
@@ -51,6 +58,7 @@ const props = withDefaults(defineProps<ISidebarComponentCardProps>(), {
 
 // #region Data
 const { t, te } = useI18n();
+const canvasStore = useCanvasStore();
 const componentsStore = useComponentsStore();
 const {
     ComponentPreview,
@@ -96,12 +104,26 @@ const thumbnailUrl = computed<string>(() =>
 const isFavorite = computed<boolean>(() =>
     componentsStore.favorites.includes(props.component.name)
 );
+
+/**
+ * Width of the preview host and of the hidden measure instance: the sheet width of the
+ * base device, taken from the set of the page.
+ *
+ * Read from the store rather than written into the styles, because the set is the
+ * consumer's to redefine (`bricks.devices`): a hardcoded width measured the drag
+ * placeholder against a sheet the canvas does not draw, and the gap grew with every
+ * redefinition.
+ */
+const previewHostStyle = computed(() => ({
+    '--card-preview-width': convertPxToRem(canvasStore.getViewportWidth(BASE_DEVICE_KEY)),
+}));
 // #endregion
 </script>
 
 <template>
     <div
         :class="$style.BuilderShellSidebarComponentCard"
+        :style="previewHostStyle"
         draggable="true"
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
@@ -136,7 +158,7 @@ const isFavorite = computed<boolean>(() =>
                 v-if="measureComponent"
                 ref="measureWrapperRef"
                 :class="[$style.measureProbe, 'bricks-canvas']"
-                data-bricks-viewport="desktop"
+                :data-bricks-viewport="BASE_DEVICE_KEY"
                 aria-hidden="true"
             >
                 <component :is="measureComponent" v-bind="measureBindProps">
@@ -159,7 +181,7 @@ const isFavorite = computed<boolean>(() =>
                         <div
                             ref="componentWrapperRef"
                             :class="$style.componentWrapper"
-                            data-bricks-viewport="desktop"
+                            :data-bricks-viewport="BASE_DEVICE_KEY"
                         >
                             <component :is="ComponentPreview" v-bind="componentProps" />
                         </div>
@@ -241,8 +263,8 @@ const isFavorite = computed<boolean>(() =>
     top: 0;
     left: -99999px;
     visibility: hidden;
-    width: 144rem;
-    min-width: 144rem;
+    width: var(--card-preview-width);
+    min-width: var(--card-preview-width);
     pointer-events: none;
 }
 
@@ -300,7 +322,7 @@ const isFavorite = computed<boolean>(() =>
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 144rem;
+    width: var(--card-preview-width);
     height: 100%;
 }
 
@@ -311,8 +333,8 @@ const isFavorite = computed<boolean>(() =>
 }
 
 .componentWrapper {
-    width: 144rem;
-    min-width: 144rem;
+    width: var(--card-preview-width);
+    min-width: var(--card-preview-width);
 }
 
 .icon {

@@ -22,4 +22,14 @@ export interface ICanvasEmptyStateData {
     description: string;
 }
 
+/**
+ * Navigator with the user agent client hints (`navigator.userAgentData`): they are not in
+ * the DOM library yet, while the deprecated `navigator.platform` they replace is.
+ */
+export interface INavigatorWithUserAgentData extends Navigator {
+    userAgentData?: {
+        platform?: string;
+    };
+}
+
 export type { IDragComposableCanvas, ILayoutDropDetail, ISlotDropDetail } from './components';

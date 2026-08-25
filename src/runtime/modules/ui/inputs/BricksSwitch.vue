@@ -14,7 +14,8 @@
  * The caption of the switch is text that says what the control does, so its color
  * clears AA for small text: the pale tone it used to carry reached 1.41 against
  * white — visible to nobody who needs contrast. The dimmed look of an inactive side
- * survives, one step lighter, and stops where readability does.
+ * survives through the secondary text role (`--bricks-text-muted`), which is dimmer than
+ * the active caption and still readable; the pale step it used to carry was not.
  */
 
 // #region Imports
@@ -30,7 +31,7 @@ import { SwitchRoot } from 'reka-ui';
 
 // #region Props
 const props = withDefaults(defineProps<IBricksSwitchProps>(), {
-    trueValue: false,
+    trueValue: true,
     falseValue: false,
     disabled: false,
     trueLabel: 'true',
@@ -164,7 +165,7 @@ function onUpdate(checked: boolean): void {
     }
 
     &._active .label._left {
-        color: var(--bricks-base-400);
+        color: var(--bricks-text-muted);
     }
 
     &._active .label._right {

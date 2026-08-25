@@ -250,10 +250,10 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     /**
      * The actual size of the block, for the canvas placeholder.
      *
-     * The source of truth is the rendered component inside its host of a fixed 144rem
-     * width: a user brick and a leaf block are taken from the live preview, a layout
-     * block from the hidden measure instance. There are no hardcoded guesses per
-     * block type.
+     * The source of truth is the rendered component inside its host, which is as wide as
+     * the sheet of the base device: a user brick and a leaf block are taken from the live
+     * preview, a layout block from the hidden measure instance. There are no hardcoded
+     * guesses per block type.
      *
      * When the preview has not rendered yet (an async brick still loading, a
      * component with no DOM root), the host itself is measured — the placeholder

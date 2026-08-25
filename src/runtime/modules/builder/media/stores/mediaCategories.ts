@@ -11,8 +11,7 @@
 
 // #region Imports
 import { defineStore } from 'pinia';
-import type { Composer } from 'vue-i18n';
-import { useNuxtApp } from '#imports';
+import { translateBricksKey as t } from '../../../common/utils/globalI18n';
 import type {
     IMediaCategory,
     IMediaCategoryCreateRequest,
@@ -26,15 +25,6 @@ import { useMediaStore } from './media';
 // #endregion
 
 // #region Helpers
-/**
- * Translates a key through the global i18n (a store has no setup context).
- * `$i18n` is resolved lazily on every call — safe under any order of the plugins.
- */
-function t(key: string): string {
-    const i18n = useNuxtApp().$i18n as Composer | undefined;
-    return i18n ? i18n.t(key) : key;
-}
-
 /**
  * The category read in flight — one per instance of the store.
  *

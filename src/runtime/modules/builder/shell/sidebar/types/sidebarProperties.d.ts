@@ -13,6 +13,14 @@ import type {
     TSpacingSlot,
 } from '../components/property-editors/types';
 
+/**
+ * Array of property values fit for the comma-separated input: primitives, plus the holes
+ * a schema is free to carry. The holes are part of the type on purpose — the check that
+ * produces such an array lets `null` and `undefined` through, and a narrower type would
+ * promise the consumer a solid array it never gets.
+ */
+export type TPrimitiveArrayValue = Array<string | number | boolean | null | undefined>;
+
 export type TInlineGalleryPayload = {
     action: 'append' | 'replace';
     segmentIndex?: number;

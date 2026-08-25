@@ -3,11 +3,14 @@
 import type { TRequestErrorLike } from '../../../common/types/bricks-api';
 
 // Utils
-import { getBricksErrorCode } from '../../../common/utils/main';
+import { getBricksErrorCode, isStatementTimeoutError } from '../../../common/utils/main';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
 
 // Constants
-import { BRICKS_API_ERROR_CODES } from '../../../common/constants/apiErrors';
+import {
+    BRICKS_API_ERROR_CODES,
+    BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY,
+} from '../../../common/constants/apiErrors';
 // #endregion
 
 // #region Data
@@ -112,6 +115,14 @@ export function isStaleListError(error: unknown): boolean {
 export function resolveUserActionErrorKey(error: unknown): string {
     if (isRequestTimeoutError(error)) {
         return 'bricks.users.errors.timeout';
+    }
+
+    // A request stopped by the server-side time limit: reachable on every protected
+    // path, and its own case rather than the general refusal — here the outcome is
+    // settled, the unfinished write is rolled back, so a repeat is safe to offer
+    // without re-reading anything first
+    if (isStatementTimeoutError(error)) {
+        return BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY;
     }
 
     const code = getBricksErrorCode(error);
