@@ -206,6 +206,24 @@ export interface IMediaGalleryGridProps {
     showUploadTile: boolean;
 }
 
+/**
+ * What the roving focus of the grid needs from its caller: the items it walks and
+ * the file already chosen.
+ *
+ * Both arrive as getters rather than as refs: the grid holds them in props, and a
+ * prop unwrapped once would freeze the composable on the first list it saw.
+ */
+export interface IMediaGalleryRovingFocusOptions {
+    items: () => IMediaItem[];
+    selectedItemId: () => number | null;
+}
+
+export interface IMediaGalleryRovingFocusReturn {
+    /** The id of the cell holding the tab stop; null on an empty grid */
+    activeItemId: Ref<string | null>;
+    isActiveItem: (itemId: number) => boolean;
+}
+
 export interface IMediaGalleryGridEmits {
     select: [item: IMediaItem];
     preview: [item: IMediaItem];

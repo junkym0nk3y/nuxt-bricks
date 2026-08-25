@@ -17,7 +17,8 @@
             "showPassword": "Показать пароль",
             "hidePassword": "Скрыть пароль",
             "tagsLimit": "Лимит {max} символов исчерпан",
-            "save": "Сохранить"
+            "save": "Сохранить",
+            "removeTag": "Удалить тег {tag}"
         },
         "toolbar": {
             "grid": "Сетка",
@@ -214,7 +215,18 @@
             "gallery": {
                 "label": "Галерея изображений",
                 "tagPlaceholder": "Добавить тег...",
-                "empty": "Нажмите, чтобы добавить изображение"
+                "empty": "Нажмите, чтобы добавить изображение",
+                "replaceImage": "Заменить изображение {number}",
+                "moveUp": "Переместить изображение {number} выше",
+                "moveDown": "Переместить изображение {number} ниже",
+                "remove": "Удалить изображение {number}",
+                "titlePlaceholder": "Заголовок",
+                "captionPlaceholder": "Подпись",
+                "moveUpBlocked": "Изображение {number} уже первое",
+                "moveDownBlocked": "Изображение {number} уже последнее",
+                "tagsLabel": "Теги изображения {number}",
+                "titleLabel": "Заголовок изображения {number}",
+                "captionLabel": "Подпись изображения {number}"
             },
             "accordion": {
                 "label": "Элементы аккордеона",
@@ -539,7 +551,9 @@
                 "copyUrl": "Копировать URL",
                 "urlCopied": "URL файла скопирован",
                 "copyFailed": "Не удалось скопировать URL"
-            }
+            },
+            "fullscreenFor": "Полноэкранный просмотр файла {filename}",
+            "fileInputLabel": "Выберите файлы для загрузки"
         },
         "schema": {
             "title": "Схема страницы",

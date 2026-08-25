@@ -15,16 +15,36 @@
  * whole tile used to be light, and in the dark theme a dozen white cards read as a wall
  * of light.
  *
- * A tile is an `option` of a list rather than a button: it picks a file, it does not
- * launch an action. Before that it was a mute `div` with a `@click` — a file could not
- * be picked from the keyboard at all, although the full-screen button inside it did
- * make it into the tab order. The `.self` on the keyboard handlers is a must: a real
- * button lies inside the tile, and without it Enter on that button bubbled up to the
- * tile, picked the file, while `prevent` canceled the native activation of the button
- * — the lightbox did not open. A known limitation: `tabindex="0"` sits on EVERY tile,
- * so a grid of a hundred files is walked through by Tab in full. A proper listbox is a
- * roving tabindex with arrow keys, and building one by hand next to `selectedItemId` is
- * easy to get out of sync; that is a separate pass, possibly on a ready reka primitive.
+ * A tile is a cell of a `grid` rather than an `option` of a listbox: it picks a file
+ * AND carries an action of its own, the full-screen button in its corner. A listbox
+ * option is not allowed to contain interactive content — measured: axe answers
+ * `nested-interactive` on such a tile whatever its `tabindex`, and a screen reader is
+ * free to flatten the button into the name of the option instead of letting it be
+ * pressed. The grid pattern is the one written for cells with actions inside.
+ *
+ * Before all this the tile was a mute `div` with a `@click` — a file could not be
+ * picked from the keyboard at all, although the full-screen button inside it did make
+ * it into the tab order. The `.self` on the keyboard handlers is a must: that button
+ * lies inside the cell, and without it Enter on the button bubbled up to the cell,
+ * picked the file, while `prevent` canceled the native activation of the button — the
+ * lightbox did not open.
+ *
+ * The grid is walked with the arrows and holds ONE tab stop: `tabindex="0"` used to
+ * sit on every tile, so a hundred files were a hundred stops on the way past the
+ * grid. Where that stop stands is kept by `useMediaGalleryRovingFocus`, the movement
+ * itself by the reka roving primitives, with the orientation left unset on purpose —
+ * the tiles wrap by the width of the area, so every arrow has to walk the visual
+ * sequence rather than one axis of it. The full-screen button of an inactive cell
+ * leaves the tab order along with its cell: otherwise Tab would still walk the whole
+ * grid, one preview button per file.
+ *
+ * The cells sit in their own `role="grid"` plus `role="row"` nodes with
+ * `display: contents`, so the upload tile and the skeleton stay in the same CSS grid
+ * while staying out of the table: neither a grid nor a row may hold a `button` among
+ * its children. The box is the only thing `display: contents` gives up — the role and
+ * the name survive it, which was measured before the markup was built. One row for
+ * every cell is deliberate: the number of visual columns is set by the width of the
+ * area, so a DOM row would be a fiction that breaks at the first resize.
  *
  * The upload tile stands as the first cell: the modal has no permanent upload zone, and
  * the entry point is obliged to stay visible. In the grid it cannot "collapse" — its
@@ -75,6 +95,10 @@ import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
+import { useMediaGalleryRovingFocus } from '../composables/useMediaGalleryRovingFocus';
+
+// Reka UI
+import { RovingFocusGroup, RovingFocusItem } from 'reka-ui';
 
 // Components
 import BricksBadge from '../../../ui/base/badge/BricksBadge.vue';
@@ -100,6 +124,11 @@ const { t } = useI18n();
  * the first place).
  */
 const { canEdit } = useBuilderPermissions();
+
+const { activeItemId, isActiveItem } = useMediaGalleryRovingFocus({
+    items: () => props.items,
+    selectedItemId: () => props.selectedItemId,
+});
 // #endregion
 
 // #region Methods
@@ -134,11 +163,7 @@ function resolveThumbSrc(item: IMediaItem): string {
 </script>
 
 <template>
-    <div
-        role="listbox"
-        :aria-label="t('bricks.media.galleryTitle')"
-        :class="$style.BuilderMediaGalleryGrid"
-    >
+    <div :class="$style.BuilderMediaGalleryGrid">
         <button
             v-if="props.showUploadTile && canEdit"
             type="button"
@@ -164,56 +189,71 @@ function resolveThumbSrc(item: IMediaItem): string {
             </div>
         </div>
 
-        <div
-            v-for="item in props.items"
-            :key="item.id"
-            role="option"
-            tabindex="0"
-            :aria-selected="props.selectedItemId === item.id"
-            :class="[$style.galleryItem, { [$style._selected]: props.selectedItemId === item.id }]"
-            @click="handleSelectItem(item)"
-            @keydown.enter.self.prevent="handleSelectItem(item)"
-            @keydown.space.self.prevent="handleSelectItem(item)"
+        <RovingFocusGroup
+            v-model:current-tab-stop-id="activeItemId"
+            as="div"
+            role="grid"
+            :aria-label="t('bricks.media.galleryTitle')"
+            :class="$style.cells"
         >
-            <div :class="$style.thumb">
-                <div v-if="isVideoMedia(item)" :class="$style.videoPlaceholder">
-                    <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-video" />
-                </div>
-                <BricksImage
-                    v-else
-                    :src="resolveThumbSrc(item)"
-                    :alt="item.alt || item.filename"
-                    fit="scale-down"
-                />
+            <div role="row" :class="$style.cells">
+                <RovingFocusItem
+                    v-for="item in props.items"
+                    :key="item.id"
+                    as="div"
+                    :tab-stop-id="String(item.id)"
+                    role="gridcell"
+                    :aria-selected="props.selectedItemId === item.id"
+                    :class="[
+                        $style.galleryItem,
+                        { [$style._selected]: props.selectedItemId === item.id },
+                    ]"
+                    @click="handleSelectItem(item)"
+                    @keydown.enter.self.prevent="handleSelectItem(item)"
+                    @keydown.space.self.prevent="handleSelectItem(item)"
+                >
+                    <div :class="$style.thumb">
+                        <div v-if="isVideoMedia(item)" :class="$style.videoPlaceholder">
+                            <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-video" />
+                        </div>
+                        <BricksImage
+                            v-else
+                            :src="resolveThumbSrc(item)"
+                            :alt="item.alt || item.filename"
+                            fit="scale-down"
+                        />
 
-                <Transition name="bricks-fade-fast">
-                    <BricksBadge
-                        v-if="props.selectedItemId === item.id"
-                        :class="$style.selectedBadge"
-                        tone="primary"
-                        shape="pill"
-                    >
-                        <BricksIcon icon="ta:outline-check" />
-                    </BricksBadge>
-                </Transition>
+                        <Transition name="bricks-fade-fast">
+                            <BricksBadge
+                                v-if="props.selectedItemId === item.id"
+                                :class="$style.selectedBadge"
+                                tone="primary"
+                                shape="pill"
+                            >
+                                <BricksIcon icon="ta:outline-check" />
+                            </BricksBadge>
+                        </Transition>
 
-                <BricksIconButton
-                    :class="$style.previewBtn"
-                    icon="ta:outline-search"
-                    :label="t('bricks.media.fullscreen')"
-                    variant="overlay"
-                    size="lg"
-                    @click.stop="handleOpenPreview(item)"
-                />
+                        <BricksIconButton
+                            :class="$style.previewBtn"
+                            icon="ta:outline-search"
+                            :label="t('bricks.media.fullscreenFor', { filename: item.filename })"
+                            variant="overlay"
+                            size="lg"
+                            :tab-index="isActiveItem(item.id) ? 0 : -1"
+                            @click.stop="handleOpenPreview(item)"
+                        />
+                    </div>
+
+                    <div :class="$style.itemInfo">
+                        <span :class="$style.filename">{{ item.filename }}</span>
+                        <span :class="$style.meta">
+                            {{ formatFileSize(item.size) }} · {{ formatMediaDimensions(item, t) }}
+                        </span>
+                    </div>
+                </RovingFocusItem>
             </div>
-
-            <div :class="$style.itemInfo">
-                <span :class="$style.filename">{{ item.filename }}</span>
-                <span :class="$style.meta">
-                    {{ formatFileSize(item.size) }} · {{ formatMediaDimensions(item, t) }}
-                </span>
-            </div>
-        </div>
+        </RovingFocusGroup>
     </div>
 </template>
 
@@ -222,6 +262,10 @@ function resolveThumbSrc(item: IMediaItem): string {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
     gap: 2rem;
+}
+
+.cells {
+    display: contents;
 }
 
 .galleryItem {
@@ -360,7 +404,7 @@ function resolveThumbSrc(item: IMediaItem): string {
 
 .uploadHint {
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-base-500);
 }
 
 .skeletonBar {

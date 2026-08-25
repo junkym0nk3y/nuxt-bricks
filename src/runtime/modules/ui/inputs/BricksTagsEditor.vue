@@ -259,6 +259,7 @@ watch(
                         type="button"
                         :class="$style.tagRemove"
                         :disabled="props.disabled"
+                        :aria-label="t('bricks.common.removeTag', { tag })"
                         @click.stop="removeTag(index)"
                     >
                         <BricksIcon icon="ta:outline-x" />

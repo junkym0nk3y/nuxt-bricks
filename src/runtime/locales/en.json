@@ -17,7 +17,8 @@
             "showPassword": "Show password",
             "hidePassword": "Hide password",
             "tagsLimit": "Character limit {max} reached",
-            "save": "Save"
+            "save": "Save",
+            "removeTag": "Remove tag {tag}"
         },
         "toolbar": {
             "grid": "Grid",
@@ -214,7 +215,18 @@
             "gallery": {
                 "label": "Image gallery",
                 "tagPlaceholder": "Add tag...",
-                "empty": "Click to add an image"
+                "empty": "Click to add an image",
+                "replaceImage": "Replace image {number}",
+                "moveUp": "Move image {number} up",
+                "moveDown": "Move image {number} down",
+                "remove": "Remove image {number}",
+                "titlePlaceholder": "Title",
+                "captionPlaceholder": "Caption",
+                "moveUpBlocked": "Image {number} is already the first",
+                "moveDownBlocked": "Image {number} is already the last",
+                "tagsLabel": "Tags of image {number}",
+                "titleLabel": "Title of image {number}",
+                "captionLabel": "Caption of image {number}"
             },
             "accordion": {
                 "label": "Accordion items",
@@ -539,7 +551,9 @@
                 "copyUrl": "Copy URL",
                 "urlCopied": "File URL copied",
                 "copyFailed": "Could not copy the URL"
-            }
+            },
+            "fullscreenFor": "Full-screen preview of {filename}",
+            "fileInputLabel": "Choose files to upload"
         },
         "schema": {
             "title": "Page schema",

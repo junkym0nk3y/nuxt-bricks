@@ -146,3 +146,17 @@ describe('BricksIconButton: переключатель', () => {
         expect(mountButton({ active: true }).get('button').attributes('aria-pressed')).toBe('true');
     });
 });
+
+describe('BricksIconButton: место в порядке табуляции', () => {
+    it('без пропа атрибута нет — кнопка стоит в порядке документа', () => {
+        expect(mountButton().get('button').attributes('tabindex')).toBeUndefined();
+    });
+
+    it('кнопка неактивной ячейки уносится из обхода с клавиатуры', () => {
+        expect(mountButton({ tabIndex: -1 }).get('button').attributes('tabindex')).toBe('-1');
+    });
+
+    it('кнопка активной ячейки остаётся в обходе', () => {
+        expect(mountButton({ tabIndex: 0 }).get('button').attributes('tabindex')).toBe('0');
+    });
+});

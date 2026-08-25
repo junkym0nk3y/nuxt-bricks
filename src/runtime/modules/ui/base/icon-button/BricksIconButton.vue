@@ -26,7 +26,10 @@
  * Outer attributes, `class` included, go to the tooltip WRAPPER rather than to
  * the button: it is the wrapper that stands in the flow and gets positioned from
  * the outside. It also serves as the tooltip trigger — which is why the hint
- * shows even over a `disabled` button, which produces no pointer events.
+ * shows even over a `disabled` button, which produces no pointer events. That is
+ * also why the place in the tab order is a prop: a `tabindex` written from the
+ * outside would land on the wrapper, which takes no focus, and the button would
+ * keep its own place in the order regardless.
  *
  * Two style decisions the CSS no longer explains: the size sets the font size
  * too, because the glyph inherits `font-size` from the button and without an
@@ -66,6 +69,9 @@ const props = withDefaults(defineProps<IBricksIconButtonProps>(), {
     muted: false,
     busy: false,
     tooltipSide: 'bottom',
+    // An explicit `undefined` keeps the native tab order: writing `0` here would
+    // put every blocked and secondary button back into it
+    tabIndex: undefined,
 });
 // #endregion
 
@@ -128,6 +134,7 @@ function handleClick(event: MouseEvent): void {
                 :aria-expanded="props.expanded"
                 :aria-haspopup="props.expanded === undefined ? undefined : 'dialog'"
                 :aria-label="props.label"
+                :tabindex="props.tabIndex"
                 @click="handleClick"
             >
                 <BricksIcon :icon="props.icon" />

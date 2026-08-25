@@ -67,6 +67,20 @@ export interface IBricksIconButtonProps {
      */
     expanded?: boolean;
     tooltipSide?: TBricksIconButtonTooltipSide;
+    /**
+     * Place in the tab order, for a button that lives inside a container with a
+     * roving tab stop: there only the active cell may be reachable by Tab, and
+     * everything inside the rest of the cells is taken out of it.
+     *
+     * A prop rather than a plain attribute because outer attributes land on the
+     * tooltip WRAPPER, not on the button — a `tabindex` written from the outside
+     * would never reach the control it is meant for.
+     *
+     * The two values are the whole model: 0 for the button of the active cell,
+     * -1 for the rest. A positive index would put the button ahead of the
+     * document order, which no place in the builder has a reason to do.
+     */
+    tabIndex?: 0 | -1;
 }
 
 export interface IBricksIconButtonEmits {

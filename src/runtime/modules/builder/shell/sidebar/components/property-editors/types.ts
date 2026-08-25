@@ -1,4 +1,6 @@
 import type { IPropertyDefinition, TBrickPropValue } from '../../../../../common/types/brick';
+import type { IGalleryItem } from '../../../../../common/types/content';
+import type { IBrickGalleryFieldsConfig } from '../../../../../common/types/index';
 
 interface ISelectOption {
     label: string;
@@ -92,3 +94,21 @@ interface ISpacingMirrorSlot {
 }
 
 export type TSpacingSlot = ISpacingStepperSlot | ISpacingMirrorSlot;
+
+export interface IPropertyImageGalleryEditorProps {
+    modelValue?: IGalleryItem[];
+    label?: string;
+    /** Configuration of the extra fields (title, tags) */
+    fields?: IBrickGalleryFieldsConfig;
+}
+
+export interface IPropertyImageGalleryEditorEmits {
+    'update:modelValue': [value: IGalleryItem[]];
+    openGallery: [
+        {
+            action: 'append' | 'replace';
+            itemIndex?: number;
+            insertIndex?: number;
+        },
+    ];
+}

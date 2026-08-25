@@ -1,8 +1,31 @@
 <script setup lang="ts">
+/**
+ * @description The gallery property editor of the sidebar.
+ *
+ * The image thumbnail and the empty state are native buttons rather than clickable
+ * containers: both open the media library, and as `div`s they could be reached
+ * neither by Tab nor by Enter — the pointer was the only way in. The card look is
+ * kept by resetting the user-agent styles of the button in the style section.
+ *
+ * The three per-item actions are `BricksIconButton` instead of an icon inside a
+ * `BricksButton`: there the caption is a required prop and becomes the accessible
+ * name, so a glyph-only action cannot end up nameless. Their names carry the
+ * ordinal of the image — a screen reader walking the list otherwise hears "Move
+ * up" a dozen times with nothing to tell the items apart. The same ordinal names
+ * the text fields of the card, for the same reason.
+ *
+ * At the ends of the list a move is blocked by `muted` rather than by `disabled`:
+ * a reorder applies at once, and the button the person had just pressed becomes
+ * the one at the end. A `disabled` button loses focus the moment it is blocked —
+ * the browser drops it — so a keyboard walked out of the panel after every move
+ * that reached the end. `muted` keeps the button focusable, announces the block
+ * through `aria-disabled` and explains it in the hint.
+ */
+
 // #region Imports
 // Types
 import type { IGalleryItem } from '../../../../../common/types/content';
-import type { IBrickGalleryFieldsConfig } from '../../../../../common/types/index';
+import type { IPropertyImageGalleryEditorProps, IPropertyImageGalleryEditorEmits } from './types';
 
 // Vue
 import { computed, useCssModule } from 'vue';
@@ -10,28 +33,9 @@ import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
+import BricksIconButton from '../../../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksInput from '../../../../../ui/inputs/BricksInput.vue';
 import BricksTagsEditor from '../../../../../ui/inputs/BricksTagsEditor.vue';
-// #endregion
-
-// #region Interfaces
-interface IPropertyImageGalleryEditorProps {
-    modelValue?: IGalleryItem[];
-    label?: string;
-    /** Configuration of the extra fields (title, tags) */
-    fields?: IBrickGalleryFieldsConfig;
-}
-
-interface IPropertyImageGalleryEditorEmits {
-    'update:modelValue': [value: IGalleryItem[]];
-    openGallery: [
-        {
-            action: 'append' | 'replace';
-            itemIndex?: number;
-            insertIndex?: number;
-        },
-    ];
-}
 // #endregion
 
 // #region Props
@@ -200,7 +204,12 @@ function handleReplaceImage(index: number): void {
                 :key="item.id || `gallery_${index}`"
                 :class="$style.card"
             >
-                <div :class="$style.imageWrapper" @click="handleReplaceImage(index)">
+                <button
+                    type="button"
+                    :class="$style.imageWrapper"
+                    :aria-label="t('bricks.properties.gallery.replaceImage', { number: index + 1 })"
+                    @click="handleReplaceImage(index)"
+                >
                     <div v-if="isVideoItem(item)" :class="$style.videoPlaceholder">
                         <BricksIcon icon="ta:outline-video" />
                     </div>
@@ -218,13 +227,16 @@ function handleReplaceImage(index: number): void {
                     <div :class="$style.imageOverlay">
                         <BricksIcon icon="ta:outline-pencil" />
                     </div>
-                </div>
+                </button>
 
                 <div :class="$style.cardBody">
                     <BricksInput
                         v-if="showTitle"
                         :value="item.title || ''"
-                        placeholder="Title"
+                        :placeholder="t('bricks.properties.gallery.titlePlaceholder')"
+                        :aria-label="
+                            t('bricks.properties.gallery.titleLabel', { number: index + 1 })
+                        "
                         size="small"
                         @update:value="handleTitleChange(index, $event as string)"
                     />
@@ -232,7 +244,10 @@ function handleReplaceImage(index: number): void {
                     <BricksInput
                         v-if="showCaption"
                         :value="item.caption || ''"
-                        placeholder="Caption"
+                        :placeholder="t('bricks.properties.gallery.captionPlaceholder')"
+                        :aria-label="
+                            t('bricks.properties.gallery.captionLabel', { number: index + 1 })
+                        "
                         size="small"
                         @update:value="handleCaptionChange(index, $event as string)"
                     />
@@ -241,38 +256,59 @@ function handleReplaceImage(index: number): void {
                         v-if="showTags"
                         :model-value="item.tags || []"
                         :placeholder="t('bricks.properties.gallery.tagPlaceholder')"
+                        :aria-label="
+                            t('bricks.properties.gallery.tagsLabel', { number: index + 1 })
+                        "
                         @update:model-value="handleTagsChange(index, $event)"
                     />
 
                     <div :class="$style.actions">
-                        <BricksButton
-                            size="sm"
+                        <BricksIconButton
+                            icon="ta:outline-arrow-up"
+                            :label="t('bricks.properties.gallery.moveUp', { number: index + 1 })"
+                            :hint="
+                                index === 0
+                                    ? t('bricks.properties.gallery.moveUpBlocked', {
+                                          number: index + 1,
+                                      })
+                                    : ''
+                            "
                             variant="ghost"
-                            :disabled="index === 0"
+                            size="lg"
+                            :muted="index === 0"
                             @click="handleMoveUp(index)"
-                        >
-                            <BricksIcon icon="ta:outline-arrow-up" />
-                        </BricksButton>
-                        <BricksButton
-                            size="sm"
+                        />
+                        <BricksIconButton
+                            icon="ta:outline-arrow-down"
+                            :label="t('bricks.properties.gallery.moveDown', { number: index + 1 })"
+                            :hint="
+                                index === items.length - 1
+                                    ? t('bricks.properties.gallery.moveDownBlocked', {
+                                          number: index + 1,
+                                      })
+                                    : ''
+                            "
                             variant="ghost"
-                            :disabled="index === items.length - 1"
+                            size="lg"
+                            :muted="index === items.length - 1"
                             @click="handleMoveDown(index)"
-                        >
-                            <BricksIcon icon="ta:outline-arrow-down" />
-                        </BricksButton>
-                        <BricksButton size="sm" variant="ghost" @click="handleRemoveItem(index)">
-                            <BricksIcon icon="ta:outline-trash" />
-                        </BricksButton>
+                        />
+                        <BricksIconButton
+                            icon="ta:outline-trash"
+                            :label="t('bricks.properties.gallery.remove', { number: index + 1 })"
+                            variant="ghost"
+                            size="lg"
+                            @click="handleRemoveItem(index)"
+                        />
                     </div>
                 </div>
             </div>
         </div>
 
-        <div v-else :class="$style.empty" @click="handleAddImage">
+        <button v-else type="button" :class="$style.empty" @click="handleAddImage">
             <BricksIcon :class="$style.emptyIcon" icon="ta:outline-library-photo" />
             <span>{{ t('bricks.properties.gallery.empty') }}</span>
-        </div>
+        </button>
     </div>
 </template>
 
@@ -316,15 +352,25 @@ function handleReplaceImage(index: number): void {
 
     position: relative;
     overflow: hidden;
+    display: block;
     flex-shrink: 0;
     width: 8rem;
     height: 8rem;
+    padding: 0;
     border-radius: var(--bricks-border-radius-xs);
+    border: 0;
     background: var(--bricks-base-100);
     cursor: pointer;
+    appearance: none;
 
-    &:hover .imageOverlay {
+    &:hover .imageOverlay,
+    &:focus-visible .imageOverlay {
         opacity: 1;
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: var(--bricks-shadow-focus);
     }
 }
 
@@ -386,16 +432,19 @@ function handleReplaceImage(index: number): void {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     padding: 2.4rem;
     border-radius: var(--bricks-border-radius-xs);
     border: 0.2rem dashed var(--bricks-base-300);
     background: var(--bricks-base-50);
+    font-family: inherit;
     font-size: 1.4rem;
     color: var(--bricks-base-500);
     transition:
         border-color 0.2s,
         background 0.2s;
     cursor: pointer;
+    appearance: none;
     flex-direction: column;
     gap: 0.8rem;
 
@@ -403,6 +452,12 @@ function handleReplaceImage(index: number): void {
         border-color: var(--bricks-primary-400);
         background: var(--bricks-primary-50);
         color: var(--bricks-primary-600);
+    }
+
+    &:focus-visible {
+        border-color: var(--bricks-primary-400);
+        outline: none;
+        box-shadow: var(--bricks-shadow-focus);
     }
 }
 
