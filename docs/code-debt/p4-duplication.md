@@ -357,21 +357,23 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 21. Два байт-в-байт одинаковых хелпера `t()` в двух сторах домена медиатеки
+## 21. Приведение `$i18n as Composer` повторяется в семи файлах рантайма
 
-**Файлы:** `builder/media/stores/media.ts:23-30`,
-`builder/media/stores/mediaCategories.ts:29-36`
-
-Функция перевода через глобальный i18n продублирована в обоих сторах вместе с
-JSDoc — совпадают и тело, и текст комментария.
-
-Приведение `useNuxtApp().$i18n as Composer` встречается в девяти файлах рантайма
-(`plugins/builder/veeValidateSetup.ts`, `plugins/builder/textEditorToolbarSetup.ts`,
+**Файлы:** `plugins/builder/veeValidateSetup.ts`,
+`plugins/builder/textEditorToolbarSetup.ts`,
 `builder/core/composables/useModalOptions.ts`,
 `builder/publish/composables/usePublishPreview.ts`,
 `builder/publish/stores/publish.ts`, `builder/publish/utils/formValidation.ts`,
-`builder/publish/utils/requestErrors.ts` и оба media-стора), то есть общий хелпер
-напрашивается в `common`.
+`builder/publish/utils/requestErrors.ts`
+
+Общий хелпер уже есть — `common/utils/globalI18n.ts` (`translateBricksKey`): он появился
+там, где два стора медиатеки держали байт-в-байт одинаковую функцию перевода вместе с
+JSDoc, и оба на него переведены.
+
+Остальные семь мест приводят `useNuxtApp().$i18n` к `Composer` сами. Механически их не
+свести: часть зовёт `t` с параметрами интерполяции, часть подставляет свой фолбэк вместо
+ключа, а плагины уже держат `nuxtApp` под рукой. То есть хелперу нужна перегрузка с
+параметрами, и только после неё места переводятся по одному.
 
 ---
 
