@@ -12,10 +12,18 @@
  * the trigger hands its handlers to the tooltip WRAPPER inside the kit button, so with
  * no anchor the popover has nothing to take as its point of attachment — the content
  * opened past the top edge of the window. The click kept working all the while, so the
- * breakage looked like "the popover does not open". `aria-expanded` stays on the button
- * itself: it is put there by the `expanded` prop rather than by the trigger, because
- * the wrapper takes no focus and a screen reader would not read an expansion announced
- * on it.
+ * breakage looked like "the popover does not open". The opening itself is a plain
+ * handler on the button rather than a `PopoverTrigger`: the trigger hands its
+ * attributes to that same wrapper, and `aria-expanded` on a node with no role is a
+ * broken ARIA structure — axe answers `aria-allowed-attr` on it. The expansion is
+ * announced by the `expanded` prop of the button, which puts the attribute on the
+ * native control where it belongs.
+ *
+ * Two things the trigger used to do are therefore done here by hand, and both are
+ * load-bearing: the content is named (`aria-label`), because a dialog with no name
+ * is announced as an empty one, and the focus goes back to the cog when the popover
+ * closes — otherwise a person who opened it from the keyboard is left at the top of
+ * the document.
  *
  * The content is composed through `as-child` for the reason `BricksPopoverSurface`
  * gives. The animation of the style section hangs on `data-state` rather than on a Vue
@@ -34,11 +42,11 @@ import type {
 } from '../types/media';
 
 // Vue
-import { ref } from 'vue';
+import { ref, type ComponentPublicInstance } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Reka UI
-import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui';
+import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot } from 'reka-ui';
 
 // Components
 import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
@@ -57,9 +65,30 @@ const emit = defineEmits<IMediaGalleryUploadOptionsPopoverEmits>();
 // #region Data
 const { t } = useI18n();
 const isOpen = ref(false);
+const triggerRef = ref<ComponentPublicInstance | null>(null);
 // #endregion
 
 // #region Methods
+/**
+ * Returns the focus to the cog when the popover closes.
+ *
+ * Reka does this itself only for a `PopoverTrigger`, and there is none here — the
+ * trigger would hang `aria-expanded` on the tooltip wrapper of the button. The
+ * focus is put on the native control inside the wrapper rather than on the wrapper
+ * itself: the wrapper takes no focus at all.
+ *
+ * @param event - The event of the closing focus move, cancelled in favor of ours.
+ */
+function handleCloseAutoFocus(event: Event): void {
+    const button = (triggerRef.value?.$el as HTMLElement | undefined)?.querySelector('button');
+
+    if (!button) {
+        return;
+    }
+
+    event.preventDefault();
+    button.focus();
+}
 /**
  * Passes the changed parameters upward.
  *
@@ -74,21 +103,27 @@ function handleOptimizationChange(value: IBricksMediaOptimization): void {
 <template>
     <PopoverRoot v-model:open="isOpen">
         <PopoverAnchor>
-            <PopoverTrigger as-child>
-                <BricksIconButton
-                    icon="ta:outline-settings"
-                    :label="t('bricks.media.upload.optionsTitle')"
-                    variant="ghost"
-                    size="lg"
-                    :active="isOpen"
-                    :expanded="isOpen"
-                    :tooltip-side="props.tooltipSide"
-                />
-            </PopoverTrigger>
+            <BricksIconButton
+                ref="triggerRef"
+                icon="ta:outline-settings"
+                :label="t('bricks.media.upload.optionsTitle')"
+                variant="ghost"
+                size="lg"
+                :active="isOpen"
+                :expanded="isOpen"
+                :tooltip-side="props.tooltipSide"
+                @click="isOpen = !isOpen"
+            />
         </PopoverAnchor>
 
         <PopoverPortal>
-            <PopoverContent as-child align="end" :side-offset="8">
+            <PopoverContent
+                as-child
+                align="end"
+                :side-offset="8"
+                :aria-label="t('bricks.media.upload.optionsTitle')"
+                @close-auto-focus="handleCloseAutoFocus"
+            >
                 <BricksPopoverSurface density="flush" elevation="lg" :class="$style.popover">
                     <BuilderMediaGalleryUploadOptions
                         :optimization="props.optimization"

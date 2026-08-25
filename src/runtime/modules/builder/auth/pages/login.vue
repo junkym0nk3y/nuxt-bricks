@@ -18,7 +18,7 @@ import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 
 // Nuxt
-import { navigateTo, useRoute } from '#imports';
+import { navigateTo, useHead, useRoute } from '#imports';
 // #endregion
 
 // #region Data
@@ -32,6 +32,12 @@ const { username, password, errors, isSubmitting, generalError, submitForm } = u
 // its own rather than the raw message of the transport
 const sessionCheckError = ref('');
 // #endregion
+
+// The screen names itself in the tab: without a title the document has none at all,
+// and a nameless tab is what a person returns to after going for the password
+useHead({
+    title: computed(() => t('bricks.auth.login.title')),
+});
 
 // #region Computed
 // An error of the sign-in itself takes priority: it belongs to an action of the

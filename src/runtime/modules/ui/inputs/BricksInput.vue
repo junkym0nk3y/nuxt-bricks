@@ -221,7 +221,7 @@ const classList = computed(() => [
     flex-shrink: 0;
     font-size: 1.2rem;
     font-weight: 400;
-    color: var(--bricks-base-400);
+    color: var(--bricks-base-500);
 }
 
 .inner {

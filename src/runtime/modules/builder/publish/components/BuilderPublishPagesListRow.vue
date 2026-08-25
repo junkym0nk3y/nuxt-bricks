@@ -324,7 +324,7 @@ function handleDelete(): void {
 .pagename {
     flex-shrink: 0;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-base-500);
 }
 
 .description {
@@ -341,7 +341,7 @@ function handleDelete(): void {
     margin-left: auto;
     white-space: nowrap;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-base-500);
 }
 
 .actions {

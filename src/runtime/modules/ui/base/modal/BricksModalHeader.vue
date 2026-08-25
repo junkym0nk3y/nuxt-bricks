@@ -147,7 +147,7 @@ const rootClasses = computed(() => [
 .subtitle {
     margin: 0;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-base-500);
 }
 
 .actions {

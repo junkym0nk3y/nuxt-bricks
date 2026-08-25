@@ -30,7 +30,7 @@ const { t } = useI18n();
     align-items: center;
     justify-content: center;
     text-align: center;
-    color: var(--bricks-base-300);
+    color: var(--bricks-base-500);
     transform: translate(-50%, -50%);
     flex-direction: column;
     pointer-events: none;

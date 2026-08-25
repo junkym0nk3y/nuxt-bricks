@@ -17,6 +17,12 @@
  * background, and a backing appears only under hover and selection.
  */
 
+/**
+ * The caption of an unselected tab stands on the light ground of the pill, where the
+ * former tone reached 4.39 — just under the 4.5 that AA asks of small text. The
+ * count next to it follows the same tone for the same reason.
+ */
+
 // #region Imports
 // Types
 import type { IBricksTabBarItemProps } from './types.d.ts';
@@ -90,7 +96,7 @@ const ariaLabel = computed<string | undefined>(() =>
     white-space: nowrap;
     font-weight: 500;
     line-height: 1.2;
-    color: var(--bricks-base-500);
+    color: var(--bricks-base-600);
     transition:
         color var(--bricks-default-transition),
         border-color var(--bricks-default-transition),
@@ -276,6 +282,6 @@ const ariaLabel = computed<string | undefined>(() =>
 }
 
 .count {
-    color: var(--bricks-base-500);
+    color: var(--bricks-base-600);
 }
 </style>

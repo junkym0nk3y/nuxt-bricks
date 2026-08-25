@@ -142,6 +142,7 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
             type="file"
             accept="image/*,video/*"
             multiple
+            :aria-label="t('bricks.media.fileInputLabel')"
             :class="$style.fileInput"
             @change="handleFileChange"
         />

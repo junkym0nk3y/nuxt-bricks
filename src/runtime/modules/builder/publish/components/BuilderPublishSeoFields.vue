@@ -153,7 +153,7 @@ function handleKeywordsChange(tags: string[]): void {
     font-size: 1.2rem;
     font-weight: 600;
     letter-spacing: 0.06rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-base-500);
 }
 
 .field {
@@ -180,6 +180,6 @@ function handleKeywordsChange(tags: string[]): void {
     flex-shrink: 0;
     font-size: 1.2rem;
     font-weight: 400;
-    color: var(--bricks-base-400);
+    color: var(--bricks-base-500);
 }
 </style>

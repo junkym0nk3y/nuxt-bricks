@@ -10,6 +10,13 @@
  * track height, and the track-to-knob gap is not a multiple of `0.2rem`.
  */
 
+/**
+ * The caption of the switch is text that says what the control does, so its color
+ * clears AA for small text: the pale tone it used to carry reached 1.41 against
+ * white — visible to nobody who needs contrast. The dimmed look of an inactive side
+ * survives, one step lighter, and stops where readability does.
+ */
+
 // #region Imports
 // Types
 import type { IBricksSwitchProps, IBricksSwitchEmits } from './types.d.ts';
@@ -104,12 +111,12 @@ function onUpdate(checked: boolean): void {
 
     &._oneSide {
         &._active .label._left {
-            color: var(--bricks-base-300);
+            color: var(--bricks-base-500);
         }
 
         .label {
             &._left {
-                color: var(--bricks-base-300);
+                color: var(--bricks-base-500);
             }
         }
     }
@@ -118,12 +125,12 @@ function onUpdate(checked: boolean): void {
         font-size: 1.4rem;
         font-weight: 500;
         line-height: 1.2;
-        color: var(--bricks-base-300);
+        color: var(--bricks-base-600);
         transition: color var(--bricks-default-transition);
 
         &._left {
             margin-right: 1.6rem;
-            color: var(--bricks-base-300);
+            color: var(--bricks-base-500);
         }
 
         &._right {

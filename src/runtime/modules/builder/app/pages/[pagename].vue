@@ -456,7 +456,15 @@ watch(isRestoreDraftModalOpen, (isOpen) => {
  */
 const bodyClass = computed(() => (isDarkMode.value ? 'bricks-page bricks-dark' : 'bricks-page'));
 
+// The title names the page being edited: a tab of the browser and the history are
+// the only places it shows, and both used to say nothing at all — the editor had no
+// title, so several open pages were indistinguishable
 useHead({
+    title: computed(() =>
+        publishStore.currentFormState.title
+            ? `${publishStore.currentFormState.title} — ${t('bricks.publish.dashboard.title')}`
+            : t('bricks.publish.dashboard.title')
+    ),
     bodyAttrs: {
         class: bodyClass,
     },
