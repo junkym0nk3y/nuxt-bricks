@@ -87,6 +87,32 @@ describe('readResponseWithinByteBudget (лимит до JSON.parse)', () => {
         expect(wasCancelled()).toBe(true);
     });
 
+    it('сжатый ответ ранним отказом не отклоняется: заголовок и счётчик мерят разное', async () => {
+        // Content-Length of a compressed response is the length AFTER the coding, while
+        // the fetch stream hands out decoded bytes: an early refusal by that header would
+        // compare different things. The streaming check decides — here the decoded body
+        // fits the budget
+        const { response, wasCancelled } = makeStreamedResponse([encode('{"ok":true}')], {
+            'content-length': '100',
+            'content-encoding': 'gzip',
+        });
+
+        await expect(readResponseWithinByteBudget(response, 20)).resolves.toEqual({ ok: true });
+        expect(wasCancelled()).toBe(false);
+    });
+
+    it('identity в Content-Encoding не мешает раннему отказу', async () => {
+        const { response, wasCancelled } = makeStreamedResponse([encode('x'.repeat(100))], {
+            'content-length': '100',
+            'content-encoding': 'identity',
+        });
+
+        await expect(readResponseWithinByteBudget(response, 10)).rejects.toBeInstanceOf(
+            DataSourceResponseTooLargeError
+        );
+        expect(wasCancelled()).toBe(true);
+    });
+
     it('поток без Content-Length обрывается на превышении бюджета (cancel, не дочитывание)', async () => {
         const { response, wasCancelled } = makeStreamedResponse([
             encode('a'.repeat(8)),

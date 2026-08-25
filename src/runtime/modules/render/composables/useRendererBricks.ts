@@ -2,7 +2,12 @@ import { defineAsyncComponent, type Component } from 'vue';
 import type { IRendererBrickResolverOptions } from '../types/render';
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';
 
-const componentCache = new Map<string, Component | null>();
+/**
+ * Resolved brick components by normalized path. Only successes get in: the map lives at
+ * module scope, that is, on the server it outlives a request, and a remembered failure
+ * would answer for the whole life of the process.
+ */
+const componentCache = new Map<string, Component>();
 
 /**
  * Extracts the Vue component from a loaded brick module.
@@ -51,7 +56,16 @@ async function loadBrickComponent(
     try {
         const module = await importModule();
         const component = extractBrickComponent(module, brickPath);
-        componentCache.set(cacheKey, component);
+
+        // Only a real component is remembered. A module without a usable export was
+        // cached as null before, and this cache lives at module scope — on the server it
+        // outlives the request, so one build without the export kept answering "no
+        // component" to every later request of the process, including one served after
+        // the file was fixed
+        if (component) {
+            componentCache.set(cacheKey, component);
+        }
+
         return component;
     } catch (error) {
         console.error(`[TheRenderer] Failed to load component for ${brickPath}:`, error);
@@ -82,7 +96,7 @@ export function useRendererBricks({ findImportModule }: IRendererBrickResolverOp
         const cacheKey = normalizeBrickPath(brickPath);
 
         if (componentCache.has(cacheKey)) {
-            return componentCache.get(cacheKey) || null;
+            return componentCache.get(cacheKey) ?? null;
         }
 
         // The loader is checked BEFORE the async component is created: inside the
@@ -103,13 +117,25 @@ export function useRendererBricks({ findImportModule }: IRendererBrickResolverOp
 
         const asyncComponent = defineAsyncComponent({
             loader: async () => {
-                const component = await loadBrickComponent(brickPath, importModule);
+                try {
+                    const component = await loadBrickComponent(brickPath, importModule);
 
-                if (!component) {
-                    throw new Error(`Module ${brickPath} has no usable component export`);
+                    if (!component) {
+                        throw new Error(`Module ${brickPath} has no usable component export`);
+                    }
+
+                    return component;
+                } catch (error) {
+                    // The wrapper leaves the cache together with the failure. Vue keeps the
+                    // rejected request inside the wrapper and never calls the loader a second
+                    // time, so a cached wrapper answered "no component" for as long as it
+                    // lived — and this cache lives at module scope, that is, across requests
+                    // on the server. Not caching the failure inside `loadBrickComponent` is
+                    // not enough on its own for exactly that reason
+                    componentCache.delete(cacheKey);
+
+                    throw error;
                 }
-
-                return component;
             },
             suspensible: true,
         });

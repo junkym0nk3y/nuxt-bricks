@@ -100,7 +100,10 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             return dataSources;
         } catch (error) {
             console.error('[Bricks Page] Failed to load dataSources for brick:', brickPath, error);
-            brickDataSourcesCache.set(cacheKey, null);
+            // A failure is deliberately not cached: the cache lives as long as the page
+            // instance, and the client recovery run (`refresh()`) is the second chance for
+            // a chunk that did not arrive. Remembering the failure took the sources of
+            // that brick out until a remount, with nothing to bring them back
             return [];
         }
     }
@@ -117,27 +120,40 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
             return [];
         }
 
-        const requests: Array<{ component: IBricksComponent; source: IBrickDataSource }> = [];
+        // Components fit for rendering, with the path kept next to each of them: the
+        // stored page could have been corrupted or written around the schema contract —
+        // the store is whatever `bricks.backend.mode` points at, our own table or a
+        // consumer backend. Garbage elements (null/primitives/objects without
+        // id+componentName) are skipped rather than taking SSR down on an access to
+        // component.brickPath.
+        const renderable: Array<{ component: IBricksComponent; brickPath: string }> = [];
 
-        // Collect all data sources declared in the brick files of the components.
-        // The stored page could have been corrupted or written around the schema
-        // contract — the store is whatever `bricks.backend.mode` points at, our
-        // own table or a consumer backend. Garbage elements (null/primitives/
-        // objects without id+componentName) are skipped rather than taking SSR
-        // down on an access to component.brickPath.
         for (const component of page.value.schema.components) {
             if (!isRenderableSchemaComponent(component) || !component.brickPath) {
                 continue;
             }
 
-            // Load the list of sources for this particular component
-            const sources = await loadBrickDataSources(component.brickPath);
+            renderable.push({ component, brickPath: component.brickPath });
+        }
 
-            // Add every source to the execution queue
-            sources.forEach((source) => {
+        // The brick modules go out in one wave, one import per distinct path: awaiting
+        // them one after another made a waterfall out of the collection — and the page
+        // loads the same modules through `prefetchPageBricks` with `Promise.all` anyway,
+        // behind the wait for this run
+        const loadedSources = await Promise.all(
+            Array.from(new Set(renderable.map((entry) => entry.brickPath))).map(
+                async (brickPath) => [brickPath, await loadBrickDataSources(brickPath)] as const
+            )
+        );
+        const sourcesByPath = new Map(loadedSources);
+
+        const requests: Array<{ component: IBricksComponent; source: IBrickDataSource }> = [];
+
+        renderable.forEach(({ component, brickPath }) => {
+            (sourcesByPath.get(brickPath) ?? []).forEach((source) => {
                 requests.push({ component, source });
             });
-        }
+        });
 
         return requests;
     }
@@ -150,10 +166,78 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                 return { props: new Map(), isPartial: false };
             }
 
-            const requests = await collectDataSourceRequests();
+            // Response cache of one run: identical (method + url) requests run
+            // once; a new run (refresh) gets fresh data
+            const requestCache: TDataSourceRequestCache = new Map();
+            // The run was cut off by time. The flag is raised here, the moment the
+            // budget elapses, and not only in the `catch` of the emergency deadline
+            // below: wherever abort really works (the client, absolute URLs) the
+            // requests do fail on the signal and the run ends normally, so that
+            // `catch` never fires — and the result is still incomplete
+            let isRunAborted = false;
+            // Total wall-clock budget of the run: once it elapses the remaining
+            // requests are aborted by the AbortController, and the components stay
+            // on fallback props.
+            //
+            // The clock starts before the collection, not after it: the collection
+            // imports the brick modules of the page, and while the timer was armed
+            // after it, a hung import sat outside the budget entirely — neither this
+            // abort nor the emergency deadline below reached it
+            const runStartedAt = Date.now();
+            const abortController = new AbortController();
+            const deadlineTimer = setTimeout(() => {
+                console.warn(
+                    '[Bricks DataSources] Total deadline exceeded — aborting remaining requests:',
+                    {
+                        address: addressKey,
+                        totalDeadlineMs,
+                    }
+                );
+                isRunAborted = true;
+                abortController.abort();
+            }, totalDeadlineMs);
 
-            if (!requests?.length) {
-                return { props: new Map(), isPartial: false };
+            /**
+             * What is left of the run budget for the phase that follows.
+             *
+             * @returns Remaining milliseconds, never below zero.
+             */
+            function remainingBudgetMs(): number {
+                return Math.max(0, totalDeadlineMs - (Date.now() - runStartedAt));
+            }
+
+            let requests: Array<{ component: IBricksComponent; source: IBrickDataSource }> = [];
+
+            try {
+                // The imports listen to no signal — an internal import of a chunk has
+                // nothing to listen with — so the collection is bounded by waiting
+                // rather than by cancelling, the same way the requests are below
+                requests = await withPromiseDeadline(
+                    collectDataSourceRequests(),
+                    totalDeadlineMs + BRICKS_SSR_DEADLINE_MARGIN_MS,
+                    () => createDataSourceDeadlineError(totalDeadlineMs)
+                );
+            } catch (error: unknown) {
+                clearTimeout(deadlineTimer);
+
+                if (!isDataSourceDeadlineError(error)) {
+                    throw error;
+                }
+
+                console.warn(
+                    '[Bricks DataSources] Brick imports abandoned after deadline — no sources run:',
+                    {
+                        address: addressKey,
+                        totalDeadlineMs,
+                    }
+                );
+
+                return { props: new Map(), isPartial: true };
+            }
+
+            if (!requests.length) {
+                clearTimeout(deadlineTimer);
+                return { props: new Map(), isPartial: isRunAborted };
             }
 
             // Request budget per run: the excess is dropped with a log entry
@@ -170,31 +254,6 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                     }
                 );
             }
-
-            // Response cache of one run: identical (method + url) requests run
-            // once; a new run (refresh) gets fresh data
-            const requestCache: TDataSourceRequestCache = new Map();
-            // The run was cut off by time. The flag is raised here, the moment the
-            // budget elapses, and not only in the `catch` of the emergency deadline
-            // below: wherever abort really works (the client, absolute URLs) the
-            // requests do fail on the signal and the run ends normally, so that
-            // `catch` never fires — and the result is still incomplete
-            let isRunAborted = false;
-            // Total wall-clock budget of the run: once it elapses the remaining
-            // requests are aborted by the AbortController, and the components stay
-            // on fallback props
-            const abortController = new AbortController();
-            const deadlineTimer = setTimeout(() => {
-                console.warn(
-                    '[Bricks DataSources] Total deadline exceeded — aborting remaining requests:',
-                    {
-                        address: addressKey,
-                        totalDeadlineMs,
-                    }
-                );
-                isRunAborted = true;
-                abortController.abort();
-            }, totalDeadlineMs);
 
             // An accumulator built on Maps: both the component id and the prop
             // names come from the schema and from a brick file, and for
@@ -253,7 +312,7 @@ export function useRendererDataSources(options: IRendererDataSourcesOptions): IR
                         }),
                         concurrency
                     ),
-                    totalDeadlineMs + BRICKS_SSR_DEADLINE_MARGIN_MS,
+                    remainingBudgetMs() + BRICKS_SSR_DEADLINE_MARGIN_MS,
                     () => createDataSourceDeadlineError(totalDeadlineMs)
                 );
             } catch (error: unknown) {

@@ -5,7 +5,8 @@
  * response is cut off while being read and never buffered in full (the former
  * post-parse measurement through JSON.stringify kept both the fully parsed
  * object and its serialized copy in memory — a memory spike stayed possible).
- * Content-Length, if the server sent it, is checked before the body is read.
+ * Content-Length, if the server sent it, is checked before the body is read — but only
+ * where the two measure the same thing (see `readResponseWithinByteBudget`).
  */
 
 // #region Types
@@ -117,11 +118,22 @@ export async function readResponseWithinByteBudget(
         return undefined;
     }
 
-    const declaredLength = Number(response.headers.get('content-length'));
+    // The early refusal only applies where the header and the counter below measure the
+    // same bytes. By RFC 9110 `Content-Length` is the length AFTER the content coding,
+    // while `response.body` hands out the decoded stream — so on a compressed response
+    // the two numbers are about different things, and the header is left to the streaming
+    // check, which sees the real size either way. `identity` is spelled out because it is
+    // a legal way of saying "not encoded"
+    const contentEncoding = (response.headers.get('content-encoding') ?? '').trim();
+    const isBodyEncoded = contentEncoding !== '' && contentEncoding.toLowerCase() !== 'identity';
 
-    if (Number.isFinite(declaredLength) && declaredLength > maxResponseBytes) {
-        await response.body.cancel();
-        throw new DataSourceResponseTooLargeError(declaredLength, maxResponseBytes);
+    if (!isBodyEncoded) {
+        const declaredLength = Number(response.headers.get('content-length'));
+
+        if (Number.isFinite(declaredLength) && declaredLength > maxResponseBytes) {
+            await response.body.cancel();
+            throw new DataSourceResponseTooLargeError(declaredLength, maxResponseBytes);
+        }
     }
 
     const reader = response.body.getReader();
