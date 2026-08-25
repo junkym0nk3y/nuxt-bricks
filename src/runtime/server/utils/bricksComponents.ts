@@ -61,12 +61,15 @@ export async function resolveBricksComponents(
         .map(({ name, brickPath }) => ({ name, brickPath }));
 
     if (components.length === 0) {
+        // No `data.description` next to the message: the server does not know the
+        // language of the interface, so any prose it puts into the body would ship
+        // in exactly one of them. The whole error surface of /api/bricks/** is
+        // English developer text in `statusMessage`, and this hint belongs there
+        // too — a consumer that wants a localized message maps the status itself.
         throw createError({
-            statusMessage: 'Components category not found!',
+            statusMessage:
+                'Components category not found: no brick files of this category exist in components/',
             statusCode: 404,
-            data: {
-                description: 'Убедитесь, что brick-файлы этой категории существуют в components/',
-            },
         });
     }
 

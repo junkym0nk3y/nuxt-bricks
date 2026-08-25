@@ -18,6 +18,7 @@ import type { IBricksToastEmits, IBricksToastProps } from './types.d.ts';
 
 // Vue
 import { computed, useCssModule } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Reka UI
 import {
@@ -56,6 +57,7 @@ const emit = defineEmits<IBricksToastEmits>();
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const $style = useCssModule();
 
 /** The close came from Escape — see `onEscapeKeyDown` */
@@ -175,7 +177,11 @@ function onEscapeKeyDown(): void {
                 {{ props.actionLabel }}
             </ToastAction>
 
-            <ToastClose :class="$style.closeButton" aria-label="Close" @click.stop>
+            <ToastClose
+                :class="$style.closeButton"
+                :aria-label="t('bricks.common.close')"
+                @click.stop
+            >
                 <BricksIcon icon="ta:outline-x" />
             </ToastClose>
         </ToastRoot>

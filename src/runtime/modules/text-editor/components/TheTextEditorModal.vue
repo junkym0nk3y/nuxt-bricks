@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
 
             <BricksModalFooter size="lg">
                 <BricksButton variant="primary" size="md" @click="handleDone">
-                    Готово
+                    {{ t('bricks.textEditor.done') }}
                 </BricksButton>
             </BricksModalFooter>
         </div>

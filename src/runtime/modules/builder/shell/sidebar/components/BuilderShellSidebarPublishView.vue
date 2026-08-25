@@ -255,13 +255,13 @@ watch(formKey, () => {
             </Transition>
 
             <div :class="$style.formGroup">
-                <label :class="$style.label">Layout</label>
+                <label :class="$style.label">{{ t('bricks.publish.layout') }}</label>
                 <BricksSelect
                     :value="settings.layout || defaultLayout"
                     :specs="layoutOptions"
                     :facets="layoutFacets"
                     :disabled="isSubmitting"
-                    aria-label="Layout"
+                    :aria-label="t('bricks.publish.layout')"
                     @update:value="handleLayoutChange"
                 />
             </div>
@@ -313,7 +313,7 @@ watch(formKey, () => {
                     <div :class="$style.addressFields">
                         <div :class="$style.addressField">
                             <BricksInput
-                                label="URL Prefix"
+                                :label="t('bricks.publish.urlPrefix')"
                                 :value="settings.urlPrefix"
                                 type="text"
                                 placeholder="blog"
@@ -369,7 +369,7 @@ watch(formKey, () => {
             </BuilderPublishSeoFields>
 
             <div :class="$style.formGroup">
-                <label :class="$style.label">OG/Twitter image</label>
+                <label :class="$style.label">{{ t('bricks.publish.socialImage') }}</label>
                 <BuilderShellSidebarPublishSocialImage
                     :social-image="settings.socialImage || null"
                     :is-submitting="isSubmitting"

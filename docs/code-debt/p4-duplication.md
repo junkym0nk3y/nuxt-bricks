@@ -357,23 +357,22 @@ Swiper без loop-дубликатов).
 
 ---
 
-## 21. Приведение `$i18n as Composer` повторяется в семи файлах рантайма
+## 21. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
 
 **Файлы:** `plugins/builder/veeValidateSetup.ts`,
 `plugins/builder/textEditorToolbarSetup.ts`,
-`builder/core/composables/useModalOptions.ts`,
 `builder/publish/composables/usePublishPreview.ts`,
-`builder/publish/stores/publish.ts`, `builder/publish/utils/formValidation.ts`,
-`builder/publish/utils/requestErrors.ts`
+`builder/publish/stores/publish.ts`, `builder/publish/utils/formValidation.ts`
 
-Общий хелпер уже есть — `common/utils/globalI18n.ts` (`translateBricksKey`): он появился
-там, где два стора медиатеки держали байт-в-байт одинаковую функцию перевода вместе с
-JSDoc, и оба на него переведены.
+Общий хелпер — `common/utils/globalI18n.ts` (`translateBricksKey`): он появился там, где
+два стора медиатеки держали байт-в-байт одинаковую функцию перевода вместе с JSDoc, и оба
+на него переведены. Параметры интерполяции он теперь принимает, то есть препятствия,
+записанного здесь прежде, больше нет.
 
-Остальные семь мест приводят `useNuxtApp().$i18n` к `Composer` сами. Механически их не
-свести: часть зовёт `t` с параметрами интерполяции, часть подставляет свой фолбэк вместо
-ключа, а плагины уже держат `nuxtApp` под рукой. То есть хелперу нужна перегрузка с
-параметрами, и только после неё места переводятся по одному.
+Оставшиеся места приводят `useNuxtApp().$i18n` к `Composer` сами. Три из них
+(`usePublishPreview`, `publish`, `formValidation`) держат буквально тело хелпера —
+`return i18n ? i18n.t(key) : key` — и переводятся механически. Плагины сложнее: они уже
+держат `nuxtApp` под рукой, и вызов, который резолвит приложение заново, им не выигрыш.
 
 ---
 

@@ -1,5 +1,4 @@
-import type { Composer } from 'vue-i18n';
-import { useNuxtApp } from '#imports';
+import { translateBricksKey } from '../../../common/utils/globalI18n';
 import { PAGE_CONFLICT_CODES } from '../../../common/constants/publish';
 import { BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY } from '../../../common/constants/apiErrors';
 import type { TRequestErrorLike } from '../../../common/types/bricks-api';
@@ -46,22 +45,10 @@ export function isRevisionConflictError(error: unknown): boolean {
 }
 
 /**
- * Translates a key through the global i18n. `$i18n` is resolved lazily: these
- * utilities are called outside a setup context, and the fallback covers a Nuxt app
- * with no i18n plugin registered. It does not cover the absence of a Nuxt context
- * altogether — `useNuxtApp()` throws there, and in the units the call goes through
- * only because `#imports` is stubbed.
- */
-function translate(key: string, fallback?: string): string {
-    const i18n = useNuxtApp().$i18n as Composer | undefined;
-    return i18n ? i18n.t(key) : (fallback ?? key);
-}
-
-/**
  * Returns the localized "unknown error" message.
  */
 function unknownErrorMessage(): string {
-    return translate('bricks.common.unknownError', 'Неизвестная ошибка');
+    return translateBricksKey('bricks.common.unknownError');
 }
 
 /**
@@ -73,10 +60,7 @@ function unknownErrorMessage(): string {
  * @returns The message for the user.
  */
 function timeoutMessage(method: string): string {
-    // No fallback string: there is no point in duplicating the locale text in
-    // the code, and outside a Nuxt context (units) `translate` returns the key
-    // itself — same as for the revision conflict
-    return translate(resolveRequestTimeoutMessageKey(method));
+    return translateBricksKey(resolveRequestTimeoutMessageKey(method));
 }
 
 /**
@@ -206,7 +190,7 @@ export async function toPageWriteError(
 
     await refreshPagesWithinDeadline(refreshPages);
 
-    return new Error(translate('bricks.publish.toasts.revisionConflict'));
+    return new Error(translateBricksKey('bricks.publish.toasts.revisionConflict'));
 }
 
 /**
@@ -279,7 +263,7 @@ export function toRequestError(method: string, url: string, error: unknown): Err
     // rolled back
     if (isStatementTimeoutError(error)) {
         return new RequestError(
-            translate(BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY),
+            translateBricksKey(BRICKS_STATEMENT_TIMEOUT_MESSAGE_KEY),
             extractStatusCode((error ?? {}) as TRequestErrorLike),
             undefined,
             error

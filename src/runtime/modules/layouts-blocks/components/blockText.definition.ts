@@ -121,8 +121,12 @@ function bindTextCanvas(ctx: IBlockCanvasContext): Record<string, unknown> {
 
 /**
  * Definition of the Text block: HTML text.
- * The `content` default is a Russian string, matching what block creation has always
- * produced; it is UI text still awaiting i18n.
+ *
+ * The structural default of `content` is empty, and the starting text arrives through
+ * `seedProps`: a default travels into the page schema on the first save and from that
+ * moment belongs to the person editing, not to the interface. An empty block would be
+ * next to impossible to hit with the cursor, which is why the seed is not simply
+ * dropped.
  */
 export const blockTextDefinition: IBlockDefinition = {
     name: 'Text',
@@ -135,12 +139,15 @@ export const blockTextDefinition: IBlockDefinition = {
     },
     canvasBind: bindTextCanvas,
     renderPublished: renderTextPublished,
+    seedProps: (translate) => ({
+        content: `<p>${translate('bricks.blocks.text.defaultContent')}</p>`,
+    }),
     properties: [
         {
             name: 'content',
             type: 'textarea',
             label: 'bricks.blocks.text.props.content.label',
-            default: '<p>Введите текст</p>',
+            default: '',
         },
         {
             name: 'fontSize',

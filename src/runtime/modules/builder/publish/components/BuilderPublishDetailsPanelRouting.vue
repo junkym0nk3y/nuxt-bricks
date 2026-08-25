@@ -46,7 +46,7 @@ watch(
         <div :class="$style.routingFields">
             <div :class="$style.field">
                 <BricksInput
-                    label="URL Prefix"
+                    :label="t('bricks.publish.urlPrefix')"
                     :value="props.urlPrefix"
                     type="text"
                     :max-length="100"

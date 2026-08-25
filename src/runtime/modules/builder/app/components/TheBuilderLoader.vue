@@ -17,13 +17,6 @@
 // Types
 import type { IBuilderLoaderEmits, IBuilderLoaderProps } from '../types/builder';
 
-// Constants
-import {
-    LOADER_DEFAULT_PHRASE,
-    LOADER_PHRASES,
-    type TLoaderPhraseLocale,
-} from '../constants/loaderPhrases';
-
 // Vue
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -78,18 +71,19 @@ const LOADING_PROGRESS_CEILING = 99;
  */
 const PHRASE_INTERVAL_MS = 1200;
 
-const { locale } = useI18n();
+const { t, tm, rt } = useI18n();
 
 /** The current value of the progress (0–100): the width of the bar and the percentage text. */
 const progress = ref(props.isLoading ? MIN_VISIBLE_PROGRESS : 0);
 
+/** Locale key of the rotating phrases (an array behind it, hence `tm`). */
+const LOADER_PHRASES_KEY = 'bricks.common.loaderPhrases';
+
 /** Whether the overlay is visible. It drives the v-if on the root element. */
 const isVisible = ref(props.isLoading);
 
-/** The default caption of the active locale — the same on SSR and on the client (no randomness). */
-const defaultPhrase = computed<string>(
-    () => LOADER_DEFAULT_PHRASE[locale.value as TLoaderPhraseLocale] ?? LOADER_DEFAULT_PHRASE.ru
-);
+/** The default caption — the same on SSR and on the client (no randomness). */
+const defaultPhrase = computed<string>(() => t('bricks.common.loading'));
 
 /** The current phrase under the bar: the default from the first frame, then the rotation. */
 const currentPhrase = ref(defaultPhrase.value);
@@ -114,10 +108,21 @@ const progressStyle = computed(() => ({
     width: `${progress.value}%`,
 }));
 
-/** The phrases of the loader for the active locale (the fallback is ru). */
-const phrases = computed<string[]>(
-    () => LOADER_PHRASES[locale.value as TLoaderPhraseLocale] ?? LOADER_PHRASES.ru
-);
+/**
+ * The phrases of the loader for the active locale. `tm` rather than `t`: the value
+ * behind the key is an array, and every element still has to go through `rt` — what
+ * `tm` hands back are compiled messages, not strings. Add, edit and remove lines
+ * straight in `locales/{ru,en}.json`; nothing else has to change.
+ */
+const phrases = computed<string[]>(() => {
+    const messages: unknown = tm(LOADER_PHRASES_KEY);
+
+    if (!Array.isArray(messages)) {
+        return [];
+    }
+
+    return messages.map((message) => rt(message));
+});
 // #endregion
 
 // #region Methods

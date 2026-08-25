@@ -23,6 +23,7 @@ import {
     watch,
     type Component,
 } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Composables
 import { useBrickImports } from '../../../../common/composables/useBrickImports';
@@ -58,6 +59,7 @@ const MEASURE_PROBE_ID = 'measure-probe';
  * Logic of the card preview: the async component, the refs of its areas and the scale.
  */
 export function useComponentCardPreview(props: ISidebarComponentCardProps): IComponentCardPreview {
+    const { t } = useI18n();
     const { findImportModule } = useBrickImports();
     const ComponentPreview = shallowRef<Component | null>(null);
     const previewWrapperRef = ref<HTMLElement | null>(null);
@@ -150,6 +152,7 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
             boundProps: componentProps.value,
             childComponents: [],
             renderChild: () => null,
+            t,
         };
 
         return resolveCanvasBind(definition, context);

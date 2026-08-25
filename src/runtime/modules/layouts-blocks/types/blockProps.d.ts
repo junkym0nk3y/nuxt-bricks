@@ -85,6 +85,19 @@ export interface IAccordionLayoutProps {
     animationDuration?: number; // ms, animation speed
 }
 
+/**
+ * Props of the Accordion block component (both surfaces bind them).
+ */
+export interface IBlockAccordionProps {
+    layoutProps: IAccordionLayoutProps;
+    /**
+     * Prompt shown in place of an empty item list. An editor affordance: only the
+     * canvas passes it, and a published page leaves the block empty instead of
+     * showing a prompt in the language of the editor.
+     */
+    emptyLabel?: string;
+}
+
 export interface ISectionLayoutProps {
     backgroundColor?: string; // CSS color / CSS variable
     backgroundImage?: string; // URL of the background image
@@ -105,6 +118,12 @@ export interface IBlockSvgProps {
     alignment?: 'left' | 'center' | 'right';
     marginTop?: number;
     marginBottom?: number;
+    /**
+     * Prompt shown in place of an unpicked SVG. An editor affordance: only the canvas
+     * passes it, and a published page leaves the block empty instead of showing a
+     * prompt in the language of the editor.
+     */
+    emptyLabel?: string;
 }
 
 export interface IBlockMediaProps {

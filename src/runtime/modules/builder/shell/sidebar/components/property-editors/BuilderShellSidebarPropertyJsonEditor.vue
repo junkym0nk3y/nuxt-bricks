@@ -51,9 +51,12 @@ import BricksFieldError from '../../../../../ui/inputs/BricksFieldError.vue';
 // #endregion
 
 // #region Props
+// The caption defaults to empty rather than to a word: `withDefaults` is compiled
+// into the props options, where the translator does not exist yet — so the fallback
+// is resolved by a computed below
 const props = withDefaults(defineProps<IPropertyJsonEditorProps>(), {
     modelValue: () => ({}),
-    label: 'JSON',
+    label: '',
 });
 // #endregion
 
@@ -81,6 +84,9 @@ const lastEmittedValue = ref<string>(toCanonical(props.modelValue));
 // #endregion
 
 // #region Computed
+/** Caption of the field: the one passed in, or the generic name of the editor */
+const resolvedLabel = computed(() => props.label || t('bricks.properties.json.label'));
+
 const highlightTokens = computed(() => tokenizeJson(draftText.value));
 // #endregion
 
@@ -243,7 +249,7 @@ watch(
 
 <template>
     <div :class="$style.BuilderShellSidebarPropertyJsonEditor">
-        <label v-if="props.label" :for="fieldId" :class="$style.label">{{ props.label }}</label>
+        <label :for="fieldId" :class="$style.label">{{ resolvedLabel }}</label>
 
         <div :class="[$style.field, { [$style._invalid]: Boolean(parseError) }]">
             <pre ref="highlightRef" aria-hidden="true" :class="$style.highlight"><span

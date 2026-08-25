@@ -10,6 +10,7 @@ import { getBlockDefinition, resolveCanvasBind } from '../../../../layouts-block
 
 // Vue
 import { computed, h } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Components
 import { CANVAS_BLOCK_COMPONENTS } from '../../../../layouts-blocks/canvasBlockComponents';
@@ -52,6 +53,8 @@ const renderLayoutChild = (child: IBricksComponent) =>
 // #region Computed
 const blockDefinition = computed(() => getBlockDefinition(props.layoutName));
 
+const { t } = useI18n();
+
 const blockComponent = computed(() => {
     const definition = blockDefinition.value;
     return definition ? CANVAS_BLOCK_COMPONENTS[definition.name] : undefined;
@@ -69,6 +72,7 @@ const canvasBindings = computed<Record<string, unknown>>(() => {
         boundProps: props.componentBoundProps,
         childComponents: props.childComponents,
         renderChild: renderLayoutChild,
+        t,
     };
 
     return {

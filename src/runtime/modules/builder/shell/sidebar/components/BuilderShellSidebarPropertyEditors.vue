@@ -352,7 +352,7 @@ watch(
             </div>
 
             <div :class="$style.optWrapper">
-                <div :class="$style.optTitle">HTML ID</div>
+                <div :class="$style.optTitle">{{ t('bricks.properties.htmlId') }}</div>
                 <BricksInput
                     :value="props.htmlIdValue"
                     placeholder="my-section"

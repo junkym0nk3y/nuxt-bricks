@@ -83,6 +83,26 @@ describe('resolveBricksComponents: группировка по категори�
         });
     });
 
+    // Тело ответа пересекает HTTP-границу и рендерится у потребителя: прозы на
+    // одном выбранном языке в нём быть не должно, подсказка живёт в английском
+    // statusMessage
+    it('404 несёт английский statusMessage и не кладёт прозу в data', async () => {
+        mockManifest([['Hero', 'Marketing']]);
+
+        let error = {} as { statusMessage?: string; data?: unknown };
+        try {
+            await resolveBricksComponents('Unknown');
+        } catch (reason) {
+            error = reason as { statusMessage?: string; data?: unknown };
+        }
+
+        expect(error.statusMessage).toBe(
+            'Components category not found: no brick files of this category exist in components/'
+        );
+        expect(error.statusMessage).not.toMatch(/[А-Яа-яЁё]/);
+        expect(error.data).toBeUndefined();
+    });
+
     it('несгенерированный манифест → пустой список без падения', async () => {
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         getItemMock.mockResolvedValue(null);

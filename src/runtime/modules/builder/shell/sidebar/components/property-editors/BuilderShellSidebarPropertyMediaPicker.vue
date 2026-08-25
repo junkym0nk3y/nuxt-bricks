@@ -22,9 +22,12 @@ interface IPropertyMediaPickerProps {
     type?: 'image' | 'video';
 }
 
+// The caption defaults to empty rather than to a word: `withDefaults` is compiled
+// into the props options, where the translator does not exist yet — so the fallback
+// is resolved by a computed below
 const props = withDefaults(defineProps<IPropertyMediaPickerProps>(), {
     modelValue: '',
-    label: 'Media',
+    label: '',
     type: 'image',
 });
 // #endregion
@@ -43,6 +46,9 @@ const { t } = useI18n();
 // #endregion
 
 // #region Computed
+/** Caption of the field: the one passed in, or the generic name of the editor */
+const resolvedLabel = computed(() => props.label || t('bricks.properties.mediaPicker.label'));
+
 const hasMedia = computed(() => Boolean(props.modelValue));
 const mediaType = computed(() => props.type);
 const previewIcon = computed(() =>
@@ -69,14 +75,14 @@ function handleRemove(): void {
 
 <template>
     <div :class="$style.BuilderShellSidebarPropertyMediaPicker">
-        <label v-if="label" :class="$style.label">{{ label }}</label>
+        <label :class="$style.label">{{ resolvedLabel }}</label>
 
         <div :class="$style.preview">
             <img
                 v-if="hasMedia && mediaType === 'image'"
                 :src="modelValue"
                 :class="$style.previewImage"
-                alt="Preview"
+                :alt="t('bricks.properties.mediaPicker.previewAlt')"
                 loading="lazy"
                 decoding="async"
             />

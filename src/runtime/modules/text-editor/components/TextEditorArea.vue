@@ -200,7 +200,7 @@ function handleModalClose(): void {
         ></textarea>
 
         <p v-if="loadingError" :class="$style.error">
-            Не удалось загрузить редактор. Используется простой textarea.
+            {{ t('bricks.textEditor.loadFailedFallback') }}
         </p>
 
         <TheTextEditorModal

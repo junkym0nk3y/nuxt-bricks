@@ -22,6 +22,7 @@ const props = withDefaults(defineProps<IBlockSvgProps>(), {
     alignment: 'left',
     marginTop: 0,
     marginBottom: 0,
+    emptyLabel: '',
 });
 // #endregion
 
@@ -125,9 +126,9 @@ function resolveDimension(value: string | number | undefined): string {
             decoding="async"
         />
 
-        <div v-else :class="$style.placeholder">
+        <div v-else-if="props.emptyLabel" :class="$style.placeholder">
             <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-photo" />
-            <span :class="$style.placeholderText">Выберите SVG из медиа</span>
+            <span :class="$style.placeholderText">{{ props.emptyLabel }}</span>
         </div>
     </div>
 </template>

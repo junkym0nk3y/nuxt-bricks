@@ -7,11 +7,27 @@ export interface IRendererBrickResolverOptions {
     findImportModule: (brickPath: string) => (() => Promise<IBrickExportModule>) | undefined;
 }
 
+/**
+ * Texts of the placeholder of an unavailable component. Supplied by the preview
+ * surface alone: `render` carries no locales of its own (i18n is installed under
+ * `features.builder`), and a visitor of the published page must not be shown the
+ * internal state of the component library in whatever language the editor happens
+ * to run. Absent labels mean "render an empty node in its place".
+ */
+export interface IRendererPlaceholderLabels {
+    /** Builds the title out of the component name taken from the schema. */
+    title: (componentName: string) => string;
+    /** Shown when the brick file is missing from the library. */
+    missingBrick: string;
+}
+
 export interface IRendererProps {
     component: IBricksComponent;
     allComponents?: IBricksComponent[];
     /** The key is `component.id` from the schema, hence a `Map` as the container. */
     resolvedProps?: Map<string, Record<string, unknown>>;
+    /** Diagnostics of an unavailable component; `null` on a published page. */
+    placeholderLabels?: IRendererPlaceholderLabels | null;
 }
 
 export type TRendererChildRenderer = (component: IBricksComponent) => VNodeChild;
@@ -45,7 +61,7 @@ export type TRendererLayoutResult =
     | { kind: 'refused'; reason: TRendererLayoutRefusalReason };
 
 export interface IRendererPlaceholderProps {
-    title?: string;
+    title: string;
     description?: string;
 }
 

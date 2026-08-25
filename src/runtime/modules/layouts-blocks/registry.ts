@@ -2,7 +2,7 @@
 // Types
 import type { IComponentLibraryItem, TBricksDeviceKey } from '../common/types/brick';
 import type { ILayoutProperty } from '../common/types/layoutProperty';
-import type { IBlockCanvasContext, IBlockDefinition } from './types/registry';
+import type { IBlockCanvasContext, IBlockDefinition, TBlockTranslator } from './types/registry';
 
 // Definitions
 import { blockGridDefinition } from './components/blockGrid.definition';
@@ -105,6 +105,26 @@ export function getLayoutLibraryItems(): IComponentLibraryItem[] {
         ...(definition.isInteractive ? { isInteractive: true } : {}),
         defaultProps: deriveDefaultProps(definition),
     }));
+}
+
+/**
+ * Localized starting content of a block, ready to be merged into the defaultProps of
+ * a library card. Empty for a block that declares no seed.
+ *
+ * Separate from `getLayoutLibraryItems` on purpose: the library list is assembled
+ * once, while the seed follows the current language and has to be recomputed when it
+ * changes — a block dragged out after a language switch starts in the new one, and a
+ * block already on the canvas keeps what it was created with.
+ *
+ * @param name - Block name as the registry knows it.
+ * @param translate - Translator of the builder.
+ * @returns Props to override in the library card, or an empty object.
+ */
+export function resolveBlockSeedProps(
+    name: string,
+    translate: TBlockTranslator
+): Record<string, unknown> {
+    return getBlockDefinition(name)?.seedProps?.(translate) ?? {};
 }
 
 /**

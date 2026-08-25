@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IAccordionLayoutProps, IAccordionItem } from '../types/blockProps';
+import type { IBlockAccordionProps, IAccordionItem } from '../types/blockProps';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -20,9 +20,9 @@ import {
 // #endregion
 
 // #region Props
-const props = defineProps<{
-    layoutProps: IAccordionLayoutProps;
-}>();
+const props = withDefaults(defineProps<IBlockAccordionProps>(), {
+    emptyLabel: '',
+});
 // #endregion
 
 // #region Data
@@ -146,8 +146,8 @@ function handleUpdateValues(values: string | string[] | undefined): void {
             </AccordionContent>
         </AccordionItem>
 
-        <div v-if="normalizedItems.length === 0" :class="$style.empty">
-            Добавьте элементы через панель свойств
+        <div v-if="normalizedItems.length === 0 && props.emptyLabel" :class="$style.empty">
+            {{ props.emptyLabel }}
         </div>
     </AccordionRoot>
 </template>

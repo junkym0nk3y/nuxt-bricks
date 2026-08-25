@@ -576,7 +576,7 @@ onMounted(() => {
                     <div :class="$style.advancedFields">
                         <div :class="$style.field">
                             <BricksInput
-                                label="URL Prefix"
+                                :label="t('bricks.publish.urlPrefix')"
                                 :value="urlPrefix"
                                 type="text"
                                 :max-length="100"

@@ -21,7 +21,6 @@ import { sanitizeRichTextHtml } from '../../common/utils/sanitize/sanitizeRichTe
 // attribute
 const props = withDefaults(defineProps<IBlockTextProps>(), {
     componentId: '',
-    content: '<p>Начните вводить текст...</p>',
     fontSize: undefined,
     marginTop: 0,
     marginBottom: 0,

@@ -28,7 +28,7 @@ export interface IVariantBuilderTools {
      */
     resolveLabel: (property: IPropertyDefinition) => string;
     /** i18n translator for the captions of the panel itself, the switch label among them */
-    t: (key: string) => string;
+    t: (key: string, params?: Record<string, unknown>) => string;
 }
 
 export type TVariantBuilder = (
@@ -129,7 +129,11 @@ function buildTextareaVariant(context: IPropertyVariantContext, tools: IVariantB
         label: tools.resolveLabel(property),
         value: formatDisplayValue(readPropValue(context)),
         disabled: false,
-        placeholder: `Enter ${property.label || property.name}`,
+        // The already resolved caption, not `property.label`: the latter holds a locale
+        // key for the properties of the kit, and a raw key would land in the placeholder
+        placeholder: tools.t('bricks.properties.valuePlaceholder', {
+            label: tools.resolveLabel(property),
+        }),
         property,
     });
 }

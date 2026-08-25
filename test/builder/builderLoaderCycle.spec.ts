@@ -19,7 +19,13 @@ import TheBuilderLoader from '../../src/runtime/modules/builder/app/components/T
 
 // #region Mocks
 vi.mock('vue-i18n', () => ({
-    useI18n: () => ({ locale: { value: 'ru' } }),
+    useI18n: () => ({
+        t: (key: string) => key,
+        // Фразы лежат в локали массивом: компонент берёт их через tm и прогоняет
+        // каждую через rt
+        tm: () => ['фраза один', 'фраза два'],
+        rt: (message: string) => message,
+    }),
 }));
 // #endregion
 

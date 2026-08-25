@@ -26,6 +26,7 @@ import {
 const props = withDefaults(defineProps<IRendererProps>(), {
     allComponents: () => [],
     resolvedProps: () => new Map<string, Record<string, unknown>>(),
+    placeholderLabels: null,
 });
 // #endregion
 
@@ -133,10 +134,29 @@ function renderPlaceholder(
     extraAttrs: Record<string, string | undefined>,
     description = ''
 ): VNode {
+    const labels = props.placeholderLabels;
+
+    // Without labels this is a published page: which brick failed to resolve is the
+    // internal state of the library, and `render` has no locales to say it in the
+    // language of the site — so the visitor is shown nothing at all. The node still
+    // takes its place in the grid (and keeps the id): the comment on
+    // buildGridItemStyle explains why a neighbor would otherwise slide into the
+    // failed cell.
+    if (!labels) {
+        return h('div', {
+            key: component.id,
+            id: component.htmlId || undefined,
+            class: visibilityClasses,
+            style: buildGridItemStyle(component),
+            ...extraAttrs,
+            'aria-hidden': 'true',
+        });
+    }
+
     return h(RendererPlaceholder, {
         key: component.id,
         id: component.htmlId || undefined,
-        title: `${component.componentName || 'Компонент'} недоступен`,
+        title: labels.title(component.componentName || ''),
         description,
         class: [styles.bricksPlaceholder, ...visibilityClasses],
         style: buildGridItemStyle(component),
@@ -177,7 +197,7 @@ function renderUiComponent(
         component,
         visibilityClasses,
         extraAttrs,
-        'Компонент не найден в библиотеке. Обновите bricks или schema.'
+        props.placeholderLabels?.missingBrick
     );
 }
 

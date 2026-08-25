@@ -3,10 +3,15 @@
  *
  * A refusal of the guard used to be indistinguishable from "this is not a
  * layout": the caller travelled into the brick resolver with a path like
- * `layout/grid`, the resolver answered undefined without a word, and the visitor
+ * `layout/grid`, the resolver answered undefined without a word, and the editor
  * of a corrupted page got the placeholder "the component is missing from the
  * library, update bricks or the schema" — a wrong diagnosis, with nothing at all
- * reaching the log. What is checked here is exactly what the visitor sees.
+ * reaching the log. What is checked here is exactly what is shown.
+ *
+ * The diagnosis itself belongs to the preview: `render` carries no locales, so the
+ * texts arrive as `placeholderLabels` from the surface that has a translator, and a
+ * published page passes none — a visitor gets an empty node that only holds the
+ * place in the grid.
  */
 
 // #region Imports
@@ -52,6 +57,26 @@ function makeGrid(id: string, children: string[], parent?: string): IBricksCompo
     };
 }
 
+/**
+ * Brick component of a schema with no loader behind it.
+ */
+function makeBrick(): IBricksComponent {
+    return {
+        id: 'ui',
+        type: 'component',
+        componentName: 'TestBrick',
+        brickPath: 'bricks/TestBrick',
+        zIndex: 0,
+        props: {},
+    };
+}
+
+/** Diagnostics of the preview surface: what the editor is shown. */
+const LABELS = {
+    title: (componentName: string) => `${componentName} is unavailable`,
+    missingBrick: 'The component is missing from the library.',
+};
+
 describe('TheRenderer: a layout block refused over a cycle', () => {
     beforeEach(() => {
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -68,12 +93,12 @@ describe('TheRenderer: a layout block refused over a cycle', () => {
         const b = makeGrid('b', ['a'], 'a');
 
         const wrapper = mount(TheRenderer, {
-            props: { component: a, allComponents: [a, b] },
+            props: { component: a, allComponents: [a, b], placeholderLabels: LABELS },
         });
 
         expect(findImportModuleMock).not.toHaveBeenCalled();
-        expect(wrapper.html()).not.toContain('не найден в библиотеке');
-        expect(wrapper.html()).toContain('Grid недоступен');
+        expect(wrapper.html()).not.toContain('missing from the library');
+        expect(wrapper.html()).toContain('Grid is unavailable');
         expect(console.warn).toHaveBeenCalledWith(
             expect.stringContaining('Layout block refused'),
             expect.objectContaining({ reason: 'cycle' })
@@ -81,20 +106,43 @@ describe('TheRenderer: a layout block refused over a cycle', () => {
     });
 
     it('keeps the library diagnosis for a brick component without a loader', () => {
-        const brick: IBricksComponent = {
-            id: 'ui',
-            type: 'component',
-            componentName: 'TestBrick',
-            brickPath: 'bricks/TestBrick',
-            zIndex: 0,
-            props: {},
-        };
+        const wrapper = mount(TheRenderer, {
+            props: {
+                component: makeBrick(),
+                allComponents: [makeBrick()],
+                placeholderLabels: LABELS,
+            },
+        });
 
+        expect(findImportModuleMock).toHaveBeenCalledWith('bricks/TestBrick');
+        expect(wrapper.html()).toContain('missing from the library');
+    });
+
+    // A visitor of a published page is not told which brick failed to resolve: the
+    // texts are an editor affordance, and `render` has no language to say them in
+    it('without labels leaves an empty node in place of the component', () => {
+        const brick = makeBrick();
         const wrapper = mount(TheRenderer, {
             props: { component: brick, allComponents: [brick] },
         });
 
-        expect(findImportModuleMock).toHaveBeenCalledWith('bricks/TestBrick');
-        expect(wrapper.html()).toContain('не найден в библиотеке');
+        expect(wrapper.html()).not.toContain('unavailable');
+        expect(wrapper.html()).not.toContain('missing from the library');
+        expect(wrapper.find('[aria-hidden="true"]').exists()).toBe(true);
+    });
+
+    // The placeholder used to hold the grid placement, and the empty node has to hold
+    // it too: without the placement a neighbor of the failed cell slides into it
+    it('the empty node keeps the grid placement and the html id', () => {
+        const brick = { ...makeBrick(), htmlId: 'promo', gridColumn: '2 / 4', gridRow: '1 / 2' };
+        const wrapper = mount(TheRenderer, {
+            props: { component: brick, allComponents: [brick] },
+        });
+
+        const node = wrapper.find('#promo');
+
+        expect(node.exists()).toBe(true);
+        expect(node.attributes('style')).toContain('grid-column: 2 / 4');
+        expect(node.attributes('style')).toContain('grid-row: 1 / 2');
     });
 });

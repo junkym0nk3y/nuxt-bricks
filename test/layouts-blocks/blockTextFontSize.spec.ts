@@ -39,6 +39,7 @@ function fontSizeVars(props: Record<string, unknown>): Record<string, string> {
         boundProps: props,
         childComponents: [],
         renderChild: () => null,
+        t: (key: string) => key,
     });
 
     return (bind?.style ?? {}) as Record<string, string>;
@@ -83,6 +84,7 @@ describe('BlockText: размер шрифта', () => {
             boundProps: {},
             childComponents: [],
             renderChild: () => null,
+            t: (key: string) => key,
         });
 
         expect(bind?.['data-bricks-layout']).toBe('text');

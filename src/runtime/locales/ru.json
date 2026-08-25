@@ -18,7 +18,20 @@
             "hidePassword": "Скрыть пароль",
             "tagsLimit": "Лимит {max} символов исчерпан",
             "save": "Сохранить",
-            "removeTag": "Удалить тег {tag}"
+            "removeTag": "Удалить тег {tag}",
+            "loaderPhrases": [
+                "Раскладываем кубики по слотам…",
+                "Прогреваем glob-кэш Vite…",
+                "Уговариваем TipTap не терять фокус…",
+                "Гидратируем черновики…",
+                "Считаем rem-компенсацию…",
+                "Красим пиксели в var(--bricks-primary)…",
+                "Собираем манифест бриков…",
+                "Договариваемся с painter’s algorithm…",
+                "Выравниваем всё по сетке 0.2rem…",
+                "Будим Pinia-сторы…",
+                "Ждём, когда обновится Usage Limit в Claude…"
+            ]
         },
         "toolbar": {
             "grid": "Сетка",
@@ -244,7 +257,14 @@
             "json": {
                 "invalid": "Некорректный JSON",
                 "notObject": "Ожидается объект или массив",
-                "format": "Форматировать"
+                "format": "Форматировать",
+                "label": "JSON"
+            },
+            "htmlId": "HTML ID",
+            "valuePlaceholder": "Введите {label}",
+            "mediaPicker": {
+                "label": "Медиа",
+                "previewAlt": "Превью"
             }
         },
         "publish": {
@@ -460,6 +480,17 @@
                 "descriptionPlaceholder": "Краткое описание страницы для поисковой выдачи",
                 "keywordsLabel": "Ключевые слова (keywords)",
                 "keywordsPlaceholder": "промо, лендинг, маркетинг"
+            },
+            "layout": "Раскладка",
+            "urlPrefix": "Префикс URL",
+            "socialImage": "Изображение OG/Twitter",
+            "preview": {
+                "mode": "Режим превью",
+                "close": "Закрыть превью",
+                "loading": "Загружаем страницу…",
+                "component": "Компонент",
+                "componentUnavailable": "{name} недоступен",
+                "componentMissing": "Компонент не найден в библиотеке. Обновите bricks или схему."
             }
         },
         "media": {
@@ -607,7 +638,8 @@
             "zoomIn": "Приблизить",
             "zoomOut": "Отдалить",
             "zoomReset": "Сбросить масштаб",
-            "viewportLabel": "Режим просмотра канваса"
+            "viewportLabel": "Режим просмотра канваса",
+            "componentDisabled": "Отключен"
         },
         "textEditor": {
             "editorTitle": "Редактор текста",
@@ -665,7 +697,8 @@
                 "insertImage": "Вставить изображение",
                 "darkBackground": "Тёмный фон",
                 "divider": "Разделитель"
-            }
+            },
+            "loadFailedFallback": "Не удалось загрузить редактор. Используется простой textarea."
         },
         "docs": {
             "title": "Документация",
@@ -1005,7 +1038,8 @@
                 },
                 "groups": {
                     "spacing": "Отступы"
-                }
+                },
+                "emptyLabel": "Выберите SVG из медиа"
             },
             "text": {
                 "description": "Текстовый блок с HTML-контентом.",
@@ -1025,7 +1059,8 @@
                 },
                 "groups": {
                     "spacing": "Отступы"
-                }
+                },
+                "defaultContent": "Введите текст"
             },
             "accordion": {
                 "description": "Аккордеон — список раскрывающихся элементов с заголовком и контентом.",
@@ -1058,7 +1093,8 @@
                         "label": "Скорость анимации (ms)",
                         "description": "Длительность анимации раскрытия/закрытия в миллисекундах"
                     }
-                }
+                },
+                "emptyLabel": "Добавьте элементы через панель свойств"
             }
         },
         "devices": {

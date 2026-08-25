@@ -4,9 +4,12 @@ import type { IRendererPlaceholderProps } from '../types/render';
 // #endregion
 
 // #region Props
+// No language defaults: the component is rendered by `render`, which carries no
+// locales, and a baked-in string would serve exactly one language. Both texts come
+// from the preview surface — the only caller that has a translator (see
+// IRendererPlaceholderLabels)
 const props = withDefaults(defineProps<IRendererPlaceholderProps>(), {
-    title: 'Компонент недоступен',
-    description: 'Проверьте brickPath или перегенерируйте схему.',
+    description: '',
 });
 // #endregion
 </script>

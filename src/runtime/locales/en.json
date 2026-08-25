@@ -18,7 +18,20 @@
             "hidePassword": "Hide password",
             "tagsLimit": "Character limit {max} reached",
             "save": "Save",
-            "removeTag": "Remove tag {tag}"
+            "removeTag": "Remove tag {tag}",
+            "loaderPhrases": [
+                "Stacking bricks into slots…",
+                "Warming up the Vite glob cache…",
+                "Convincing TipTap to keep focus…",
+                "Hydrating drafts…",
+                "Computing rem compensation…",
+                "Painting pixels in var(--bricks-primary)…",
+                "Assembling the brick manifest…",
+                "Negotiating with the painter’s algorithm…",
+                "Snapping everything to the 0.2rem grid…",
+                "Waking up the Pinia stores…",
+                "Waiting for the Claude usage limit to reset…"
+            ]
         },
         "toolbar": {
             "grid": "Grid",
@@ -244,7 +257,14 @@
             "json": {
                 "invalid": "Invalid JSON",
                 "notObject": "An object or an array is expected",
-                "format": "Format"
+                "format": "Format",
+                "label": "JSON"
+            },
+            "htmlId": "HTML ID",
+            "valuePlaceholder": "Enter {label}",
+            "mediaPicker": {
+                "label": "Media",
+                "previewAlt": "Preview"
             }
         },
         "publish": {
@@ -460,6 +480,17 @@
                 "descriptionPlaceholder": "Short page description for search results",
                 "keywordsLabel": "Keywords",
                 "keywordsPlaceholder": "promo, landing, marketing"
+            },
+            "layout": "Layout",
+            "urlPrefix": "URL prefix",
+            "socialImage": "OG/Twitter image",
+            "preview": {
+                "mode": "Preview mode",
+                "close": "Close preview",
+                "loading": "Loading the page…",
+                "component": "Component",
+                "componentUnavailable": "{name} is unavailable",
+                "componentMissing": "The component is missing from the library. Update bricks or the schema."
             }
         },
         "media": {
@@ -607,7 +638,8 @@
             "zoomIn": "Zoom in",
             "zoomOut": "Zoom out",
             "zoomReset": "Reset zoom",
-            "viewportLabel": "Canvas view mode"
+            "viewportLabel": "Canvas view mode",
+            "componentDisabled": "Disabled"
         },
         "textEditor": {
             "editorTitle": "Text editor",
@@ -665,7 +697,8 @@
                 "insertImage": "Insert image",
                 "darkBackground": "Dark background",
                 "divider": "Divider"
-            }
+            },
+            "loadFailedFallback": "The editor failed to load — a plain textarea is used instead."
         },
         "docs": {
             "title": "Documentation",
@@ -1005,7 +1038,8 @@
                 },
                 "groups": {
                     "spacing": "Spacing"
-                }
+                },
+                "emptyLabel": "Pick an SVG from the media library"
             },
             "text": {
                 "description": "Text block with HTML content.",
@@ -1025,7 +1059,8 @@
                 },
                 "groups": {
                     "spacing": "Spacing"
-                }
+                },
+                "defaultContent": "Enter text"
             },
             "accordion": {
                 "description": "Accordion — a list of expandable items with a title and content.",
@@ -1058,7 +1093,8 @@
                         "label": "Animation speed (ms)",
                         "description": "Expand/collapse animation duration in milliseconds"
                     }
-                }
+                },
+                "emptyLabel": "Add items in the properties panel"
             }
         },
         "devices": {

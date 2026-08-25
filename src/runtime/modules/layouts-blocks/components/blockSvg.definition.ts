@@ -64,7 +64,10 @@ export const blockSvgDefinition: IBlockDefinition = {
         prefix: 'media',
         vars: ['width', 'height', 'radius'],
     },
-    canvasBind: bindBoundPropsWithComponentId,
+    canvasBind: (ctx) => ({
+        ...bindBoundPropsWithComponentId(ctx),
+        emptyLabel: ctx.t('bricks.blocks.svg.emptyLabel'),
+    }),
     renderPublished: renderSvgPublished,
     extraDefaults: {
         svgContent: '',

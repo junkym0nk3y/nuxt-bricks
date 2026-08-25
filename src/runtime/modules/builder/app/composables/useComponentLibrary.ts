@@ -7,6 +7,8 @@ import type { TCachedModal } from '../../core/types/modals';
 import type { IComponentLibraryData, IUseComponentLibraryReturn } from '../types/composables';
 
 // Utils
+import { translateBricksKey } from '../../../common/utils/globalI18n';
+import { resolveBlockSeedProps } from '../../../layouts-blocks/registry';
 import { toComponentLibraryItem } from '../utils/componentLibraryItems';
 import {
     createComponentManifestDeadlineError,
@@ -254,11 +256,33 @@ export async function useComponentLibrary(): Promise<IUseComponentLibraryReturn>
         )
     );
 
+    // Starting content of a block is materialized here, at the moment the card is
+    // built, and not stored in the definition: the definition keeps the structure
+    // language-neutral, because its defaults travel into the page schema on the first
+    // save and turn into the content of the person. Recomputed on a language switch,
+    // so a block dragged out afterwards starts in the new language while the ones
+    // already on the canvas keep the text they were created with.
+    //
+    // The translator comes from the shared helper rather than `useI18n()`: this
+    // composable is awaited by its callers and is reached from outside a setup context
+    // as well, where `useI18n` refuses to run.
+    const layoutComponents = computed<IComponentLibraryItem[]>(() =>
+        LAYOUT_COMPONENTS.map((item) => {
+            const seedProps = resolveBlockSeedProps(item.name, translateBricksKey);
+
+            if (!Object.keys(seedProps).length) {
+                return item;
+            }
+
+            return { ...item, defaultProps: { ...item.defaultProps, ...seedProps } };
+        })
+    );
+
     // The layout blocks need no manifest: a refusal of the endpoint must not take
     // those away from a person as well — otherwise nothing at all can be put onto
     // the canvas
     const componentLibraryList = computed<IComponentLibraryItem[]>(() => [
-        ...LAYOUT_COMPONENTS,
+        ...layoutComponents.value,
         ...loadableBricks.value.map(toComponentLibraryItem),
     ]);
 

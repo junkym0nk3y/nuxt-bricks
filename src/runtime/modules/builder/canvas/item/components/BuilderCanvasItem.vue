@@ -25,6 +25,7 @@ import type { ICanvasItemProps, IDragComposableCanvas } from '../../types/compon
 
 // Vue
 import { computed, inject, provide } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -53,6 +54,7 @@ const props = withDefaults(defineProps<ICanvasItemProps>(), {});
 // #endregion
 
 // #region Data
+const { t } = useI18n();
 const componentsStore = useComponentsStore();
 const canvasStore = useCanvasStore();
 const dragComposable = inject<IDragComposableCanvas | undefined>('dragComposable');
@@ -208,7 +210,9 @@ const {
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
     >
-        <div v-if="isHidden && canvasStore.showGrid" :class="$style.hiddenLabel">Отключен</div>
+        <div v-if="isHidden && canvasStore.showGrid" :class="$style.hiddenLabel">
+            {{ t('bricks.canvas.componentDisabled') }}
+        </div>
 
         <BuilderCanvasItemLayout
             v-if="isLayout"

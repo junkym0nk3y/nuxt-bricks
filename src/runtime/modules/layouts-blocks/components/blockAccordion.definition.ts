@@ -50,13 +50,32 @@ export const blockAccordionDefinition: IBlockDefinition = {
     thumbnail: 'images/layouts/accordion.svg',
     isInteractive: true,
     responsiveMode: 'none',
+    // The prompt of an empty list is bound on the canvas alone: the published render
+    // above passes no emptyLabel, so a visitor of a page with an empty accordion sees
+    // an empty block rather than an instruction addressed to the editor
+    canvasBind: (ctx) => ({
+        layoutProps: ctx.layoutProps,
+        emptyLabel: ctx.t('bricks.blocks.accordion.emptyLabel'),
+    }),
     renderPublished: renderAccordionPublished,
+    // The first item is seeded rather than kept as the structural default of `items`
+    // for the same reason as the text of a Text block: once saved it is the content of
+    // the person, and the markup wrapper is built here rather than stored in the
+    // locale file
+    seedProps: (translate) => ({
+        items: [
+            {
+                title: translate('bricks.properties.accordion.defaultTitle', { n: 1 }),
+                content: `<p>${translate('bricks.properties.accordion.defaultContent')}</p>`,
+            },
+        ],
+    }),
     properties: [
         {
             name: 'items',
             type: 'accordion-items',
             label: 'bricks.blocks.accordion.props.items.label',
-            default: [{ title: 'Вопрос 1', content: '<p>Ответ на первый вопрос</p>' }],
+            default: [],
             description: 'bricks.blocks.accordion.props.items.description',
         },
         {

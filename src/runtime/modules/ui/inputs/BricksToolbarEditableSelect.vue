@@ -275,7 +275,9 @@ async function focusCustomInput(): Promise<void> {
                             ✓
                         </button>
                     </div>
-                    <div v-if="hasError" :class="$style.errorText">Некорректное значение</div>
+                    <div v-if="hasError" :class="$style.errorText">
+                        {{ t('bricks.validation.invalidValue') }}
+                    </div>
                 </BricksPopoverSurface>
             </ComboboxContent>
         </ComboboxPortal>

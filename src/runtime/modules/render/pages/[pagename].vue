@@ -4,6 +4,7 @@
 import type { RouteLocationNormalizedLoaded } from 'vue-router';
 import type { IPublishedPage } from '../../common/types/bricks-api';
 import type { IBricksComponent } from '../../common/types/brick';
+import type { IRendererPlaceholderLabels } from '../types/render';
 
 // Vue
 import { computed, provide, ref } from 'vue';
@@ -27,6 +28,12 @@ import {
     parsePreviewVersionId,
 } from '../../common/utils/bricks/previewRoute';
 import { resolvePageAddressFromRoute } from '../../common/utils/bricks/pageAddress';
+// i18n is a builder-only dependency: module setup installs @nuxtjs/i18n under
+// features.builder, and this same page also serves the published catch-all, where the
+// plugin is absent. The helper reads `$i18n` off the Nuxt app and answers with the key
+// when there is none, so nothing here imports vue-i18n at runtime. Every call below sits
+// on a preview branch, and a preview route exists only when the builder is on.
+import { translateBricksKey } from '../../common/utils/globalI18n';
 import { BRICKS_PREVIEW_ROUTE_NAMES } from '../../common/constants/routes';
 import { BRICKS_DEVICES_KEY } from '../../common/constants/injectionKeys';
 
@@ -144,6 +151,21 @@ const allComponents = computed<IBricksComponent[]>(() => {
 const rootComponents = computed<IBricksComponent[]>(() =>
     allComponents.value.filter((component: IBricksComponent) => !component.parent)
 );
+
+// Diagnostics of an unavailable component are editor-facing, so only the preview
+// surface hands them over; on the published page the renderer gets null and puts an
+// empty node in the failed cell instead of a dashed box with text
+const placeholderLabels = computed<IRendererPlaceholderLabels | null>(() =>
+    isPreview
+        ? {
+              title: (componentName: string) =>
+                  translateBricksKey('bricks.publish.preview.componentUnavailable', {
+                      name: componentName || translateBricksKey('bricks.publish.preview.component'),
+                  }),
+              missingBrick: translateBricksKey('bricks.publish.preview.componentMissing'),
+          }
+        : null
+);
 // #endregion
 
 // #region Methods
@@ -232,12 +254,14 @@ useHead(() => {
         >
             <div v-if="isPreview" :class="$style.previewBanner">
                 <div :class="$style.previewContent">
-                    <span :class="$style.previewText">Режим превью</span>
+                    <span :class="$style.previewText">
+                        {{ translateBricksKey('bricks.publish.preview.mode') }}
+                    </span>
                     <BricksIcon :icon="currentDevice.icon" :class="$style.previewDeviceIcon" />
                     <span :class="$style.previewResolution">{{ resolutionText }}</span>
                     <RendererCloseButton
                         :class="$style.previewClose"
-                        aria-label="Закрыть превью"
+                        :aria-label="translateBricksKey('bricks.publish.preview.close')"
                         @click="closePreview"
                     />
                 </div>
@@ -249,10 +273,13 @@ useHead(() => {
                 :component="component"
                 :all-components="allComponents"
                 :resolved-props="resolvedProps"
+                :placeholder-labels="placeholderLabels"
             />
         </div>
 
-        <div v-else :class="$style.loading">Загружаем страницу...</div>
+        <div v-else :class="$style.loading">
+            {{ translateBricksKey('bricks.publish.preview.loading') }}
+        </div>
     </div>
 </template>
 

@@ -5,6 +5,7 @@ import type { IToolbarColorPicker } from './textEditorToolbar.d.ts';
 
 // Vue
 import { ref, computed, watch, type ComponentPublicInstance } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // VueUse
 import { onClickOutside, useElementBounding } from '@vueuse/core';
@@ -26,6 +27,8 @@ const props = withDefaults(
 // #endregion
 
 // #region Data
+const { t } = useI18n();
+
 const triggerRef = ref<HTMLElement | null>(null);
 /**
  * The popup is a surface component rather than a div: `onClickOutside` unwraps
@@ -184,7 +187,9 @@ watch(
                             @mousedown.stop
                         />
                     </div>
-                    <div v-if="hasError" :class="$style.errorText">Неверный HEX</div>
+                    <div v-if="hasError" :class="$style.errorText">
+                        {{ t('bricks.validation.invalidHex') }}
+                    </div>
                 </BricksPopoverSurface>
             </Transition>
         </Teleport>
