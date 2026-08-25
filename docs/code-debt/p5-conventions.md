@@ -27,7 +27,7 @@
 `src/*.ts` и композаблы рантайм-доменов, а SFC и `utils/` — нет (об этом сказано в
 самом правиле).
 
-## 1. Интерфейсы пропсов и эмитов объявлены внутри десяти SFC
+## 1. Интерфейсы пропсов и эмитов объявлены внутри девяти SFC
 
 **Файлы:** `builder/shell/toolbar/components/BuilderShellToolbarVerticalNav.vue:31,39`,
 `sidebar/components/BuilderShellSidebarPropertiesView.vue:33`,
@@ -35,7 +35,6 @@
 `sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:21,36`,
 `sidebar/components/BuilderShellSidebarSchemaTreeView.vue:30`,
 `sidebar/components/BuilderShellSidebarPublishView.vue:60`,
-`property-editors/BuilderShellSidebarPropertyJsonEditor.vue:22,27`,
 `property-editors/BuilderShellSidebarPropertyMediaPicker.vue:19,33`,
 `property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:16,21`,
 `property-editors/BuilderShellSidebarPropertySpacingEditorSide.vue:14`
@@ -167,19 +166,18 @@
 **Файлы:** `builder/canvas/editing/components/BuilderCanvasInlineEditingOverlay.vue:435-447`
 (`.fallbackEditorWrapper`),
 `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyMediaPicker.vue:139-140`,
-`property-editors/BuilderShellSidebarPropertyJsonEditor.vue:93-100`,
 `builder/media/components/BuilderMediaImageResolverItem.vue:177-181`,
 `components/TheBuilderMediaImageResolverModal.vue:199-203`
 
 `.claude/rules/styles.md` перечисляет узлы с осознанным hex-переопределением
 (`--bricks-base-0: #fff` и т. п.) **поимённо**: `TextEditorArea` (`.editor`,
-`.fallbackArea`) и `TheTextEditorModal` (`.editor`). Здесь ещё пять таких узлов, и в
+`.fallbackArea`) и `TheTextEditorModal` (`.editor`). Здесь ещё четыре таких узла, и в
 списке их нет.
 
 Пин при этом работает — проверено в живом DOM: при `bricks-dark` на body фон превью
 медиа-пикера остаётся `rgb(249, 250, 251)`, тогда как тулбар уходит в
-`rgb(40, 38, 42)`. У JSON-редактора переопределений восемь, у медиа-пикера два, у
-каждого селекта резолвера — три.
+`rgb(40, 38, 42)`. У медиа-пикера переопределений два, у каждого селекта резолвера —
+три.
 
 Причина переопределения нигде не записана: комментарии говорят «фиксируем светлую
 тему», то есть что, а не зачем.
