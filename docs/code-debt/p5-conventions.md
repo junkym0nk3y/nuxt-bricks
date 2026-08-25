@@ -2,7 +2,7 @@
 
 Код работает верно, но расходится с правилами, которые проект сам себе записал в
 `.claude/rules/*`. Цена — не в поведении, а в стоимости поддержки: правило,
-нарушаемое в одиннадцати местах, перестаёт работать как правило. Индекс —
+нарушаемое в десяти местах, перестаёт работать как правило. Индекс —
 [README.md](README.md).
 
 Разделы: [Типы вне `types/`](#типы-вне-types) ·
@@ -27,7 +27,7 @@
 `src/*.ts` и композаблы рантайм-доменов, а SFC и `utils/` — нет (об этом сказано в
 самом правиле).
 
-## 1. Интерфейсы пропсов и эмитов объявлены внутри одиннадцати SFC
+## 1. Интерфейсы пропсов и эмитов объявлены внутри десяти SFC
 
 **Файлы:** `builder/shell/toolbar/components/BuilderShellToolbarVerticalNav.vue:31,39`,
 `sidebar/components/BuilderShellSidebarPropertiesView.vue:33`,
@@ -38,7 +38,6 @@
 `property-editors/BuilderShellSidebarPropertyJsonEditor.vue:22,27`,
 `property-editors/BuilderShellSidebarPropertyMediaPicker.vue:19,33`,
 `property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:16,21`,
-`property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue:18,25`,
 `property-editors/BuilderShellSidebarPropertySpacingEditorSide.vue:14`
 
 В области такие файлы типов есть и наполовину используются (`sidebar/types/`,
