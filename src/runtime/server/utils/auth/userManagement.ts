@@ -40,10 +40,8 @@ import {
 import { runScryptTask, GateOverflowError } from './scryptGate';
 import { hashPassword } from './passwords';
 import type { TBricksUserRole } from '../../../modules/common/types/auth';
-import type {
-    IAuthUserStateChange,
-    ICreateAuthUserPayload,
-} from '../../../modules/persistence/types/authAdapters';
+import type { IAuthUserStateChange } from '../../../modules/persistence/types/authAdapters';
+import type { ICreateAuthUserPayload } from '../../../modules/persistence/types/authUserCreate';
 import type { IAuthUserCreateInput } from './types';
 
 /** Keys allowed in the account creation body */

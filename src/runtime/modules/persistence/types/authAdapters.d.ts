@@ -7,8 +7,19 @@
  * only in the built-in Postgres and are incompatible with an external backend by
  * build. Different consumers, different reasons to change; together the file
  * kept outgrowing the 500-line ceiling.
+ *
+ * For the same reason the types of the account creation protocol live in
+ * `authUserCreate.d.ts`: they own a table and a protocol of their own, and keeping
+ * them here left no room for the contract itself.
  */
 import type { IBricksUserSummary, TBricksUserRole } from '../../common/types/auth';
+import type {
+    IAuthUserCreateClaimInput,
+    IAuthUserCreateFinalizeInput,
+    IAuthUserCreateReleaseInput,
+    TAuthUserCreateClaim,
+    TAuthUserCreateOutcome,
+} from './authUserCreate';
 
 /**
  * A database-auth user record (the password hash included — for verify only).
@@ -67,6 +78,12 @@ export interface IAuthSessionUser {
      * verifying the password: scrypt on every session resolve would cost hundreds
      * of milliseconds, and the hash is changed by any password change — one's
      * own, an administrator's, or an edit in the database.
+     *
+     * The comparison is by string, so the constant and the seed of the migration are
+     * obliged to be written with the CURRENT scrypt parameters. Left behind them, the
+     * seed row would be rewritten by `rehashUserPassword` on the first sign-in, the
+     * strings would stop matching, and the warning would go out while the password is
+     * still the published default.
      */
     isDefaultPassword: boolean;
 }
@@ -79,122 +96,6 @@ export interface IAuthSessionWithUser {
     expiresAt: string;
     lastUsedAt: string;
     user: IAuthSessionUser;
-}
-
-/**
- * Data for an administrator creating an account. The password hash is computed
- * by the handler (`server/utils/auth/passwords.ts`) — the adapter never sees
- * plaintext passwords at all, so it can neither log them nor send them outward.
- *
- * The display name and the activity flag are mandatory and have already been
- * decided by the caller, even though both are optional in the creation form: the
- * adapter substitutes values into the INSERT positionally, and `undefined` would
- * reach the column as NULL — which for `is_active NOT NULL` is a rejected insert,
- * not "take the table default". The decision about "what was not sent" is made by
- * the handler, which has the request context.
- */
-export interface ICreateAuthUserPayload {
-    username: string;
-    passwordHash: string;
-    role: TBricksUserRole;
-    /** The display name; null — the username is shown everywhere. */
-    displayName: string | null;
-    /**
-     * Whether the account can log in right away. `false` — created ahead of time:
-     * login is refused until an administrator enables it.
-     */
-    isActive: boolean;
-}
-
-/**
- * The claim of an account creation operation addressed by the client's key.
- *
- * The key is claimed BEFORE the password hash is computed, and that order is the
- * whole point: the derivation is slow and runs under the process-wide semaphore, so
- * a repeat sent during the first attempt must be recognized before it starts paying
- * for a second one.
- */
-export interface IAuthUserCreateClaimInput {
-    /** The key the client generated and sent with its very first request */
-    idempotencyKey: string;
-    /**
-     * The digest of the request's meaningful fields. It answers "the same key with a
-     * different body" — such a request must be refused rather than served with the
-     * result of another operation. The password is not part of it (see the column
-     * comment in the base migration).
-     */
-    requestFingerprint: string;
-    /**
-     * How long the claim stays trusted. NOT the client's waiting ceiling: the
-     * ceiling says the client stopped waiting, while the derivation may legitimately
-     * still be queued. An expired claim may be taken over — the fencing token keeps
-     * the previous owner from writing afterwards.
-     */
-    leaseMs: number;
-}
-
-/**
- * The reasons an attempt is refused for good — a repeat would run into the same one,
- * so the refusal is stored and replayed instead of paying for a second derivation.
- */
-export type TAuthUserCreateRejection = 'USERNAME_TAKEN';
-
-/**
- * The outcome of a claim.
- *
- * `claimed` — the caller owns the operation and must finish it with
- * `createUserForOperation`, passing `attempt` back.
- * `running` — somebody else owns it and the lease is alive; the answer of the first
- * attempt is not known yet.
- * `completed` — the operation already created this account; the caller answers with
- * it and creates nothing.
- * `completedUserGone` — the operation created an account, and that account has since
- * been deleted. Creating it anew under the same key is exactly what the key
- * forbids.
- * `rejected` — the first attempt was refused for good; the refusal is replayed.
- * `payloadMismatch` — the key is known but the body differs.
- */
-export type TAuthUserCreateClaim =
-    | { status: 'claimed'; attempt: number }
-    | { status: 'running' }
-    | { status: 'completed'; user: IBricksUserSummary }
-    | { status: 'completedUserGone' }
-    | { status: 'rejected'; code: TAuthUserCreateRejection }
-    | { status: 'payloadMismatch' };
-
-/**
- * The write of an account under an owned claim: the payload plus the claim it was
- * issued under.
- */
-export interface IAuthUserCreateFinalizeInput {
-    idempotencyKey: string;
-    /** The number `claimUserCreateOperation` returned; the write is conditional on it */
-    attempt: number;
-    payload: ICreateAuthUserPayload;
-}
-
-/**
- * The outcome of the write.
- *
- * `created` — the account exists and the operation is closed by it.
- * `rejected` — the write was refused for good, and the operation carries that
- * refusal now.
- * `staleClaim` — the claim was taken over while the hash was being computed (the
- * lease had expired). Nothing was written: the account belongs to whoever holds the
- * claim now.
- */
-export type TAuthUserCreateOutcome =
-    | { status: 'created'; user: IBricksUserSummary }
-    | { status: 'rejected'; code: TAuthUserCreateRejection }
-    | { status: 'staleClaim' };
-
-/**
- * Giving up an owned claim without a write — the attempt broke off before the
- * account could be created (the derivation queue overflowed, for one).
- */
-export interface IAuthUserCreateReleaseInput {
-    idempotencyKey: string;
-    attempt: number;
 }
 
 /**
@@ -261,6 +162,18 @@ export interface IAuthOwnPasswordChange {
      * deactivated or had its password reset — the write must be
      * conditional.
      */
+    expectedAuthVersion: number;
+}
+
+/**
+ * Rewriting a password hash with the CURRENT scrypt parameters, the password itself
+ * unchanged.
+ */
+export interface IAuthPasswordRehash {
+    /** The hash the sign-in verified — the write happens only against it */
+    currentPasswordHash: string;
+    nextPasswordHash: string;
+    /** The generation read before the password was verified */
     expectedAuthVersion: number;
 }
 
@@ -438,6 +351,20 @@ export interface IAuthAdapter {
      */
     updateOwnPassword(userId: number, change: IAuthOwnPasswordChange): Promise<boolean>;
     /**
+     * Rewrites the password hash with the current parameters after a successful
+     * sign-in — the same password, a stronger derivation.
+     *
+     * Two obligations, and both are the reason this is not `updateUserPassword`: the
+     * generation must NOT be raised and the sessions must NOT be torn down (the
+     * sign-in that ordered the rehash would be thrown out by the session it has just
+     * created), and the write must be conditional on the previous hash, the generation
+     * and the activity. An implementation is free to write nothing at all — an
+     * external source owning its hashes — and a refusal never fails the sign-in.
+     *
+     * @returns false — nothing was written.
+     */
+    rehashUserPassword(userId: number, change: IAuthPasswordRehash): Promise<boolean>;
+    /**
      * Deletes an account (the sessions go with it through the FK cascade).
      *
      * @returns The deleted row; null — no such account. The row rather than a
@@ -476,5 +403,6 @@ export type TAuthUserMethods = Pick<
     | 'updateUserPassword'
     | 'updateUserProfile'
     | 'updateOwnPassword'
+    | 'rehashUserPassword'
     | 'deleteUser'
 >;

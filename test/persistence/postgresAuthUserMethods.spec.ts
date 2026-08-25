@@ -6,11 +6,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 /**
  * Мутации строки учётки: что именно уходит в SQL.
  *
- * Проверяется не форма запроса ради формы, а три решения, которые иначе
+ * Проверяется не форма запроса ради формы, а четыре решения, которые иначе
  * ломаются молча: правка профиля НЕ поднимает поколение (иначе переименование
  * выбрасывает человека из его сессии), смена своего пароля пишется УСЛОВНО по
- * поколению (иначе она отменяет сброс, сделанный администратором), а удаление
- * отдаёт снятую строку (без неё файл фото остаётся в хранилище навсегда).
+ * поколению (иначе она отменяет сброс, сделанный администратором), удаление
+ * отдаёт снятую строку (без неё файл фото остаётся в хранилище навсегда), а рехеш
+ * не трогает ни поколение, ни сессии (иначе он выбрасывает тот самый вход, который
+ * его и заказал).
  */
 
 // #region Mocks
@@ -210,5 +212,65 @@ describe('deleteUser: удаление учётки', () => {
         trackTransaction([[{ id: 1 }], []]);
 
         expect(await createPostgresAuthUserMethods().deleteUser(7)).toBeNull();
+    });
+});
+
+describe('rehashUserPassword: обновление хеша тем же паролем', () => {
+    // Neither the generation nor the deletion of sessions: the sign-in that ordered
+    // the rehash created its session against the generation it read a moment earlier,
+    // and raising it would throw the person out with the very cookie about to be
+    // handed to them
+    it('пишет один UPDATE без поколения, сессий и транзакции', async () => {
+        queryMock.mockResolvedValueOnce([{ id: 7 }]);
+
+        const isRehashed = await createPostgresAuthUserMethods().rehashUserPassword(7, {
+            currentPasswordHash: 'scrypt:16384:8:1:old-salt:old-hash',
+            nextPasswordHash: 'scrypt:16384:8:5:new-salt:new-hash',
+            expectedAuthVersion: 4,
+        });
+
+        expect(isRehashed).toBe(true);
+        expect(withTransactionMock).not.toHaveBeenCalled();
+        expect(queryMock).toHaveBeenCalledTimes(1);
+
+        const [sql, params] = queryMock.mock.calls[0];
+        expect(sql).not.toContain('auth_version + 1');
+        expect(sql).not.toContain('DELETE FROM bricks_sessions');
+        expect(sql).toContain('SET password_hash = $3');
+        expect(params).toEqual([
+            7,
+            'scrypt:16384:8:1:old-salt:old-hash',
+            'scrypt:16384:8:5:new-salt:new-hash',
+            4,
+        ]);
+    });
+
+    // The previous hash in the condition guards against a second parallel sign-in:
+    // without it that one would overwrite the salt the first has just written
+    it('условие несёт прежний хеш, поколение и активность', async () => {
+        queryMock.mockResolvedValueOnce([{ id: 7 }]);
+
+        await createPostgresAuthUserMethods().rehashUserPassword(7, {
+            currentPasswordHash: 'scrypt:16384:8:1:old-salt:old-hash',
+            nextPasswordHash: 'scrypt:16384:8:5:new-salt:new-hash',
+            expectedAuthVersion: 4,
+        });
+
+        const [sql] = queryMock.mock.calls[0];
+        expect(sql).toContain('password_hash = $2');
+        expect(sql).toContain('auth_version = $4');
+        expect(sql).toContain('is_active = TRUE');
+    });
+
+    it('отдаёт false, когда строка условию не подошла', async () => {
+        queryMock.mockResolvedValueOnce([]);
+
+        await expect(
+            createPostgresAuthUserMethods().rehashUserPassword(7, {
+                currentPasswordHash: 'scrypt:16384:8:1:old-salt:old-hash',
+                nextPasswordHash: 'scrypt:16384:8:5:new-salt:new-hash',
+                expectedAuthVersion: 4,
+            })
+        ).resolves.toBe(false);
     });
 });

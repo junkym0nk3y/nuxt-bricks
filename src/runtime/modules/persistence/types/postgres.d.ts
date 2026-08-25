@@ -8,7 +8,7 @@
  * it), and the configuration's type must not drag its resolution along.
  */
 import type { IBricksUserSummary, TBricksUserRole } from '../../common/types/auth';
-import type { TAuthUserCreateRejection } from './authAdapters';
+import type { TAuthUserCreateRejection } from './authUserCreate';
 
 /**
  * An account row out of `bricks_users` before the dates are normalized: node-postgres

@@ -484,8 +484,13 @@ let password = "";
 process.stdin.on("data", (chunk) => { password += chunk; });
 process.stdin.on("end", () => {
     const salt = randomBytes(16);
-    const hash = scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 });
-    console.log(`scrypt:16384:8:1:${salt.toString("base64")}:${hash.toString("base64")}`);
+    const hash = scryptSync(password, salt, 64, {
+        N: 16384,
+        r: 8,
+        p: 5,
+        maxmem: 32 * 1024 * 1024,
+    });
+    console.log(`scrypt:16384:8:5:${salt.toString("base64")}:${hash.toString("base64")}`);
 });
 ' && unset password
 ```

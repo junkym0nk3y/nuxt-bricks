@@ -415,7 +415,7 @@ CREATE TRIGGER update_bricks_templates_updated_at
 INSERT INTO bricks_users (username, password_hash, role)
 VALUES (
     'admin',
-    'scrypt:16384:8:1:mQgIxUboEImrtO4oD16ruw==:pqKwvl8Mzrn56ggLzSKzGiYLw2tgDCFObpl/3Ajx5jlF3GVAxqgMAhmZjruEmxilY6xNiXRPuGu/GuujVznG7A==',
+    'scrypt:16384:8:5:6XrxNZW9pt/uBVzL5rbbBg==:/JPx8k7pL8qNKmXP7+B0l7gMG5NcvbaidG4s9dmz4RGgOPJBpCvKFoVXjpdQmZ4BNdn2Uy5zVjs5E6QYk4i1Uw==',
     'admin'
 )
 ON CONFLICT (lower(username)) DO NOTHING;

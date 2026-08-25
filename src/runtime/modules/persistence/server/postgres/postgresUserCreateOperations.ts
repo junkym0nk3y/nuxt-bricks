@@ -24,14 +24,14 @@ import {
     isPossibleUsernameConflict,
     toUserSummary,
 } from './postgresAuthUserMethods';
+import type { TAuthUserCreateOperationMethods } from '../../types/authAdapters';
 import type {
     IAuthUserCreateClaimInput,
     IAuthUserCreateFinalizeInput,
     IAuthUserCreateReleaseInput,
     TAuthUserCreateClaim,
-    TAuthUserCreateOperationMethods,
     TAuthUserCreateOutcome,
-} from '../../types/authAdapters';
+} from '../../types/authUserCreate';
 import type { IBricksUserSummaryRow, IUserCreateOperationRow } from '../../types/postgres';
 
 /** The columns of an operation the protocol reads */

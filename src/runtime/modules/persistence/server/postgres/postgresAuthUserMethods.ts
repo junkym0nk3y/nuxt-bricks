@@ -11,6 +11,7 @@ import { query, withTransaction, type TTransactionQuery } from './client';
 import { buildUpdateQuery, isUniqueViolation, readViolatedConstraint } from './queryBuilders';
 import type {
     IAuthOwnPasswordChange,
+    IAuthPasswordRehash,
     IAuthProfileUpdateResult,
     IAuthUserProfileChange,
     IAuthUserStateChange,
@@ -404,6 +405,45 @@ export function createPostgresAuthUserMethods(): TAuthUserMethods {
 
                 return true;
             });
+        },
+
+        /**
+         * Rewrites the password hash with the current scrypt parameters — the same
+         * password, a stronger derivation.
+         *
+         * One conditional UPDATE and no transaction: there is a single write, and a
+         * conditional UPDATE is already atomic. Neither the generation nor the
+         * sessions are touched, and that is the whole point of the method — the
+         * sign-in that ordered this rehash has just created its session against the
+         * generation it read, and raising it here would throw that sign-in out with
+         * the very cookie it is about to be handed.
+         *
+         * The previous hash is in the condition alongside the generation: two
+         * sign-ins of one account at once would otherwise both rehash, and the second
+         * would overwrite the salt the first had already written.
+         *
+         * The set of active administrators is not locked: the role and the activity
+         * do not change here, so the invariant of the last active administrator
+         * cannot be broken by this write.
+         */
+        async rehashUserPassword(userId: number, change: IAuthPasswordRehash): Promise<boolean> {
+            const rows = await query<{ id: number }>(
+                `UPDATE bricks_users
+                SET password_hash = $3
+                WHERE id = $1
+                    AND password_hash = $2
+                    AND auth_version = $4
+                    AND is_active = TRUE
+                RETURNING id`,
+                [
+                    userId,
+                    change.currentPasswordHash,
+                    change.nextPasswordHash,
+                    change.expectedAuthVersion,
+                ]
+            );
+
+            return rows.length > 0;
         },
 
         /**

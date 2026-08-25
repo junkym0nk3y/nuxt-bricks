@@ -31,6 +31,21 @@ export interface IAuthUserCreateInput {
     isActive: boolean;
 }
 
+/**
+ * The scrypt parameters taken out of the self-describing hash string.
+ *
+ * They come from the store rather than from the code, so `verifyPassword` derives by
+ * THEM and not by the current defaults — that is what lets the defaults be raised
+ * without invalidating the rows already written.
+ */
+export interface IParsedPasswordHash {
+    n: number;
+    r: number;
+    p: number;
+    salt: Buffer;
+    hash: Buffer;
+}
+
 /** Validated login credentials */
 export interface IAuthLoginCredentials {
     username: string;
@@ -47,6 +62,13 @@ export interface IAuthLoginCandidate {
     username: string;
     role: TBricksUserRole;
     authVersion: number;
+    /**
+     * The hash the password was verified against. It is carried along because the
+     * rehash of a weak hash writes CONDITIONALLY on it: a parallel sign-in of the same
+     * account could have rehashed the row already, and overwriting a salt somebody
+     * else has just written is a write nobody asked for.
+     */
+    passwordHash: string;
 }
 
 /**

@@ -17,7 +17,7 @@ import {
     BRICKS_IDEMPOTENCY_KEY_PATTERN,
 } from '../../../modules/common/constants/auth';
 import { BRICKS_API_ERROR_CODES } from '../../../modules/common/constants/apiErrors';
-import type { TAuthUserCreateClaim } from '../../../modules/persistence/types/authAdapters';
+import type { TAuthUserCreateClaim } from '../../../modules/persistence/types/authUserCreate';
 import type { IAuthUserCreateInput } from './types';
 
 /**

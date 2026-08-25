@@ -23,6 +23,7 @@
 // Types
 import type {
     IAuthAdapter,
+    IAuthPasswordRehash,
     IAuthSessionUser,
     IAuthSessionWithUser,
     IAuthUserRecord,
@@ -38,8 +39,13 @@ export const FIXTURE_USERNAME = 'e2e-editor';
 export const FIXTURE_PASSWORD = 'e2e-password';
 
 /**
- * `scrypt:N:r:p:saltB64:hashB64` of the fixture password with the parameters the
- * package itself uses.
+ * `scrypt:N:r:p:saltB64:hashB64` of the fixture password.
+ *
+ * The parameters are deliberately the PREVIOUS ones (`p=1`): a sign-in against a hash
+ * weaker than the current default is what triggers the rehash on the login path, so
+ * the fixture walks that path in a real browser rather than only in unit tests. Should
+ * the rehash ever throw where nothing catches it, the login test goes red — which is
+ * the point of keeping the old shape here.
  */
 const FIXTURE_PASSWORD_HASH =
     'scrypt:16384:8:1:ZTJlLWF1dGgtZml4dHVyZS1zYWx0LTAwMA==:AjwhFhj93/TDRsw9jL+dKDkBQeh1HU12bxE2exNBW41EnxsrdNltmAg81jCefwIjgaqqD8BoLb/4jGAd4UtsYg==';
@@ -224,6 +230,34 @@ export function createFakeAuthAdapter(): IAuthAdapter {
         updateUserProfile: () => notImplemented('updateUserProfile'),
         /** @returns Never: the profile is out of the scenario. */
         updateOwnPassword: () => notImplemented('updateOwnPassword'),
+
+        /**
+         * Rewrites the hash with the current parameters — implemented honestly rather
+         * than stubbed, because the login path calls it: the fixture hash is written
+         * with the previous parameters on purpose.
+         *
+         * The conditions are the ones of the contract, including the previous hash:
+         * a store that writes whatever it is handed would hide a caller that lost
+         * track of which hash it had verified.
+         *
+         * @param userId - The account identifier.
+         * @param change - The verified hash, the new one and the generation.
+         * @returns False when nothing was written.
+         */
+        async rehashUserPassword(userId: number, change: IAuthPasswordRehash): Promise<boolean> {
+            if (
+                userId !== FIXTURE_USER.id ||
+                !FIXTURE_USER.isActive ||
+                FIXTURE_USER.passwordHash !== change.currentPasswordHash ||
+                FIXTURE_USER.authVersion !== change.expectedAuthVersion
+            ) {
+                return false;
+            }
+
+            FIXTURE_USER.passwordHash = change.nextPasswordHash;
+
+            return true;
+        },
         /** @returns Never: the section of accounts is out of the scenario. */
         deleteUser: () => notImplemented('deleteUser'),
     };

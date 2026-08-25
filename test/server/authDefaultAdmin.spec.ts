@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 // Utils
-import { verifyPassword } from '../../src/runtime/server/utils/auth/passwords';
+import { needsPasswordRehash, verifyPassword } from '../../src/runtime/server/utils/auth/passwords';
 import { BRICKS_DEFAULT_ADMIN_PASSWORD_HASH } from '../../src/runtime/modules/persistence/server/utils/defaultAdmin';
 import {
     BRICKS_DEFAULT_ADMIN_PASSWORD,
@@ -39,6 +39,16 @@ describe('дефолтный администратор: сид миграции
         await expect(
             verifyPassword(BRICKS_DEFAULT_ADMIN_PASSWORD, BRICKS_DEFAULT_ADMIN_PASSWORD_HASH)
         ).resolves.toBe(true);
+    });
+
+    // Whether the password is still the default one is computed by COMPARING STRINGS
+    // right in the session query, so the seed hash is obliged to be written with the
+    // current parameters. Left behind them, the first sign-in of the default
+    // administrator would rehash the row, the comparison would stop matching, and the
+    // warning would go out while the password is still the published default
+    it('сидовый хеш написан нынешними параметрами и рехеша не требует', () => {
+        expect(BRICKS_DEFAULT_ADMIN_PASSWORD_HASH.startsWith('scrypt:16384:8:5:')).toBe(true);
+        expect(needsPasswordRehash(BRICKS_DEFAULT_ADMIN_PASSWORD_HASH)).toBe(false);
     });
 
     it('хеш из константы не принимает другой пароль', async () => {

@@ -5,7 +5,12 @@ import {
     readNormalizedBody,
     toHttpError,
 } from '../../../../modules/persistence/server/utils/handlerHelpers';
-import { verifyPassword, DUMMY_PASSWORD_HASH } from '../../../utils/auth/passwords';
+import {
+    hashPassword,
+    needsPasswordRehash,
+    verifyPassword,
+    DUMMY_PASSWORD_HASH,
+} from '../../../utils/auth/passwords';
 import {
     buildRateLimitKey,
     isIpLockedOut,
@@ -14,7 +19,11 @@ import {
     registerIpFailure,
     resetFailures,
 } from '../../../utils/auth/loginRateLimiter';
-import { GateOverflowError, runScryptTask } from '../../../utils/auth/scryptGate';
+import {
+    GateOverflowError,
+    runScryptTask,
+    runScryptTaskIfIdle,
+} from '../../../utils/auth/scryptGate';
 import {
     generateSessionToken,
     hashSessionToken,
@@ -85,7 +94,63 @@ async function verifyCredentials(
         username: user.username,
         role: user.role,
         authVersion: user.authVersion,
+        passwordHash: user.passwordHash,
     };
+}
+
+/**
+ * Rewrites the password hash with the current scrypt parameters when the stored one is
+ * weaker — the migration of an old row, paid for by the first sign-in after the
+ * parameters were raised and never again.
+ *
+ * Three properties of this step matter more than the step itself.
+ *
+ * It never fails the sign-in: the credentials have been verified and the session
+ * created, so a store that refused the write, or a derivation that threw, changes
+ * nothing for the person signing in.
+ *
+ * It never takes a slot away from somebody who is waiting. The derivation goes through
+ * the gate in its opportunistic form: with a busy gate the rehash is skipped rather
+ * than queued, and the next sign-in tries again. Otherwise the first sign-in of every
+ * old account would cost two derivations of the queue instead of one, and a burst of
+ * them would answer 503 to people who could have been let in.
+ *
+ * It never raises the credentials generation — that is what makes it a separate method
+ * of the adapter rather than a reuse of the password write. A raised generation would
+ * revoke the session created a line above, that is throw the person out with the very
+ * cookie they were about to be handed.
+ *
+ * @param auth - The account store.
+ * @param user - The signed-in candidate, with the hash its password was verified
+ * against.
+ * @param password - The plaintext password (verified a moment ago).
+ */
+async function rehashPasswordIfWeak(
+    auth: IAuthAdapter,
+    user: IAuthLoginCandidate,
+    password: string
+): Promise<void> {
+    if (!needsPasswordRehash(user.passwordHash)) {
+        return;
+    }
+
+    try {
+        const nextPasswordHash = await runScryptTaskIfIdle(() => hashPassword(password));
+
+        if (nextPasswordHash === null) {
+            return;
+        }
+
+        await auth.rehashUserPassword(user.id, {
+            currentPasswordHash: user.passwordHash,
+            nextPasswordHash,
+            expectedAuthVersion: user.authVersion,
+        });
+    } catch (error: unknown) {
+        // The sign-in has already succeeded: a failed rehash is a postponed one, not
+        // a failed login. The hash itself never reaches the log
+        console.error('[nuxt-bricks] Failed to rehash the password of a signed-in user:', error);
+    }
 }
 
 /**
@@ -181,6 +246,8 @@ export default defineEventHandler(async (event) => {
         }
 
         setSessionCookie(event, token, maxAgeSeconds);
+
+        await rehashPasswordIfWeak(auth, user, password);
 
         return { user: { id: user.id, username: user.username, role: user.role } };
     } catch (error: unknown) {
