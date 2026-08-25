@@ -287,12 +287,12 @@ export function registerBricksServerHandlers(context: IBricksRegistrationContext
 }
 
 // The modules whose chunks must not be prefetched on published pages: the editor
-// stack (TipTap/ProseMirror, the JSON editor), the builder documentation and all
+// stack (TipTap/ProseMirror), the builder documentation and all
 // the builder/text-editor code. Swiper is not among them: a page with a slider
 // needs its chunk right away (SSR fallback → hydration), and a page without a
 // slider does not render it anyway.
 const BUILDER_ONLY_CHUNK_PATTERN =
-    /@tiptap|prosemirror|vanilla-jsoneditor|json-editor-vue|markdown-it|\/modules\/(builder|text-editor)\/|\/docs\/guide\/|\/plugins\/builder\/|\/plugins\/icons\/builderIcons/;
+    /@tiptap|prosemirror|markdown-it|\/modules\/(builder|text-editor)\/|\/docs\/guide\/|\/plugins\/builder\/|\/plugins\/icons\/builderIcons/;
 
 /**
  * Turns `<link rel="prefetch">` off for builder-only chunks. Vite puts prefetch

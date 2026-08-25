@@ -43,12 +43,6 @@ export type { IBricksModuleOptions };
 const VITE_OPTIMIZE_INCLUDE = [
     'yup',
     'tiny-case',
-    'ajv',
-    'natural-compare-lite',
-    'json-source-map',
-    'jmespath',
-    'vanilla-jsoneditor',
-    'json-editor-vue',
     '@vueuse/core',
     '@tiptap/core',
     '@tiptap/vue-3',

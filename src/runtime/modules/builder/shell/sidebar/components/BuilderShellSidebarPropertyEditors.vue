@@ -372,7 +372,7 @@ watch(
             <div :class="$style.propsWrapper">
                 <template
                     v-for="(item, index) in groupedEditorItems.ungrouped"
-                    :key="`ungrouped_${item.type}_${item.componentData.property.name}_${index}`"
+                    :key="`ungrouped_${props.deviceScope}_${item.type}_${item.componentData.property.name}_${index}`"
                 >
                     <BuilderShellSidebarPropertyGridSizeEditor
                         v-if="
@@ -435,7 +435,7 @@ watch(
                         <template v-else>
                             <template
                                 v-for="(item, index) in groupItems"
-                                :key="`${groupName}_${item.type}_${item.componentData.property.name}_${index}`"
+                                :key="`${groupName}_${props.deviceScope}_${item.type}_${item.componentData.property.name}_${index}`"
                             >
                                 <BuilderShellSidebarPropertyEditorRow
                                     :type="item.type"

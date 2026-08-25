@@ -179,7 +179,6 @@
             "fullWidth": "Отображать на всю страницу",
             "switchOn": "Вкл",
             "modalDisabled": "Отключено",
-            "editorLoading": "Загрузка редактора...",
             "select": "Выбрать",
             "add": "Добавить",
             "gridSize": {
@@ -238,6 +237,11 @@
                 "copySuffix": "(копия)",
                 "defaultTitle": "Вопрос {n}",
                 "defaultContent": "Ответ"
+            },
+            "json": {
+                "invalid": "Некорректный JSON",
+                "notObject": "Ожидается объект или массив",
+                "format": "Форматировать"
             }
         },
         "publish": {

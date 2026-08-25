@@ -112,3 +112,21 @@ export interface IPropertyImageGalleryEditorEmits {
         },
     ];
 }
+
+/** Kind of a token of the JSON highlight layer; `plain` is text the lexer did not recognize */
+type TJsonTokenKind = 'key' | 'string' | 'number' | 'boolean' | 'null' | 'punctuation' | 'plain';
+
+/** One token of the highlight layer: its kind and the text as it stands in the field */
+export interface IJsonHighlightToken {
+    kind: TJsonTokenKind;
+    text: string;
+}
+
+export interface IPropertyJsonEditorProps {
+    modelValue?: unknown;
+    label?: string;
+}
+
+export interface IPropertyJsonEditorEmits {
+    'update:modelValue': [value: unknown];
+}

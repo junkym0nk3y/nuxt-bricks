@@ -55,6 +55,14 @@ export interface ISidebarPropertyHandlers {
 export interface ISidebarPropertyEditorsProps extends ISidebarPropertyHandlers {
     componentEditors: Record<TPropertyEditorType, Component>;
     componentVariants: TComponentVariantsMap;
+    /**
+     * The device scope the panel is showing values for. It is part of the key of every
+     * editor row rather than decoration: a scope with no override of its own shows the
+     * inherited value, that is a value INDISTINGUISHABLE from the previous scope, and
+     * an editor holding an unfinished draft (the JSON field, for one) would carry it
+     * across the switch and write it into the new scope on the next valid keystroke.
+     */
+    deviceScope: TBricksDeviceKey;
     orderedPropertyNames?: string[];
     fullWidthValue: boolean;
     showFullWidthControl: boolean;

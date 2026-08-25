@@ -15,6 +15,14 @@ export const brick = {
             default: [],
             type: 'image-gallery',
         },
+        // The JSON editor is reachable only through a property of type `object`, and
+        // no block of the package declares one — without this property that editor
+        // cannot be opened in a browser at all, so the accessibility gate would walk
+        // past it
+        meta: {
+            default: { locale: 'en', tags: ['card'] },
+            type: 'object',
+        },
     },
 };
 

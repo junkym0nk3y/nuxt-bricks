@@ -193,6 +193,7 @@ defineExpose({
             <div v-if="hasPropertiesSection" :class="$style.section">
                 <BuilderShellSidebarPropertyEditors
                     :key="store.selectedComponent?.id ?? ''"
+                    :device-scope="layoutDeviceScope"
                     :component-editors="componentEditors"
                     :component-variants="componentVariants"
                     :ordered-property-names="orderedPropertyNames"

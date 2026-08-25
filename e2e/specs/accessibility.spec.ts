@@ -89,6 +89,12 @@ test('keeps the editor with the gallery property accessible', async ({
         });
     }).toPass({ timeout: 20_000 });
 
+    // The JSON editor of the `meta` property is checked in the same state: it is the
+    // only editor of the panel with a highlight layer of its own over the field, and
+    // a decorative layer left visible to a screen reader would be read out as the
+    // text of the field a second time
+    await expect(page.getByLabel('meta')).toBeVisible();
+
     await expectNoAccessibilityViolations(page, testInfo, 'editor-with-gallery-editor');
 });
 

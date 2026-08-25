@@ -3,10 +3,12 @@ withDefaults(
     defineProps<{
         headline?: string;
         gallery?: { id?: string; url?: string; title?: string }[];
+        meta?: Record<string, unknown>;
     }>(),
     {
         headline: 'E2E card',
         gallery: () => [],
+        meta: () => ({}),
     }
 );
 </script>

@@ -125,13 +125,11 @@
         "@tiptap/vue-3": "^3.0.0",
         "@vee-validate/rules": "^4.13.1",
         "@vueuse/core": "^13.0.0",
-        "json-editor-vue": "^0.18.1",
         "pg": "^8.20.0",
         "pinia": "^3.0.0",
         "reka-ui": "^2.0.0",
         "sass": "^1.80.0",
         "swiper": "^14.0.5",
-        "vanilla-jsoneditor": "^3.11.0",
         "vee-validate": "^4.13.1",
         "yup": "^1.7.1"
     },

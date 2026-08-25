@@ -85,6 +85,7 @@ function mountEditors(deviceVisibility: Record<string, boolean>) {
         props: {
             componentEditors: EDITOR_STUBS,
             componentVariants: EMPTY_VARIANTS,
+            deviceScope: 'desktop' as const,
             fullWidthValue: false,
             showFullWidthControl: false,
             isHiddenValue: false,

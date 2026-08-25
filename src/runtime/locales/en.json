@@ -179,7 +179,6 @@
             "fullWidth": "Display full width",
             "switchOn": "On",
             "modalDisabled": "Disabled",
-            "editorLoading": "Loading editor...",
             "select": "Select",
             "add": "Add",
             "gridSize": {
@@ -238,6 +237,11 @@
                 "copySuffix": "(copy)",
                 "defaultTitle": "Question {n}",
                 "defaultContent": "Answer"
+            },
+            "json": {
+                "invalid": "Invalid JSON",
+                "notObject": "An object or an array is expected",
+                "format": "Format"
             }
         },
         "publish": {
