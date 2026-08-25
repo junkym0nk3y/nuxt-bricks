@@ -432,6 +432,6 @@ onMounted(() => {
     border-top: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 </style>

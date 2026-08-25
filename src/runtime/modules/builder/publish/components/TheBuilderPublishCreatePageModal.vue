@@ -565,6 +565,7 @@ onMounted(() => {
                     type="file"
                     accept=".json"
                     :class="$style.hiddenInput"
+                    :aria-label="t('bricks.publish.jsonFileInputLabel')"
                     @change="handleFileSelect"
                 />
 

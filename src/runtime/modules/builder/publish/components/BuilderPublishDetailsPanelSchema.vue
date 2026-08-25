@@ -228,6 +228,7 @@ onBeforeUnmount(() => {
                 type="file"
                 accept=".json"
                 :class="$style.hiddenInput"
+                :aria-label="t('bricks.publish.jsonFileInputLabel')"
                 @change="handleFileSelect"
             />
 
@@ -281,7 +282,7 @@ onBeforeUnmount(() => {
     gap: 0.6rem;
     margin: 0;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .statusPending {

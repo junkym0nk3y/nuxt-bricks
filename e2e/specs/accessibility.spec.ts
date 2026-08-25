@@ -45,6 +45,24 @@ test('keeps the dashboard and the details of a page accessible', async ({
     await expectNoAccessibilityViolations(page, testInfo, 'dashboard-with-details');
 });
 
+test('keeps the page creation dialog accessible', async ({ page }, testInfo) => {
+    await page.goto('/bricks');
+    await waitForNuxtHydration(page);
+
+    // The state is here for the secondary text of the form — the hints under the fields,
+    // the meta of the picked source, the counters. Those live on the pale steps of the
+    // palette, which are not text colors: the role of secondary text was introduced
+    // because they measured 2.53:1 and 1.41:1 against white where AA asks 4.5
+    await expect(async () => {
+        await page.getByRole('button', { name: '+ Create page', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'New page' })).toBeVisible({
+            timeout: 2_000,
+        });
+    }).toPass({ timeout: 20_000 });
+
+    await expectNoAccessibilityViolations(page, testInfo, 'create-page-dialog');
+});
+
 test('keeps the editor with the gallery property accessible', async ({
     page,
     request,

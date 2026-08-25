@@ -295,6 +295,7 @@ watch(
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 :class="$style.hiddenInput"
+                :aria-label="t('bricks.auth.profile.photo.fileInputLabel')"
                 @change="handleFileSelected"
             />
         </div>

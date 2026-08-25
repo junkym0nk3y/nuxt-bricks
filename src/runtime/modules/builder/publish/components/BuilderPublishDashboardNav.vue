@@ -230,7 +230,7 @@ function handleToggleLocale(): void {
 
 .itemCounter {
     font-size: 1.4rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .localeBadge {

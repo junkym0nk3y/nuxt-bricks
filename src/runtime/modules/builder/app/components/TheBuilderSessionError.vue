@@ -158,7 +158,7 @@ onMounted(() => {
     font-family: monospace;
     font-size: 1.2rem;
     word-break: break-word;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .actions {

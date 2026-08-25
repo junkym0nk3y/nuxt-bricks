@@ -160,26 +160,6 @@
     transform: scale(0.95) translateY(-2rem);
 }
 
-/*
- * Reduced motion: movement and scale are dropped, the fade stays — a fade draws no
- * vestibular complaints, while a transition taken away outright would lose the cue
- * that the screen has changed. Covered are the view switch and the modal window
- * scale only; the rest of the transitions in this file ignore the mode. That is a
- * debt as old as they are, left alone here so this rule does not change the behavior
- * of the whole interface in passing.
- */
-@media (prefers-reduced-motion: reduce) {
-    .bricks-view-switch-enter-from,
-    .bricks-view-switch-leave-to {
-        transform: none;
-    }
-
-    .bricks-modal-fade-enter-from .bricks-modal-window > *:not([role='dialog']),
-    .bricks-modal-fade-leave-to .bricks-modal-window > *:not([role='dialog']) {
-        transform: none;
-    }
-}
-
 /* Dropdown transitions */
 .bricks-dropdown-enter-active,
 .bricks-dropdown-leave-active {
@@ -343,4 +323,54 @@
 .bricks-loader-phrase-fade-enter-from,
 .bricks-loader-phrase-fade-leave-to {
     opacity: 0;
+}
+
+/*
+ * Reduced motion: movement and scale are dropped, the fade stays — a fade draws no
+ * vestibular complaints, while a transition taken away outright would lose the cue that
+ * the screen has changed. Every transition of this file is covered, including the two
+ * full-screen slides (the sidebar and the details panel), which travelled the whole
+ * viewport width.
+ *
+ * The block sits at the end of the file on purpose: the selectors repeat the ones above
+ * at equal specificity, so it only wins where it comes later. The canvas flow keeps the
+ * `.bricks-canvas` part of its selector for the same reason it carries it above — a block
+ * of the canvas has a transition of its own at that specificity.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .bricks-sidebar-enter-from,
+    .bricks-sidebar-leave-to,
+    .bricks-sidebar-view-enter-from,
+    .bricks-sidebar-view-leave-to,
+    .bricks-view-switch-enter-from,
+    .bricks-view-switch-leave-to,
+    .bricks-details-slide-enter-from,
+    .bricks-details-slide-leave-to,
+    .bricks-dropdown-enter-from,
+    .bricks-dropdown-leave-to,
+    .bricks-toast-enter-from,
+    .bricks-toast-leave-to,
+    .bricks-canvas-toolbar-enter-from,
+    .bricks-canvas-toolbar-leave-to,
+    .bricks-canvas-context-menu-enter-from,
+    .bricks-canvas-context-menu-leave-to,
+    .bricks-tooltip-enter-from,
+    .bricks-tooltip-leave-active {
+        transform: none;
+    }
+
+    .bricks-modal-fade-enter-from .bricks-modal-window > *:not([role='dialog']),
+    .bricks-modal-fade-leave-to .bricks-modal-window > *:not([role='dialog']) {
+        transform: none;
+    }
+
+    /* The blocks close the gap and open it up without travelling: the FLIP move is the
+       movement itself, so it is turned off rather than shortened */
+    .bricks-canvas .bricks-canvas-flow-move {
+        transition: none;
+    }
+
+    .bricks-canvas .bricks-canvas-flow-enter-from {
+        transform: none;
+    }
 }

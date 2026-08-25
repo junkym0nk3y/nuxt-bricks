@@ -409,7 +409,7 @@ function handleClose(): void {
     font-size: 1.2rem;
     font-weight: 600;
     letter-spacing: 0.05rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .factRow {

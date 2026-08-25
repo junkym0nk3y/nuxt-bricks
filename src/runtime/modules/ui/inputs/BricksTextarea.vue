@@ -180,7 +180,7 @@ function handleBlur(event: FocusEvent): void {
     resize: vertical;
 
     &::placeholder {
-        color: var(--bricks-base-400);
+        color: var(--bricks-text-muted);
     }
 }
 

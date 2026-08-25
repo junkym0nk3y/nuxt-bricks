@@ -269,7 +269,7 @@ const classList = computed(() => [
     }
 
     &::placeholder {
-        color: var(--bricks-base-400);
+        color: var(--bricks-text-muted);
     }
 
     &::-webkit-inner-spin-button,
@@ -351,7 +351,7 @@ const classList = computed(() => [
     flex-shrink: 0;
     font-size: 1.2rem;
     line-height: 1.8rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
     pointer-events: none;
     user-select: none;
 }

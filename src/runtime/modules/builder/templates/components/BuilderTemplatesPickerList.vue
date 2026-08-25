@@ -5,15 +5,14 @@
  *
  * It is shown by a click on the "From a template" card in the creation form — the way
  * the file dialog belongs to the "From a JSON file" card: the "from a template" choice
- * means nothing without a template. The search appears from the eighth template
- * (`TEMPLATE_PICKER_SEARCH_THRESHOLD`); below that the list is covered by scrolling
- * alone.
+ * means nothing without a template. The search appears from the sixth template
+ * (`TEMPLATE_PICKER_SEARCH_THRESHOLD`); below that the whole list is on screen at once.
  *
  * A decision held by the style section: the height of the list is capped at 28rem —
  * five rows of 5.2rem with the sixth cut off — because the list lives inside the
- * creation modal, and it must not grow at that modal's expense. The cap and the
- * threshold do not meet: scrolling starts on the sixth template, the search field on
- * the eighth.
+ * creation modal, and it must not grow at that modal's expense. The threshold follows
+ * that cap: the search arrives with the template that first makes the list scroll,
+ * instead of leaving two sizes of list scrollable with nothing to search them by.
  */
 
 // #region Imports
@@ -240,7 +239,7 @@ function handleSelect(template: TBricksTemplateSummary): void {
 
 .meta {
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .state {

@@ -10,6 +10,10 @@
  * fit the width of a card. The three cards go in one row: the width of the modal
  * content divides between them with the gap taken into account, and the cards line up
  * in height.
+ *
+ * The description of a card takes the secondary text role rather than a step of the
+ * palette: on the tinted background of the picked card `base-500` measured 4.44:1, just
+ * under the 4.5 AA asks of small text.
  */
 
 // #region Imports
@@ -262,7 +266,7 @@ function handleClearTemplate(): void {
 
 .cardDescription {
     font-size: 1.2rem;
-    color: var(--bricks-base-500);
+    color: var(--bricks-text-muted);
 }
 
 .selectedFile {
@@ -295,6 +299,6 @@ function handleClearTemplate(): void {
     flex: 1;
     white-space: nowrap;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 </style>

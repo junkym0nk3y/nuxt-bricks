@@ -158,7 +158,7 @@ onBeforeUnmount(() => {
 
 .counter {
     font-size: 1.1rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .menu {

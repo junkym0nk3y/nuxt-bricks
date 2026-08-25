@@ -388,7 +388,7 @@ watch(
     color: var(--bricks-base-900);
 
     &::placeholder {
-        color: var(--bricks-base-400);
+        color: var(--bricks-text-muted);
     }
 }
 

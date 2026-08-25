@@ -252,7 +252,7 @@ function onUpdate(value: AcceptableValue): void {
     }
 
     &._empty .nativeInput {
-        color: var(--bricks-base-400);
+        color: var(--bricks-text-muted);
     }
 }
 

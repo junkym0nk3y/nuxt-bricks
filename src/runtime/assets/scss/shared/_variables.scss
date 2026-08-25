@@ -138,6 +138,16 @@
     --bricks-overlay-modal-start: rgb(var(--bricks-rgb-base-900) / 45%);
     --bricks-overlay-modal-end: rgb(var(--bricks-rgb-base-900) / 70%);
 
+    /* === Text roles === */
+    /* Secondary text: subtitles, counters, dates, page addresses, placeholders, the
+       captions of an empty state. A role of its own rather than a step of the palette,
+       because the pale steps are not text colors — measured with axe, `base-400` gives
+       2.53:1 on white and `base-300` gives 1.41:1, where small text needs 4.5. This value
+       clears 4.5 on every surface of the interface, `base-100` cards included (4.95:1),
+       and the steps themselves stay where contrast of text is not the question: icons,
+       borders, backgrounds and the dimmed look of a disabled control. */
+    --bricks-text-muted: #636a77;
+
     /* === Invariant surfaces (do not follow the theme) === */
     --bricks-dark-surface: #1a1d24; /* dark preview in the text editors */
     /* Background of the working area around the canvas sheet. One tone in both
@@ -187,6 +197,10 @@
     --bricks-yellow: #fbbf24;
     --bricks-purple: #a78bfa;
 
+    /* Secondary text of the dark theme: 4.64:1 even on the raised surface, the darkest
+       background text sits on here. The dark `base-500` would have given 3.85:1 there */
+    --bricks-text-muted: #9aa2b1;
+
     --bricks-rgb-base-900: 232 234 239;
     --bricks-rgb-base-0: 22 24 29;
     --bricks-rgb-primary: 59 130 246;
@@ -205,6 +219,11 @@
 
     /* === Canvas reset: components on the canvas stay in the light theme === */
     .bricks-canvas {
+        /* The sheet stays in the light theme, so the text role goes back with the
+           palette: without this line a dark-theme muted value would land on a white
+           sheet */
+        --bricks-text-muted: #636a77;
+
         --bricks-base-0: #fff;
         --bricks-base-50: #f9fafb;
         --bricks-base-100: #f3f4f6;

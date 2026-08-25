@@ -274,7 +274,7 @@ watch(
 .empty {
     margin: 0;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .grid {
@@ -332,7 +332,7 @@ watch(
 
 .placeholderText {
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .currentBadge {

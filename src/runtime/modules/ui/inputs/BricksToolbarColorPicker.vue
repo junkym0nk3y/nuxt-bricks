@@ -302,7 +302,7 @@ watch(
     transition: border-color var(--bricks-default-transition);
 
     &::placeholder {
-        color: var(--bricks-base-400);
+        color: var(--bricks-text-muted);
     }
 
     &:focus {

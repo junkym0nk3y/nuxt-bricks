@@ -338,7 +338,7 @@ function handleDelete(): void {
     flex-shrink: 0;
     max-width: 100%;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
     overflow-wrap: anywhere;
 }
 
@@ -348,7 +348,7 @@ function handleDelete(): void {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 1.2rem;
-    color: var(--bricks-base-400);
+    color: var(--bricks-text-muted);
 }
 
 .roleCell {
