@@ -63,7 +63,7 @@ vi.mock(
 );
 
 vi.mock(
-    '../../src/runtime/modules/persistence/server/utils/requestBodyLimits',
+    '../../src/runtime/modules/persistence/server/utils/multipartStream',
     async (importOriginal) => ({
         ...(await importOriginal<Record<string, unknown>>()),
         withMultipartFormData: async (

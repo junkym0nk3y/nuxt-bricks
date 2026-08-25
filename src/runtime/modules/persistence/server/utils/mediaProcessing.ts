@@ -4,7 +4,7 @@ import type {
     IOptimizedImage,
     IUploadedFilePart,
     IValidatedImage,
-    IValidatedVideo,
+    IValidatedVideoUpload,
     TMediaVariant,
 } from '../../types/media';
 import type { IBricksMediaOptimization } from '../../../common/types/media';
@@ -288,19 +288,23 @@ export async function validateAndOptimizeImage(
 }
 
 /**
- * Validates a video file's type/size/signature. A video is not optimized — it is
- * uploaded as it is.
- * @param file The uploaded multipart file.
- * @param maxVideoUploadSizeBytes The size limit in bytes.
- * @param maxVideoUploadSizeMb The limit in megabytes (for the message).
+ * Validates a video upload by its declared type and the HEAD of its content, and
+ * decides what it will be stored as.
+ *
+ * The head is enough because a video is not processed at all: the container is
+ * read off the first bytes and the file travels to storage as a stream. The size
+ * ceiling is therefore not checked here — it is the business of whoever pipes the
+ * bytes, and it has to be checked as they arrive rather than over a buffer nobody
+ * assembles any more.
+ *
+ * @param file The declared type and name of the uploaded part.
+ * @param head The first bytes of the content (12 are enough for every container).
  */
-export function validateVideo(
-    file: IUploadedFilePart,
-    maxVideoUploadSizeBytes: number,
-    maxVideoUploadSizeMb: number
-): IValidatedVideo {
+export function validateVideoUpload(
+    file: Pick<IUploadedFilePart, 'type' | 'filename'>,
+    head: Buffer
+): IValidatedVideoUpload {
     const extension = getFileExtension(file.filename);
-    const fileBuffer = toBuffer(file.data);
 
     assertDeclaredMimeType(file.type);
 
@@ -311,14 +315,7 @@ export function validateVideo(
         });
     }
 
-    if (fileBuffer.length > maxVideoUploadSizeBytes) {
-        throw createError({
-            statusCode: 413,
-            message: `Video is too large. Maximum allowed size is ${Math.floor(maxVideoUploadSizeMb)}MB`,
-        });
-    }
-
-    const sniffedFormat = sniffVideoFormat(fileBuffer);
+    const sniffedFormat = sniffVideoFormat(head);
 
     if (!sniffedFormat) {
         throw createError({
@@ -336,9 +333,5 @@ export function validateVideo(
         sniffedFormat === 'mp4' && ISO_BMFF_EXTENSIONS.has(extension) ? extension : sniffedFormat;
     const mimeType = resolveVideoMime(targetExtension, file.type);
 
-    return {
-        buffer: fileBuffer,
-        mimeType,
-        targetExtension,
-    };
+    return { mimeType, targetExtension };
 }

@@ -54,14 +54,47 @@ vi.mock('../../src/runtime/modules/persistence/server/registry', () => ({
 vi.mock('../../src/runtime/modules/persistence/server/utils/requestBodyLimits', () => ({
     readJsonBodyWithLimit: readJsonBodyMock,
     collectWebStreamWithLimit: vi.fn(),
-    // Читатель формы отдаёт её обработчику, а не возвращает: место в бюджете
-    // одновременного буферизования держится до конца обработки
-    withMultipartFormData: async (
-        _event: unknown,
-        _maxBytes: number,
-        use: (parts: unknown[]) => Promise<unknown>
-    ) => use(await readMultipartMock()),
+}));
+
+vi.mock('../../src/runtime/modules/persistence/server/utils/multipartStream', () => ({
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES: 0,
+    // Читатель формы отдаёт её обработчику, а не возвращает: слот на входе
+    // держится до конца обработки. Части подменяются плоским списком —
+    // сценарий про категорию, а не про разбор multipart
+    withMultipartParts: async (
+        _event: unknown,
+        _limits: unknown,
+        use: (form: { parts: AsyncIterable<unknown>; signal: AbortSignal }) => Promise<unknown>
+    ) => {
+        const flat = (await readMultipartMock()) as {
+            name: string;
+            filename?: string;
+            type?: string;
+            data: Buffer;
+        }[];
+
+        async function* parts(): AsyncGenerator<unknown> {
+            for (const part of flat) {
+                if (!part.filename) {
+                    yield { kind: 'field', name: part.name, value: part.data.toString('utf8') };
+                    continue;
+                }
+
+                yield {
+                    kind: 'file',
+                    name: part.name,
+                    filename: part.filename,
+                    type: part.type,
+                    chunks: async function* chunks(): AsyncGenerator<Uint8Array> {
+                        yield part.data;
+                    },
+                    collect: async (): Promise<Buffer> => part.data,
+                };
+            }
+        }
+
+        return use({ parts: parts(), signal: new AbortController().signal });
+    },
 }));
 
 vi.mock('../../src/runtime/server/utils/requestRateLimiter', () => ({

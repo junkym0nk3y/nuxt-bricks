@@ -136,3 +136,24 @@ export interface IAsyncDataStub<TData> {
  * хуки в живом scope, и на просто-промисе такой код бы не работал.
  */
 export type TAsyncDataStubResult<TData> = IAsyncDataStub<TData> & Promise<IAsyncDataStub<TData>>;
+
+/**
+ * Часть тела multipart-формы для тестового сборщика: файл, если есть
+ * `filename`, иначе текстовое поле.
+ */
+export interface IMultipartBodyPart {
+    name: string;
+    filename?: string;
+    type?: string;
+    data: string | Buffer;
+}
+
+/** Как отдавать тело запроса тестовому событию. */
+export interface IMultipartRequestOptions {
+    /** По сколько байт отдавать за раз; по умолчанию — всё тело одним чанком. */
+    chunkSize?: number;
+    contentType?: string;
+    contentLength?: number;
+    /** Тело обрывается, не доехав: `complete` остаётся false. */
+    cutShort?: boolean;
+}

@@ -5,6 +5,7 @@ import type {
     IUploadedFilePart,
 } from '../../src/runtime/modules/persistence/types/media';
 import type { IMediaItem } from '../../src/runtime/modules/common/types/media';
+import type { IMediaOrchestrationDeps } from '../../src/runtime/modules/persistence/types/mediaOrchestration';
 import type {
     ICreateMediaPayload,
     IUploadFileParams,
@@ -24,8 +25,8 @@ vi.mock('nitropack/runtime', () => ({
 import { prepareUpload } from '../../src/runtime/server/api/bricks/media/upload.post';
 import { sanitizeSvgMarkup } from '../../src/runtime/modules/common/utils/sanitize/sanitizeSvg';
 import {
-    uploadAndRegisterMedia,
-    type IMediaOrchestrationDeps,
+    registerUploadedMedia,
+    uploadMediaFiles,
 } from '../../src/runtime/modules/persistence/server/utils/mediaOrchestration';
 // #endregion
 
@@ -131,10 +132,14 @@ describe('prepareUpload: SVG buffer == svgContent, оба санитизиров
             },
         };
 
-        const item = await uploadAndRegisterMedia(deps, {
+        const files = await uploadMediaFiles(deps, {
             buffer: prepared.buffer,
             mimeType: prepared.mimeType,
             storedFilename: 'uuid.svg',
+        });
+        const item = await registerUploadedMedia(deps, {
+            uploaded: files.uploaded,
+            mimeType: prepared.mimeType,
             displayFilename: 'a.svg',
             category: 'other',
             svgContent: prepared.svgContent,

@@ -5,17 +5,22 @@ import type {
     ICreateMediaPayload,
     IUploadFileParams,
 } from '../../src/runtime/modules/persistence/types/adapters';
+import type {
+    IMediaOrchestrationDeps,
+    IRegisterUploadedMediaParams,
+    IUploadMediaFilesParams,
+} from '../../src/runtime/modules/persistence/types/mediaOrchestration';
 
 // Vitest
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Utils
 import {
-    uploadAndRegisterMedia,
-    deleteMediaWithFile,
     cleanupPageThumbnail,
-    type IMediaOrchestrationDeps,
-    type IUploadMediaParams,
+    deleteMediaWithFile,
+    discardUnregisteredMediaFile,
+    registerUploadedMedia,
+    uploadMediaFiles,
 } from '../../src/runtime/modules/persistence/server/utils/mediaOrchestration';
 import {
     BricksStatementTimeoutError,
@@ -116,8 +121,28 @@ function makeDeps(overrides: {
     return { deps, calls };
 }
 
+/**
+ * Два шага загрузки в том порядке, в каком их делает ручка: сначала файлы, потом
+ * запись. Компенсация и повтор живут во втором шаге, поэтому кейсы про судьбу
+ * файлов проверяют именно эту связку.
+ */
+async function uploadAndRegister(
+    deps: IMediaOrchestrationDeps,
+    params: IUploadMediaFilesParams & Omit<IRegisterUploadedMediaParams, 'uploaded'>
+): Promise<IMediaItem> {
+    const files = await uploadMediaFiles(deps, params);
+
+    return registerUploadedMedia(deps, {
+        ...params,
+        uploaded: files.uploaded,
+        previewUrl: files.previewUrl,
+        mockUrl: files.mockUrl,
+    });
+}
+
 /** Загрузка изображения с одним уменьшенным вариантом. */
-function makeUploadParams(): IUploadMediaParams {
+function makeUploadParams(): IUploadMediaFilesParams &
+    Omit<IRegisterUploadedMediaParams, 'uploaded'> {
     return {
         buffer: Buffer.from('binary'),
         mimeType: 'image/webp',
@@ -140,11 +165,11 @@ beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 });
 
-describe('uploadAndRegisterMedia: файл + запись одним флоу', () => {
+describe('uploadMediaFiles + registerUploadedMedia: файл и запись двумя шагами', () => {
     it('строит managed-ключ, грузит файл и регистрирует запись', async () => {
         const { deps, calls } = makeDeps({});
 
-        const item = await uploadAndRegisterMedia(deps, {
+        const item = await uploadAndRegister(deps, {
             buffer: Buffer.from('binary'),
             mimeType: 'image/webp',
             storedFilename: 'uuid.webp',
@@ -167,7 +192,7 @@ describe('uploadAndRegisterMedia: файл + запись одним флоу', 
         const rejected = new BricksStorageWriteRejectedError('schema is missing');
         const { deps, calls } = makeDeps({ createMediaError: rejected });
 
-        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toBe(rejected);
+        await expect(uploadAndRegister(deps, makeUploadParams())).rejects.toBe(rejected);
 
         expect(calls).toContain(
             'deleteFile:https://storage.example.com/my-bucket/bricks-media/uuid.webp'
@@ -185,7 +210,7 @@ describe('uploadAndRegisterMedia: файл + запись одним флоу', 
             ],
         });
 
-        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toBeInstanceOf(
+        await expect(uploadAndRegister(deps, makeUploadParams())).rejects.toBeInstanceOf(
             BricksStatementTimeoutError
         );
 
@@ -196,7 +221,7 @@ describe('uploadAndRegisterMedia: файл + запись одним флоу', 
         const rejected = new BricksUnknownMediaCategoryError('gone');
         const { deps, calls } = makeDeps({ createMediaError: rejected });
 
-        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toBe(rejected);
+        await expect(uploadAndRegister(deps, makeUploadParams())).rejects.toBe(rejected);
 
         expect(calls).toContain(
             'deleteFile:https://storage.example.com/my-bucket/bricks-media/uuid.webp'
@@ -215,7 +240,7 @@ describe('uploadAndRegisterMedia: файл + запись одним флоу', 
             deleteFileError: new Error('s3 down'),
         });
 
-        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toThrow(
+        await expect(uploadAndRegister(deps, makeUploadParams())).rejects.toThrow(
             'Unknown media category: gone'
         );
     });
@@ -227,7 +252,7 @@ describe('uploadAndRegisterMedia: файл + запись одним флоу', 
             createMediaErrors: [new Error('connection terminated')],
         });
 
-        const item = await uploadAndRegisterMedia(deps, makeUploadParams());
+        const item = await uploadAndRegister(deps, makeUploadParams());
 
         expect(item.url).toBe('https://storage.example.com/my-bucket/bricks-media/uuid.webp');
         expect(calls.filter((call) => call.startsWith('createMedia'))).toHaveLength(2);
@@ -240,7 +265,7 @@ describe('uploadAndRegisterMedia: файл + запись одним флоу', 
             createMediaErrors: [first, new Error('connection terminated again')],
         });
 
-        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toBe(first);
+        await expect(uploadAndRegister(deps, makeUploadParams())).rejects.toBe(first);
 
         // Удаление здесь снесло бы файлы из-под записи, которую backend мог
         // успеть закоммитить: битая плитка в галерее хуже объекта-сироты
@@ -255,7 +280,7 @@ describe('uploadAndRegisterMedia: файл + запись одним флоу', 
             ],
         });
 
-        await expect(uploadAndRegisterMedia(deps, makeUploadParams())).rejects.toThrow(
+        await expect(uploadAndRegister(deps, makeUploadParams())).rejects.toThrow(
             'connection terminated'
         );
 
@@ -331,6 +356,38 @@ describe('cleanupPageThumbnail: best-effort чистка превью', () => {
             cleanupPageThumbnail(
                 deps.publish,
                 'https://storage.example.com/my-bucket/bricks-thumbnails/page-1.webp'
+            )
+        ).resolves.toBeUndefined();
+    });
+});
+
+describe('discardUnregisteredMediaFile: файл, для которого записи уже не будет', () => {
+    it('удаляет свой файл и молчит про чужой', async () => {
+        const { deps, calls } = makeDeps({});
+
+        await discardUnregisteredMediaFile(
+            deps.publish,
+            'https://storage.example.com/my-bucket/bricks-media/uuid.mp4'
+        );
+
+        expect(calls).toContain(
+            'deleteFile:https://storage.example.com/my-bucket/bricks-media/uuid.mp4'
+        );
+
+        const foreign = makeDeps({ isOwned: false });
+
+        await discardUnregisteredMediaFile(foreign.deps.publish, 'https://cdn.example.com/a.mp4');
+
+        expect(foreign.calls.filter((call) => call.startsWith('deleteFile'))).toEqual([]);
+    });
+
+    it('отказ удаления не выбрасывается: наружу пойдёт причина, из-за которой файл лишний', async () => {
+        const { deps } = makeDeps({ deleteFileError: new Error('s3 down') });
+
+        await expect(
+            discardUnregisteredMediaFile(
+                deps.publish,
+                'https://storage.example.com/my-bucket/bricks-media/uuid.mp4'
             )
         ).resolves.toBeUndefined();
     });

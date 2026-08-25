@@ -49,6 +49,31 @@ export function registerMemoryPublishAdapter(): void {
         },
 
         /**
+         * The streaming upload of the fixture: the pieces are joined right here.
+         *
+         * A memory store has no multipart protocol to speak of, and the contract
+         * promises the CALLER a bounded footprint rather than the implementation:
+         * the browser suite uploads kilobytes.
+         *
+         * @param params - The key, the MIME and the stream of the upload.
+         * @returns The url, the key and the size of what was stored.
+         */
+        async uploadFileStream({ body, key }: { body: AsyncIterable<Uint8Array>; key: string }) {
+            const chunks: Uint8Array[] = [];
+
+            for await (const chunk of body) {
+                chunks.push(chunk);
+            }
+
+            const buffer = Buffer.concat(chunks);
+            const url = `${STORAGE_BASE}${key}`;
+
+            contents.set(url, buffer);
+
+            return { url, key, size: buffer.length };
+        },
+
+        /**
          * @param url - The url of the file to remove.
          */
         async deleteFile(url: string): Promise<void> {

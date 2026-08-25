@@ -67,8 +67,12 @@ export interface IPreparedUpload {
     variants: Partial<Record<TMediaVariant, IOptimizedImage>>;
 }
 
-export interface IValidatedVideo {
-    buffer: Buffer;
+/**
+ * What a video upload is stored as, decided by the head of its content: the bytes
+ * themselves are never held (they travel to storage as a stream), so there is no
+ * buffer here.
+ */
+export interface IValidatedVideoUpload {
     mimeType: string;
     targetExtension: string;
 }

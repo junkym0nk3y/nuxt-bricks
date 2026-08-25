@@ -1,8 +1,9 @@
 // #region Imports
 // Types
 import type { H3Event } from 'h3';
-import type { IUploadedFilePart } from '../../src/runtime/modules/persistence/types/media';
-import type { IInflightBodyBudget } from '../../src/runtime/modules/persistence/types/requestBodyLimits';
+
+// Node
+import { Readable } from 'node:stream';
 
 // Vitest
 import { describe, expect, it } from 'vitest';
@@ -11,9 +12,7 @@ import { describe, expect, it } from 'vitest';
 import {
     collectStreamWithLimit,
     collectWebStreamWithLimit,
-    createInflightBodyBudget,
-    parseMultipartBuffer,
-    withMultipartFormData,
+    readJsonBodyWithLimit,
 } from '../../src/runtime/modules/persistence/server/utils/requestBodyLimits';
 // #endregion
 
@@ -37,57 +36,15 @@ function createChunkSource(chunks: string[]): {
 }
 
 /**
- * Собирает multipart/form-data тело с файлом и текстовым полем.
+ * Фейковое событие запроса с телом-строкой: заголовки читаются штатным
+ * `getHeader` (он смотрит в `event.node.req.headers`).
  */
-function buildMultipartBody(boundary: string): Uint8Array<ArrayBuffer> {
-    return new TextEncoder().encode(
-        [
-            `--${boundary}`,
-            'Content-Disposition: form-data; name="file"; filename="a.png"',
-            'Content-Type: image/png',
-            '',
-            'PNGDATA',
-            `--${boundary}`,
-            'Content-Disposition: form-data; name="category"',
-            '',
-            'images',
-            `--${boundary}--`,
-            '',
-        ].join('\r\n')
-    );
-}
+function createJsonEvent(body: string, headers: Record<string, string> = {}): H3Event {
+    const request = Readable.from([Buffer.from(body, 'utf8')]);
 
-/**
- * Фейковое событие запроса: тело — async-генератор чанков, заголовки читаются
- * штатным `getHeader` (он смотрит в `event.node.req.headers`).
- */
-function createFakeEvent(
-    chunks: string[],
-    headers: Record<string, string>
-): { event: H3Event; yielded: () => number } {
-    const { source, yielded } = createChunkSource(chunks);
-    const req = Object.assign(source, { headers });
+    Object.assign(request, { headers });
 
-    return { event: { node: { req } } as unknown as H3Event, yielded };
-}
-
-/** Тело multipart-формы одной строкой и его точная длина. */
-function buildMultipartRequest(boundary: string): { body: string; length: number } {
-    const body = Buffer.from(buildMultipartBody(boundary)).toString('utf8');
-
-    return { body, length: Buffer.byteLength(body) };
-}
-
-/**
- * Читает форму, ничего с ней не делая: обработчик отдаёт части наружу, поэтому
- * резерв снимается ровно на выходе из него.
- */
-function readParts(
-    event: H3Event,
-    maxBytes: number,
-    budget: IInflightBodyBudget
-): Promise<IUploadedFilePart[]> {
-    return withMultipartFormData(event, maxBytes, async (parts) => parts, budget);
+    return { node: { req: request } } as unknown as H3Event;
 }
 
 describe('requestBodyLimits: лимитированное чтение тела', () => {
@@ -125,242 +82,30 @@ describe('requestBodyLimits: лимитированное чтение тела'
             collectWebStreamWithLimit(buildStream(), 5, () => new Error('over'))
         ).rejects.toThrow('over');
     });
-
-    it('parseMultipartBuffer разбирает файловые и текстовые части', async () => {
-        const boundary = 'test-boundary-42';
-        const parts = await parseMultipartBuffer(
-            buildMultipartBody(boundary),
-            `multipart/form-data; boundary=${boundary}`
-        );
-
-        expect(parts).toHaveLength(2);
-
-        const file = parts.find((part) => part.name === 'file');
-        expect(file?.filename).toBe('a.png');
-        expect(file?.type).toBe('image/png');
-        expect(file?.data.toString()).toBe('PNGDATA');
-
-        const category = parts.find((part) => part.name === 'category');
-        expect(category?.filename).toBeUndefined();
-        expect(category?.data.toString()).toBe('images');
-    });
-
-    it('parseMultipartBuffer отвечает 400 на битое тело', async () => {
-        await expect(
-            parseMultipartBuffer(
-                new TextEncoder().encode('definitely not multipart'),
-                'multipart/form-data'
-            )
-        ).rejects.toMatchObject({ statusCode: 400 });
-    });
 });
 
-/**
- * Бюджет одновременного буферизования: лимит запросов в минуту не ограничивает
- * их одновременность, а тело каждой формы собирается в память целиком.
- */
-describe('requestBodyLimits: бюджет одновременного буферизования', () => {
-    it('отклоняет 503, когда места в бюджете нет, и возвращает его освобождением', () => {
-        const budget = createInflightBodyBudget(100);
-        const release = budget.reserve(70);
-
-        expect(() => budget.reserve(40)).toThrow(expect.objectContaining({ statusCode: 503 }));
-
-        release();
-
-        expect(() => budget.reserve(40)).not.toThrow();
+describe('requestBodyLimits: JSON-тело под потолком', () => {
+    it('разбирает тело и отдаёт null на пустом', async () => {
+        expect(await readJsonBodyWithLimit(createJsonEvent('{"a":1}'), 1024)).toEqual({ a: 1 });
+        expect(await readJsonBodyWithLimit(createJsonEvent(''), 1024)).toBeNull();
     });
 
-    it('освобождение идемпотентно: потолок не уезжает вверх от повторного вызова', () => {
-        const budget = createInflightBodyBudget(100);
-        const release = budget.reserve(60);
-
-        release();
-        release();
-        budget.reserve(60);
-
-        // Второй резерв занял бюджет целиком; если бы повторное освобождение
-        // «вернуло» ещё 60 байт, третий тоже прошёл бы
-        expect(() => budget.reserve(60)).toThrow(expect.objectContaining({ statusCode: 503 }));
-    });
-
-    it('одинокий запрос больше бюджета проходит: иначе ручка не работала бы вовсе', () => {
-        const budget = createInflightBodyBudget(10);
-
-        expect(() => budget.reserve(1000)).not.toThrow();
-    });
-
-    it('форма читается в пределах бюджета и освобождает его после разбора', async () => {
-        const boundary = 'budget-boundary';
-        const { body, length } = buildMultipartRequest(boundary);
-        const budget = createInflightBodyBudget(length);
-        const headers = {
-            'content-type': `multipart/form-data; boundary=${boundary}`,
-            'content-length': String(length),
-        };
-
-        const first = createFakeEvent([body], headers);
-        expect(await readParts(first.event, length * 10, budget)).toHaveLength(2);
-
-        // Бюджет ровно на одно тело: вторая форма проходит только потому, что
-        // резерв первой снят — и снят он лишь после того, как обработчик первой
-        // закончил работу с её буферами
-        const second = createFakeEvent([body], headers);
-        expect(await readParts(second.event, length * 10, budget)).toHaveLength(2);
-    });
-
-    it('резерв держится всю обработку, а не только чтение и разбор', async () => {
-        const boundary = 'holding-boundary';
-        const { body, length } = buildMultipartRequest(boundary);
-        const budget = createInflightBodyBudget(length);
-        const headers = {
-            'content-type': `multipart/form-data; boundary=${boundary}`,
-            'content-length': String(length),
-        };
-
-        let releaseHandler: (() => void) | undefined;
-        let signalStarted: (() => void) | undefined;
-        const handlerStarted = new Promise<void>((resolve) => {
-            signalStarted = resolve;
-        });
-        const first = createFakeEvent([body], headers);
-        const slow = withMultipartFormData(
-            first.event,
-            length * 10,
-            async () => {
-                signalStarted?.();
-
-                return new Promise<void>((resolve) => {
-                    releaseHandler = resolve;
-                });
-            },
-            budget
-        );
-
-        await handlerStarted;
-
-        // Обработчик ещё держит буферы формы (в ручке на этом месте идут sharp и
-        // заливка в хранилище) — вторая форма в бюджет не влезает
-        const second = createFakeEvent([body], headers);
-        await expect(readParts(second.event, length * 10, budget)).rejects.toMatchObject({
-            statusCode: 503,
-        });
-
-        releaseHandler?.();
-        await slow;
-
-        // Обработчик закончил — место освободилось
-        const third = createFakeEvent([body], headers);
-        expect(await readParts(third.event, length * 10, budget)).toHaveLength(2);
-    });
-
-    it('исключение обработчика возвращает место в бюджете и не подменяется', async () => {
-        const boundary = 'throwing-boundary';
-        const { body, length } = buildMultipartRequest(boundary);
-        const budget = createInflightBodyBudget(length);
-        const headers = {
-            'content-type': `multipart/form-data; boundary=${boundary}`,
-            'content-length': String(length),
-        };
-        const failure = new Error('sharp упал на этом файле');
-
-        const first = createFakeEvent([body], headers);
-
-        // В ручке так выглядит любой отказ обработки: sharp, хранилище, БД
+    it('битый JSON — 400', async () => {
         await expect(
-            withMultipartFormData(
-                first.event,
-                length * 10,
-                async () => {
-                    throw failure;
-                },
-                budget
-            )
-        ).rejects.toBe(failure);
-
-        // Бюджет ровно на одно тело: следующая форма пройдёт только если резерв
-        // упавшего обработчика снят
-        const second = createFakeEvent([body], headers);
-        expect(await readParts(second.event, length * 10, budget)).toHaveLength(2);
+            readJsonBodyWithLimit(createJsonEvent('{not json'), 1024)
+        ).rejects.toMatchObject({ statusCode: 400 });
     });
 
-    it('заявленный размер выше потолка отклоняется 413 даже при занятом бюджете', async () => {
-        const boundary = 'oversized-boundary';
-        const { body, length } = buildMultipartRequest(boundary);
-        const budget = createInflightBodyBudget(length);
-        budget.reserve(length);
+    it('заявленная длина выше потолка — 413 до чтения тела', async () => {
+        const event = createJsonEvent('{"a":1}', { 'content-length': '9999' });
 
-        const oversized = createFakeEvent([body], {
-            'content-type': `multipart/form-data; boundary=${boundary}`,
-            'content-length': String(length * 5),
-        });
-
-        // Порядок именно такой: запрос, который никогда не станет валидным,
-        // получает стабильный 413, а не 503 с предложением повторить
-        await expect(readParts(oversized.event, length, budget)).rejects.toMatchObject({
-            statusCode: 413,
-        });
-        expect(oversized.yielded()).toBe(0);
+        await expect(readJsonBodyWithLimit(event, 1024)).rejects.toMatchObject({ statusCode: 413 });
     });
 
-    it('занятый бюджет отклоняет форму, не начав читать тело', async () => {
-        const boundary = 'busy-boundary';
-        const { body, length } = buildMultipartRequest(boundary);
-        const budget = createInflightBodyBudget(length);
-        budget.reserve(length);
+    it('тело больше потолка — 413 по мере чтения, а не по заголовку', async () => {
+        // Заголовка нет вовсе: единственная защита — предел на само чтение
+        const event = createJsonEvent('{"a":"' + 'x'.repeat(200) + '"}');
 
-        const busy = createFakeEvent([body], {
-            'content-type': `multipart/form-data; boundary=${boundary}`,
-            'content-length': String(length),
-        });
-
-        await expect(readParts(busy.event, length * 10, budget)).rejects.toMatchObject({
-            statusCode: 503,
-        });
-        expect(busy.yielded()).toBe(0);
-    });
-
-    it('заявленная длина ограничивает и чтение: соврать в Content-Length бюджет не обойти', async () => {
-        const boundary = 'lying-boundary';
-        const { body, length } = buildMultipartRequest(boundary);
-        const budget = createInflightBodyBudget(length * 10);
-
-        // Клиент заявил один байт, а присылает всё тело: без потолка по резерву
-        // он занял бы в бюджете байт, а в памяти — весь потолок ручки
-        const lying = createFakeEvent([body], {
-            'content-type': `multipart/form-data; boundary=${boundary}`,
-            'content-length': '1',
-        });
-
-        await expect(readParts(lying.event, length * 10, budget)).rejects.toMatchObject({
-            statusCode: 413,
-        });
-    });
-
-    it('тело без Content-Length резервирует весь потолок ручки', async () => {
-        const boundary = 'chunked-boundary';
-        const { body, length } = buildMultipartRequest(boundary);
-        const contentType = `multipart/form-data; boundary=${boundary}`;
-
-        // Бюджет с уже занятой частью: одинокий запрос проходит любой, поэтому
-        // разницу видно только рядом с другой загрузкой
-        const busyBudget = createInflightBodyBudget(length * 3);
-        busyBudget.reserve(length);
-
-        const chunked = createFakeEvent([body], { 'content-type': contentType });
-
-        // chunked заявленной длины не имеет, поэтому резервирует худший случай —
-        // весь лимит ручки, и в остаток бюджета не влезает
-        await expect(readParts(chunked.event, length * 3, busyBudget)).rejects.toMatchObject({
-            statusCode: 503,
-        });
-
-        // То же тело с честным Content-Length занимает свой размер и проходит
-        const declared = createFakeEvent([body], {
-            'content-type': contentType,
-            'content-length': String(length),
-        });
-
-        expect(await readParts(declared.event, length * 3, busyBudget)).toHaveLength(2);
+        await expect(readJsonBodyWithLimit(event, 50)).rejects.toMatchObject({ statusCode: 413 });
     });
 });

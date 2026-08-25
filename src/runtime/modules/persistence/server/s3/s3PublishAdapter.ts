@@ -11,14 +11,18 @@ import {
     ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { useRuntimeConfig } from 'nitropack/runtime';
+import { discardUnconfirmedObject } from './s3ObjectCleanup';
 import { extractStorageKey, findManagedPrefixConflict, isManagedStorageKey } from './s3KeyPolicy';
+import { writeStreamToBucket } from './s3StreamUpload';
 import type {
     IPublishAdapter,
     IUploadFileParams,
+    IUploadFileStreamParams,
     IUploadedFile,
     IStoredFileInfo,
     TPublishFileKind,
 } from '../../types/adapters';
+import type { IResolvedS3Config, TRawS3Config } from '../../types/s3PublishAdapter';
 
 /**
  * The ceiling for establishing the TCP connection to storage (ms): an unreachable
@@ -26,18 +30,19 @@ import type {
  */
 const S3_CONNECTION_TIMEOUT_MS = 5_000;
 /**
- * The ceiling of socket SILENCE (ms), not of the whole operation: files of up to a
- * hundred megabytes go through PUT, and an overall ceiling would cut off a healthy
- * upload over a slow link. Without it a hung endpoint would hold the request
- * forever — a client abort never reaches the AWS SDK, meaning the upload handler
- * had not a single bound of its own on waiting for storage.
+ * The ceiling of socket SILENCE (ms), not of the whole operation. The largest
+ * single request is one part of a streaming upload or a whole optimized image, and
+ * an overall ceiling would cut off a healthy one over a slow link. Without the
+ * bound a hung endpoint would hold the request until the client gave up: the
+ * departure of a client does stop a write in flight (the signal is passed into
+ * every send), but a storage that answers nothing is not a client going away.
  *
  * It goes into `socketTimeout` specifically. The similar-looking `requestTimeout`
  * is a trap here: it bounds the total time of the request and the response, and
  * without `throwOnRequestTimeout` it merely writes a warning to the log when
  * exceeded, aborting nothing (see `@smithy/node-http-handler`). That is, it does
- * not cure a hung endpoint, and turned on as an error it would cut a
- * hundred-megabyte upload off by total time.
+ * not cure a hung endpoint, and turned on as an error it would cut a slow upload
+ * off by total time.
  */
 const S3_SOCKET_TIMEOUT_MS = 30_000;
 /**
@@ -45,35 +50,11 @@ const S3_SOCKET_TIMEOUT_MS = 30_000;
  * endpoint give three silence windows in a row plus the backoff — up to a minute
  * and a half of waiting on an interactive upload; a single retry is enough to
  * survive a one-off network failure, and the request body is replayable (a Buffer)
- * with the key always new.
+ * with the key always new. A repeated part of a streaming upload is replayable in
+ * the same sense: the part number identifies the part, and uploading it again
+ * REPLACES it rather than appending a second copy.
  */
 const S3_MAX_ATTEMPTS = 2;
-/**
- * The ceiling of the compensating deletion (ms). A bound of its own is needed
- * because the cleanup runs through the same client with the same retries: without
- * it the original upload error would only come back outward after the cleanup's
- * own silence windows.
- */
-const S3_CLEANUP_TIMEOUT_MS = 10_000;
-
-/**
- * The resolved configuration of the S3 storage.
- */
-interface IResolvedS3Config {
-    endpoint: string;
-    region: string;
-    bucket: string;
-    accessKeyId: string;
-    secretAccessKey: string;
-    prefix: string;
-    thumbnailsPrefix: string;
-    avatarsPrefix: string;
-}
-
-/**
- * The raw configuration from runtimeConfig.bricksS3 (every field optional).
- */
-type TRawS3Config = Partial<IResolvedS3Config> | undefined;
 
 /**
  * Resolves the S3 configuration from runtimeConfig.
@@ -156,37 +137,6 @@ function extractManagedKey(url: string, config: IResolvedS3Config): string | nul
     }
 
     return key;
-}
-
-/**
- * Best-effort cleanup of an object whose write ended in an unknown outcome.
- *
- * A failed PUT does not prove the object is absent from the bucket: the response
- * could have been lost or hit a timeout after the write already happened. The
- * caller received no URL in the process, meaning it has nothing to delete the
- * object by and no link to it will ever appear — the cleanup is only possible
- * here. A waiting bound of its own is mandatory: without it the original upload
- * error would additionally wait through the cleanup's retries.
- *
- * @param client - The S3 client.
- * @param bucket - The storage bucket.
- * @param key - The key of the object that may have been written.
- */
-async function discardUnconfirmedObject(
-    client: S3Client,
-    bucket: string,
-    key: string
-): Promise<void> {
-    try {
-        await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }), {
-            abortSignal: AbortSignal.timeout(S3_CLEANUP_TIMEOUT_MS),
-        });
-    } catch (error: unknown) {
-        // A failed cleanup does not replace the upload error: it is that error
-        // that must go outward, otherwise the user would learn about a
-        // problem with the bucket instead of the problem with their own file
-        console.warn('[S3] Failed to discard object after a failed upload:', key, error);
-    }
 }
 
 /**
@@ -281,6 +231,34 @@ export function createS3PublishAdapter(): IPublishAdapter {
                 url: `${config.endpoint}/${config.bucket}/${params.key}`,
                 key: params.key,
                 size: params.buffer.length,
+            };
+        },
+
+        /**
+         * Uploads a file read as a stream: one part of it lives in memory at a
+         * time. Short streams go as a single PutObject, longer ones as an S3
+         * multipart upload (see `writeStreamToBucket`).
+         *
+         * The key is checked exactly as `uploadFile` checks it, and the cleanup of
+         * a write that failed follows the same rule — with the addition that a
+         * multipart upload begun is aborted, or its parts would sit in the bucket
+         * billed and invisible.
+         */
+        async uploadFileStream(params: IUploadFileStreamParams): Promise<IUploadedFile> {
+            const { client: s3, config } = useClient();
+
+            if (!isManagedStorageKey(params.key, resolveManagedPrefixes(config))) {
+                throw new Error(
+                    'Invalid storage key: object key is outside of the managed prefixes'
+                );
+            }
+
+            const size = await writeStreamToBucket(s3, config, params);
+
+            return {
+                url: `${config.endpoint}/${config.bucket}/${params.key}`,
+                key: params.key,
+                size,
             };
         },
 

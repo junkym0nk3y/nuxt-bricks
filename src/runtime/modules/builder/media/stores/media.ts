@@ -273,10 +273,12 @@ export const useMediaStore = defineStore('bricksMedia', {
                     category && category !== ALL_MEDIA_CATEGORIES_FILTER ? category : null;
 
                 const formData = new FormData();
-                formData.append('file', file);
 
-                // The field is not sent at all when there is no category: an empty
-                // string in a multipart would reach the validator as an invalid slug
+                // The fields go BEFORE the file: the server reads the form as a stream,
+                // so a category ahead of the bytes is checked before the upload is paid
+                // for, while one behind them costs an upload and a deletion. The field
+                // is not sent at all when there is no category — an empty string in a
+                // multipart would reach the validator as an invalid slug
                 if (resolvedCategory) {
                     formData.append('category', resolvedCategory);
                 }
@@ -288,6 +290,8 @@ export const useMediaStore = defineStore('bricksMedia', {
                     formData.append('quality', String(optimization.quality));
                     formData.append('maxWidth', String(optimization.maxWidth));
                 }
+
+                formData.append('file', file);
 
                 const response = await apiFetcher<IMediaItem>('/api/bricks/media/upload', {
                     method: 'POST',

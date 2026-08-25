@@ -17,7 +17,7 @@ import {
 import {
     MULTIPART_ENVELOPE_ALLOWANCE_BYTES,
     withMultipartFormData,
-} from '../../../../modules/persistence/server/utils/requestBodyLimits';
+} from '../../../../modules/persistence/server/utils/multipartStream';
 import {
     assertWithinRateLimit,
     createFixedWindowRateLimiter,
@@ -151,9 +151,9 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
         const bodyLimitBytes =
             MAX_THUMBNAIL_UPLOAD_MB * 1024 * 1024 + MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
 
-        // Everything happens inside the callback because the reservation in the
-        // concurrent buffering budget lives exactly as long as it runs — see
-        // `withMultipartFormData` for why the form is handed to a callback at all
+        // Everything happens inside the callback because the ingress slot is held
+        // exactly as long as it runs — see `withMultipartParts` for why the form
+        // is handed to a callback at all
         return await withMultipartFormData(event, bodyLimitBytes, async (formData) => {
             if (formData.length === 0) {
                 throw createError({

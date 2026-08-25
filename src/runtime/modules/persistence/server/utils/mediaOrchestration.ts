@@ -11,44 +11,15 @@
  */
 import { createError } from 'h3';
 import type { IMediaItem } from '../../../common/types/media';
-import type { ICreateMediaPayload, IPublishAdapter, IStorageAdapter } from '../../types/adapters';
-import type { IUploadMediaVariant, TMediaVariant } from '../../types/media';
+import type { ICreateMediaPayload, IPublishAdapter } from '../../types/adapters';
+import type {
+    IMediaOrchestrationDeps,
+    IRegisterUploadedMediaParams,
+    IUploadMediaFilesParams,
+    IUploadedMediaFiles,
+} from '../../types/mediaOrchestration';
+import type { IUploadMediaVariant } from '../../types/media';
 import { BricksStorageWriteRejectedError } from './storageErrors';
-
-/**
- * The dependencies of the media orchestration.
- */
-export interface IMediaOrchestrationDeps {
-    storage: Pick<IStorageAdapter, 'getMedia' | 'createMedia' | 'deleteMedia'>;
-    publish: Pick<IPublishAdapter, 'buildFileKey' | 'uploadFile' | 'deleteFile' | 'isOwnedUrl'>;
-}
-
-/**
- * The parameters for registering an uploaded media file.
- */
-export interface IUploadMediaParams {
-    /** The buffer ready to be uploaded (after optimization/validation). */
-    buffer: Buffer;
-    mimeType: string;
-    /**
-     * The server-generated object name (`uuid.ext`) — client names never make it into
-     * the key.
-     */
-    storedFilename: string;
-    /** The file's display name for the media library. */
-    displayFilename: string;
-    /** null — an upload with no category chosen. */
-    category: string | null;
-    /** Already sanitized SVG markup (the write policy is the handler's). */
-    svgContent?: string | null;
-    /** The full file's pixel dimensions; null for an SVG and a video. */
-    width?: number | null;
-    height?: number | null;
-    /**
-     * The downscaled variants of progressive loading; an empty object — no variants.
-     */
-    variants?: Partial<Record<TMediaVariant, IUploadMediaVariant>>;
-}
 
 /**
  * Uploads a variant into the publication storage best-effort.
@@ -139,8 +110,43 @@ async function compensateUploadedFiles(
 }
 
 /**
- * Uploads the file (and its downscaled variants) into the publication storage and
- * registers the metadata in the database.
+ * Uploads the full file and its downscaled variants into the publication storage.
+ *
+ * No database is touched here: the record is created by `registerUploadedMedia`
+ * afterwards. The split exists because a file reaches the bucket two different
+ * ways — a picture is optimized in memory and handed over as a buffer, a video
+ * travels there as a stream while the request is still being read — while the
+ * rule about the files' fate when the record fails is one and the same.
+ *
+ * @param deps - The persistence adapters.
+ * @param params - The bytes, the MIME and the object names.
+ * @returns The URLs storage ended up holding.
+ */
+export async function uploadMediaFiles(
+    deps: IMediaOrchestrationDeps,
+    params: IUploadMediaFilesParams
+): Promise<IUploadedMediaFiles> {
+    const key = deps.publish.buildFileKey('media', params.storedFilename);
+    const uploaded = await deps.publish.uploadFile({
+        buffer: params.buffer,
+        mimeType: params.mimeType,
+        key,
+    });
+    const previewVariant = params.variants?.preview;
+    const mockVariant = params.variants?.mock;
+    // In parallel: the variants are independent, while a sequential upload added
+    // an extra round trip to storage to every upload. A variant's failure is muted
+    // by `uploadVariantFile` itself, so there can be no rejection here
+    const [previewUrl, mockUrl] = await Promise.all([
+        previewVariant ? uploadVariantFile(deps, previewVariant) : null,
+        mockVariant ? uploadVariantFile(deps, mockVariant) : null,
+    ]);
+
+    return { uploaded, previewUrl, mockUrl };
+}
+
+/**
+ * Registers in the database the metadata of files that already lie in storage.
  *
  * The files' fate when the write fails is decided by WHAT is known about the
  * write's outcome. Storage guaranteed the refusal
@@ -160,32 +166,19 @@ async function compensateUploadedFiles(
  * by it is not allowed.
  *
  * @param deps - The persistence adapters.
- * @param params - The upload's data.
+ * @param params - The uploaded files and the metadata of the record.
  * @returns The created media record.
  */
-export async function uploadAndRegisterMedia(
+export async function registerUploadedMedia(
     deps: IMediaOrchestrationDeps,
-    params: IUploadMediaParams
+    params: IRegisterUploadedMediaParams
 ): Promise<IMediaItem> {
-    const key = deps.publish.buildFileKey('media', params.storedFilename);
-    const uploaded = await deps.publish.uploadFile({
-        buffer: params.buffer,
-        mimeType: params.mimeType,
-        key,
-    });
-    const previewVariant = params.variants?.preview;
-    const mockVariant = params.variants?.mock;
-    // In parallel: the variants are independent, while a sequential upload added
-    // an extra round trip to storage to every upload. A variant's failure is muted
-    // by `uploadVariantFile` itself, so there can be no rejection here
-    const [previewUrl, mockUrl] = await Promise.all([
-        previewVariant ? uploadVariantFile(deps, previewVariant) : null,
-        mockVariant ? uploadVariantFile(deps, mockVariant) : null,
-    ]);
+    const previewUrl = params.previewUrl ?? null;
+    const mockUrl = params.mockUrl ?? null;
     const payload: ICreateMediaPayload = {
-        url: uploaded.url,
+        url: params.uploaded.url,
         filename: params.displayFilename,
-        size: uploaded.size,
+        size: params.uploaded.size,
         mimeType: params.mimeType,
         category: params.category,
         svgContent: params.svgContent ?? null,
@@ -199,7 +192,7 @@ export async function uploadAndRegisterMedia(
         return await deps.storage.createMedia(payload);
     } catch (error: unknown) {
         if (error instanceof BricksStorageWriteRejectedError) {
-            await compensateUploadedFiles(deps, uploaded.url, [previewUrl, mockUrl]);
+            await compensateUploadedFiles(deps, params.uploaded.url, [previewUrl, mockUrl]);
 
             throw error;
         }
@@ -210,7 +203,7 @@ export async function uploadAndRegisterMedia(
             console.error(
                 '[Media Orchestration] Media registration outcome is unknown, uploaded files are retained:',
                 {
-                    urls: [uploaded.url, previewUrl, mockUrl].filter(Boolean),
+                    urls: [params.uploaded.url, previewUrl, mockUrl].filter(Boolean),
                     error,
                     retryError,
                 }
@@ -218,6 +211,33 @@ export async function uploadAndRegisterMedia(
 
             throw error;
         }
+    }
+}
+
+/**
+ * Best-effort deletion of a file uploaded for a record that will never be created.
+ *
+ * Called when the upload succeeded but what came after refused BEFORE the
+ * registration began — a broken tail of the form, a second file part, a limit of
+ * the parser. At that point nothing references the object and nothing ever will,
+ * so keeping it would leave invisible garbage. Once the registration has started
+ * the rule is the other one: an unknown outcome keeps the file.
+ *
+ * @param publish - The publish adapter.
+ * @param url - The URL of the uploaded file.
+ */
+export async function discardUnregisteredMediaFile(
+    publish: Pick<IPublishAdapter, 'deleteFile' | 'isOwnedUrl'>,
+    url: string
+): Promise<void> {
+    if (!publish.isOwnedUrl(url)) {
+        return;
+    }
+
+    try {
+        await publish.deleteFile(url);
+    } catch (error: unknown) {
+        console.warn('[Media Orchestration] Failed to discard an unregistered media file:', error);
     }
 }
 

@@ -95,6 +95,7 @@
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.914.0",
+        "@fastify/busboy": "^3.2.2",
         "@nuxt/kit": "^3.21.1",
         "@nuxtjs/i18n": "^10.6.0",
         "defu": "^6.1.4",

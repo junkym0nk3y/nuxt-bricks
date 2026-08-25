@@ -273,6 +273,34 @@ export interface IUploadFileParams {
 }
 
 /**
+ * Parameters for uploading a file into the publication storage as a stream.
+ *
+ * The bytes arrive in pieces and are never held in full: a video of a hundred
+ * megabytes used to be assembled in memory whole, and the parsing of the form
+ * copied it once more.
+ */
+export interface IUploadFileStreamParams {
+    key: string;
+    mimeType: string;
+    /**
+     * The bytes as they arrive. The iterable throwing is a refusal to finish the
+     * upload — the implementation must not leave anything behind in storage.
+     */
+    body: AsyncIterable<Uint8Array>;
+    /**
+     * The ceiling the caller enforces on the stream. The implementation may size
+     * its own buffers by it; it is NOT a permission to read further — whoever
+     * pipes the bytes is the one who refuses an oversized file.
+     */
+    maxBytes: number;
+    /**
+     * Aborted when the client goes away: a request in flight must stop instead of
+     * finishing an upload nobody will hear about.
+     */
+    signal: AbortSignal;
+}
+
+/**
  * Result of a file upload.
  */
 export interface IUploadedFile {
@@ -335,6 +363,27 @@ export interface IPublishAdapter {
      * file.
      */
     uploadFile(params: IUploadFileParams): Promise<IUploadedFile>;
+    /**
+     * Puts a file into storage READING IT AS A STREAM, under an already built key.
+     *
+     * The method exists because a file that needs no processing (a video) must not
+     * be assembled in memory: the peak of one upload was twice the file's size,
+     * and two of them at once were enough to take the whole process down with an
+     * out-of-memory.
+     *
+     * The obligations are the same as `uploadFile`'s, plus two of the streaming
+     * kind. The bytes may be read once and only forward. Any refusal — a storage
+     * error, an exception out of the body iterable (the size ceiling, a validation
+     * that failed on the first bytes, a client that went away) — must leave
+     * NOTHING behind: a multipart upload begun is aborted, an object that may
+     * have been written is deleted best-effort, and the ORIGINAL error is
+     * rethrown, because it is the reason the caller has to see.
+     *
+     * A storage whose protocol cannot upload in pieces is free to buffer the
+     * stream — the contract promises the caller a bounded memory footprint of ITS
+     * own, not of the implementation's.
+     */
+    uploadFileStream(params: IUploadFileStreamParams): Promise<IUploadedFile>;
     /**
      * Deletes a file by its public URL. Obliged to throw when the URL does not
      * belong to its own storage or the key lies outside the managed namespace.
