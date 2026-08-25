@@ -1,7 +1,7 @@
-# The CI gate: format/lint/type/test → build (the module plus a production build of
-# the playground) → fresh-consumer smoke from npm pack → npm audit. Every job has to be
-# green to merge into main (required checks are configured in the branch protection of
-# the repository).
+# The CI gate: format/lint/type/test with the coverage thresholds → build (the module
+# plus a production build of the playground) → fresh-consumer smoke from npm pack → npm
+# audit. Every job has to be green to merge into main (required checks are configured in
+# the branch protection of the repository).
 #
 # The three smoke jobs install a clean consumer from scratch, and the npm 10 bundled with
 # Node 22 dies doing that: "Cannot read properties of null (reading 'edgesOut')" while it
@@ -41,7 +41,9 @@ jobs:
             - run: npm run format:check
             - run: npm run lint:check
             - run: npm run type-check
-            - run: npm test
+            # Coverage instead of a bare test run: the thresholds per directory live
+            # in vitest.config.ts and are what makes a domain losing its tests visible
+            - run: npm run test:coverage
 
     build:
         name: Module build + playground prod build

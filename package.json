@@ -78,10 +78,12 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "test": "vitest run",
+        "test:coverage": "vitest run --coverage",
         "test:watch": "vitest watch",
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:dev": "nuxi dev e2e/fixture --port 4321 --host 127.0.0.1",
+        "test:e2e:dev:auth": "nuxi dev e2e/fixture-auth --port 4323 --host 127.0.0.1",
         "smoke:pack": "node ./scripts/pack-smoke.mjs",
         "smoke:integration": "node ./scripts/integration-smoke.mjs",
         "smoke:external": "node ./scripts/external-smoke.mjs",
@@ -142,6 +144,7 @@
         }
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.13.0",
         "@commitlint/cli": "^19.8.1",
         "@commitlint/config-conventional": "^19.8.1",
         "@modelcontextprotocol/sdk": "^1.29.0",
@@ -153,6 +156,7 @@
         "@types/node": "^22.10.0",
         "@types/pg": "^8.20.0",
         "@vitejs/plugin-vue": "^6.0.7",
+        "@vitest/coverage-v8": "^3.2.7",
         "@vue/test-utils": "^2.4.11",
         "dependency-cruiser": "^17.4.3",
         "fuse.js": "^7.3.0",
