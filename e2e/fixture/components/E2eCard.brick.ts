@@ -8,6 +8,13 @@ export const brick = {
             default: 'E2E card',
             type: 'input',
         },
+        // The gallery is here for the accessibility test of the sidebar editor: no
+        // block of the package declares such a property, so without a consumer
+        // component that editor cannot be opened in a browser at all
+        gallery: {
+            default: [],
+            type: 'image-gallery',
+        },
     },
 };
 

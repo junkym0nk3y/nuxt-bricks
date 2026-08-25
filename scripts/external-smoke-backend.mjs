@@ -19,7 +19,14 @@ export const BACKEND_BASE_PATH = '/cms';
  */
 export function createFakeExternalBackend() {
     const requests = [];
-    const state = { pages: new Map(), media: new Map(), nextPageId: 1, nextMediaId: 1 };
+    const state = {
+        pages: new Map(),
+        media: new Map(),
+        mediaCategories: new Map(),
+        nextPageId: 1,
+        nextMediaId: 1,
+        nextMediaCategoryId: 1,
+    };
 
     const server = createServer((request, response) => {
         const chunks = [];
@@ -90,7 +97,12 @@ function createPageRow(body, state, now) {
         thumbnailUrl: null,
         schema: payload.schema,
         published: payload.published ?? false,
-        revision: 0,
+        // The counter starts at one, the way the schema of the built-in storage does
+        // (`revision INTEGER NOT NULL DEFAULT 1`). A zero here is not a smaller number
+        // but a state the real system never has: the server refuses a precondition
+        // that is not a positive integer, so the very first save of a fresh page came
+        // back a 400 instead of reaching the lock
+        revision: 1,
         createdAt: now,
         updatedAt: now,
     };
@@ -154,7 +166,18 @@ function routePagesRequest(method, path, body, state) {
         return { status: 200, body: page };
     }
     if (method === 'PATCH') {
-        const { expectedRevision: _p, ...fields } = /** @type {Record<string, unknown>} */ (body);
+        const { expectedRevision, ...fields } = /** @type {Record<string, unknown>} */ (body);
+        // The optimistic lock is the external backend's duty by the contract, and
+        // without it here the conflict path of the builder could not be reached from a
+        // browser at all: the client would send a stale revision and get a quiet
+        // overwrite. The precondition is checked only when it is sent — operations that
+        // do not carry one (the publication toggle) stay allowed
+        if (expectedRevision !== undefined && Number(expectedRevision) !== Number(page.revision)) {
+            return {
+                status: 409,
+                body: { code: 'REVISION_CONFLICT', message: 'revision conflict' },
+            };
+        }
         Object.assign(page, fields, { revision: Number(page.revision) + 1, updatedAt: now });
         return { status: 200, body: page };
     }
@@ -166,8 +189,77 @@ function routePagesRequest(method, path, body, state) {
 }
 
 /**
+ * The categories of the media library: GET/POST {base}/media/categories and
+ * DELETE {base}/media/categories/:slug.
+ *
+ * Apart from the files for a plain reason of size: together the two halves put the
+ * routing over the complexity ceiling of the linter.
+ *
+ * @param {string} method - HTTP method.
+ * @param {string} path - Path relative to base.
+ * @param {unknown} body - The parsed JSON body.
+ * @param {ReturnType<typeof createFakeExternalBackend>['state']} state - The storage.
+ * @returns {{status: number, body?: unknown} | null} The response, or null when the
+ * route is not a category one.
+ */
+function routeMediaCategoryRequest(method, path, body, state) {
+    // The categories go before the files: `/media/categories` would otherwise be
+    // caught by nothing at all and answer 404, which is exactly what made an upload
+    // into a fresh library fail — the handler reads the categories before it writes
+    // the file
+    if (path === '/media/categories') {
+        if (method === 'GET') {
+            return { status: 200, body: [...state.mediaCategories.values()] };
+        }
+        if (method === 'POST') {
+            const payload = /** @type {Record<string, unknown>} */ (body);
+            const slug = String(payload.slug);
+            // Idempotent by slug, as the contract demands: a repeated creation
+            // returns the category that is already there instead of a conflict
+            const existing = state.mediaCategories.get(slug);
+            if (existing) {
+                return { status: 200, body: existing };
+            }
+            // The row carries `id` and `sortOrder` because the contract lists them as
+            // mandatory: a double that answers with less lets the adapter pass on data
+            // no real backend would send
+            const row = {
+                id: state.nextMediaCategoryId++,
+                slug,
+                label: payload.label ?? slug,
+                sortOrder: state.mediaCategories.size,
+            };
+            state.mediaCategories.set(slug, row);
+            return { status: 201, body: row };
+        }
+    }
+    const categoryMatch = path.match(/^\/media\/categories\/(.+)$/);
+    if (method === 'DELETE' && categoryMatch) {
+        const slug = decodeURIComponent(categoryMatch[1]);
+        if (!state.mediaCategories.has(slug)) {
+            return { status: 404, body: { message: 'not found' } };
+        }
+        state.mediaCategories.delete(slug);
+        // Both halves are atomic by the contract: the category leaves the files
+        // together with itself. The answer is `{ clearedCount }` rather than a 204 or
+        // a flag — the adapter reads that number and the interface shows it, "the
+        // category is gone" and "twelve files lost their category" being two events
+        let clearedCount = 0;
+        for (const row of state.media.values()) {
+            if (row.category === slug) {
+                row.category = null;
+                clearedCount += 1;
+            }
+        }
+        return { status: 200, body: { clearedCount } };
+    }
+    return null;
+}
+
+/**
  * The contract endpoints of media metadata: GET/POST {base}/media, DELETE
- * {base}/media/:id.
+ * {base}/media/:id, and the categories of the library — GET/POST
+ * {base}/media/categories, DELETE {base}/media/categories/:slug.
  *
  * @param {string} method - HTTP method.
  * @param {string} path - Path relative to base.
@@ -177,11 +269,24 @@ function routePagesRequest(method, path, body, state) {
  * is not ours.
  */
 function routeMediaRequest(method, path, body, state) {
+    const categoryResponse = routeMediaCategoryRequest(method, path, body, state);
+    if (categoryResponse) {
+        return categoryResponse;
+    }
     if (method === 'GET' && path === '/media') {
         return { status: 200, body: [...state.media.values()] };
     }
     if (method === 'POST' && path === '/media') {
         const payload = /** @type {Record<string, unknown>} */ (body);
+        // An unknown category is refused by the exact contract code: without this the
+        // double accepts any string, and the branch of the app that turns that refusal
+        // into a message is reached by no test at all
+        if (payload.category && !state.mediaCategories.has(String(payload.category))) {
+            return {
+                status: 400,
+                body: { code: 'UNKNOWN_MEDIA_CATEGORY', message: 'unknown media category' },
+            };
+        }
         const row = {
             id: state.nextMediaId++,
             url: payload.url,

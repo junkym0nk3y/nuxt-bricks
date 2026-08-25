@@ -11,8 +11,17 @@ test('creates a page and discovers the consumer brick in the component library',
 }) => {
     await page.goto('/bricks');
     await waitForNuxtHydration(page);
-    await page.getByRole('button', { name: '+ Create page', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'New page' })).toBeVisible();
+
+    // The button comes from the server render as well, so a click can land before its
+    // handler is attached and go nowhere: hydration of the app says nothing about this
+    // screen in particular. The opened window is the only reliable answer, so the click
+    // is retried until it comes
+    await expect(async () => {
+        await page.getByRole('button', { name: '+ Create page', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'New page' })).toBeVisible({
+            timeout: 2_000,
+        });
+    }).toPass({ timeout: 20_000 });
 
     await page.getByRole('textbox', { name: 'Page title' }).fill('E2E Landing');
     await page.getByRole('textbox', { name: 'Description' }).fill('Created through the browser');

@@ -22,13 +22,14 @@
  * The temporary directory is removed on success and kept on failure (its path is in the
  * log).
  */
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { assertOk, bootServer, run, runCapture, waitForExit } from './smoke-shared.mjs';
 import { BACKEND_BASE_PATH, createFakeExternalBackend } from './external-smoke-backend.mjs';
+import { MEMORY_STORAGE_BASE, scaffoldConsumer } from './external-smoke-consumer.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER_PORT = 4517;
@@ -38,10 +39,12 @@ const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}${BACKEND_BASE_PATH}`;
 const BACKEND_TOKEN = 'external-smoke-token';
 const BASIC_USERNAME = 'admin';
 const BASIC_PASSWORD = 'external-smoke-secret';
-const PAGE_MARKER = 'bricks-external-smoke-ok';
 const PAGENAME = 'external-smoke-page';
+/** The label of the media category the smoke creates before uploading a file */
+const CATEGORY_LABEL = 'Images';
+/** The slug the server is expected to derive from that label */
+const CATEGORY_SLUG = 'images';
 // The in-memory publish adapter of the consumer — the binary never leaves for the backend
-const MEMORY_STORAGE_BASE = 'https://memory-storage.invalid/bucket/';
 // A valid 1x1 PNG: sharp inside the consumer has to decode and convert it
 const PNG_BASE64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -57,90 +60,6 @@ function authHeaders() {
         Authorization: `Basic ${Buffer.from(`${BASIC_USERNAME}:${BASIC_PASSWORD}`).toString('base64')}`,
         'x-bricks-csrf': '1',
     };
-}
-
-/**
- * Creates the consumer application of the external mode: backend.mode in nuxt.config and
- * an in-memory publish adapter registered by a Nitro plugin through
- * nuxt-bricks/persistence.
- *
- * @param {string} consumerDir - The consumer directory.
- * @param {string} tarballPath - Absolute path to the tarball.
- * @returns {Promise<void>} Resolves once the files are written.
- */
-async function scaffoldConsumer(consumerDir, tarballPath) {
-    await mkdir(join(consumerDir, 'pages'), { recursive: true });
-    await mkdir(join(consumerDir, 'server', 'plugins'), { recursive: true });
-    await writeFile(
-        join(consumerDir, 'package.json'),
-        JSON.stringify(
-            {
-                name: 'bricks-external-smoke-consumer',
-                private: true,
-                type: 'module',
-                dependencies: {
-                    nuxt: '^3.21.1',
-                    'nuxt-bricks': `file:${tarballPath}`,
-                },
-            },
-            null,
-            2
-        )
-    );
-    await writeFile(
-        join(consumerDir, 'nuxt.config.ts'),
-        [
-            'export default defineNuxtConfig({',
-            "    modules: ['nuxt-bricks'],",
-            "    compatibilityDate: '2025-01-01',",
-            '    bricks: {',
-            "        backend: { mode: 'external' }, // url and token arrive at boot through NUXT_BRICKS_BACKEND_*",
-            '    },',
-            '});',
-            '',
-        ].join('\n')
-    );
-    await writeFile(
-        join(consumerDir, 'server', 'plugins', 'memoryPublish.ts'),
-        [
-            "import { setBricksPublishAdapter } from 'nuxt-bricks/persistence';",
-            '',
-            `const STORAGE_BASE = '${MEMORY_STORAGE_BASE}';`,
-            'const objects = new Map<string, number>();',
-            '',
-            '// An in-memory publish adapter: the files never leave the consumer process —',
-            '// the smoke proves that only the metadata travels to the external backend',
-            'export default defineNitroPlugin(() => {',
-            '    setBricksPublishAdapter({',
-            '        buildFileKey(kind, filename) {',
-            '            return `bricks-media/${kind}-${filename}`;',
-            '        },',
-            '        async uploadFile({ buffer, key }) {',
-            '            const url = `${STORAGE_BASE}${key}`;',
-            '            objects.set(url, buffer.length);',
-            '            return { url, key, size: buffer.length };',
-            '        },',
-            '        async deleteFile(url) {',
-            '            if (!url.startsWith(STORAGE_BASE)) {',
-            "                throw new Error('URL outside managed storage');",
-            '            }',
-            '            objects.delete(url);',
-            '        },',
-            '        async listFiles() {',
-            '            return [];',
-            '        },',
-            '        isOwnedUrl(url) {',
-            '            return url.startsWith(STORAGE_BASE);',
-            '        },',
-            '    });',
-            '});',
-            '',
-        ].join('\n')
-    );
-    await writeFile(
-        join(consumerDir, 'pages', 'index.vue'),
-        `<template>\n    <div>${PAGE_MARKER}</div>\n</template>\n`
-    );
 }
 
 /**
@@ -245,6 +164,50 @@ async function runLifecycle(backend) {
     );
     assertOk(foreignPrefix.status === 404, `foreign prefix expected 404: ${foreignPrefix.status}`);
 
+    // A category is created before the file: the library of a fresh installation has
+    // none at all, and an upload naming an unknown one is refused by the contract with
+    // a 400. The creation goes through the app rather than straight into the backend —
+    // it is the same route the interface takes
+    const createdCategory = await fetch(`${SERVER_ORIGIN}/api/bricks/media/categories`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'content-type': 'application/json' },
+        body: JSON.stringify({ label: CATEGORY_LABEL }),
+    });
+    // The body is read once and parsed from that text: passing `await response.text()`
+    // into the message of the assertion consumes the body even when the check passes
+    const createdCategoryBody = await createdCategory.text();
+    assertOk(
+        createdCategory.ok,
+        `category creation expected 2xx, got ${createdCategory.status} ${createdCategoryBody}`
+    );
+    const category = JSON.parse(createdCategoryBody);
+    assertOk(
+        category.slug === CATEGORY_SLUG,
+        `the server must derive the slug from the label, got ${category.slug}`
+    );
+
+    // The refusal of an unknown category, by the exact contract code: without this the
+    // smoke would only ever walk the happy path, and a backend accepting any string
+    // would look just as correct as one enforcing its own list
+    const unknownCategory = await fetch(`${SERVER_ORIGIN}/api/bricks/media/upload`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: (() => {
+            const rejected = new FormData();
+            rejected.append(
+                'file',
+                new Blob([Buffer.from(PNG_BASE64, 'base64')], { type: 'image/png' }),
+                'rejected.png'
+            );
+            rejected.append('category', 'no-such-category');
+            return rejected;
+        })(),
+    });
+    assertOk(
+        unknownCategory.status === 400,
+        `an unknown category expected 400, got ${unknownCategory.status}`
+    );
+
     // The multipart upload: sharp processes the file inside the consumer, the binary goes
     // into the in-memory publish adapter, and only the JSON metadata leaves for external
     const formData = new FormData();
@@ -253,7 +216,7 @@ async function runLifecycle(backend) {
         new Blob([Buffer.from(PNG_BASE64, 'base64')], { type: 'image/png' }),
         'smoke.png'
     );
-    formData.append('category', 'image');
+    formData.append('category', CATEGORY_SLUG);
     const uploaded = await fetch(`${SERVER_ORIGIN}/api/bricks/media/upload`, {
         method: 'POST',
         headers: authHeaders(),
@@ -266,6 +229,23 @@ async function runLifecycle(backend) {
         `the media url must point into the memory of the consumer, got ${media.url}`
     );
     assertOk(media.mimeType === 'image/webp', `sharp must return webp: ${media.mimeType}`);
+
+    // Deleting a category reports how many files were left without one: the number is
+    // shown to a person, and a `204` or a bare flag would leave the adapter parsing an
+    // empty body
+    const deletedCategory = await fetch(
+        `${SERVER_ORIGIN}/api/bricks/media/categories/${CATEGORY_SLUG}`,
+        { method: 'DELETE', headers: authHeaders() }
+    );
+    const deletedCategoryBody = await deletedCategory.text();
+    assertOk(
+        deletedCategory.ok,
+        `category deletion expected 2xx, got ${deletedCategory.status} ${deletedCategoryBody}`
+    );
+    assertOk(
+        JSON.parse(deletedCategoryBody).clearedCount === 1,
+        `the deletion must report the one file it cleared, got ${deletedCategoryBody}`
+    );
 
     const backendMedia = backend.requests.find(
         (item) => item.method === 'POST' && item.path === `${BACKEND_BASE_PATH}/media`
