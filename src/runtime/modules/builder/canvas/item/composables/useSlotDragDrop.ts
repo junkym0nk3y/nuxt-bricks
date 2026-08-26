@@ -7,6 +7,7 @@ import { inject, reactive, watch, type ComponentPublicInstance, type VNodeRef } 
 
 // Utils
 import { applyDropEffect } from '../../../../common/utils/dragAndDrop';
+import { resolveLinearDropIndex } from '../../../../layouts-blocks/utils/linearDropPlacement';
 
 // Constants
 import {
@@ -182,14 +183,10 @@ export function useSlotDragDrop(componentId: string): IUseSlotDragDropReturn {
         }
 
         const state = ensureSlotState(slotName);
-        const pointerY = event.clientY;
-        const children = getSlotChildElements(slotName);
-        const hoveredIndex = children.findIndex((child) => {
-            const childRect = child.getBoundingClientRect();
-            return pointerY < childRect.top + childRect.height / 2;
-        });
 
-        state.dropInsertIndex = hoveredIndex === -1 ? children.length : hoveredIndex;
+        state.dropInsertIndex = resolveLinearDropIndex(event, 'vertical', () =>
+            getSlotChildElements(slotName)
+        );
     }
 
     /**

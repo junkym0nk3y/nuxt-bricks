@@ -1,16 +1,22 @@
 // #region Imports
 // Vue
-import { ref, type Ref } from 'vue';
+import { type Ref } from 'vue';
+
+// Utils
+import { resolveLinearDropIndex } from '../utils/linearDropPlacement';
 // #endregion
 
 /**
- * Computes the insertion index between slides without a separate indicator line.
+ * The slide selection of a Slider block and the insertion index computed over it.
+ *
+ * The selection earns its own composable because it is asked for twice — once to
+ * compute the index, once to insert the flow placeholder between the slides — and
+ * both have to see the very same set of nodes. The walk itself is shared with every
+ * other flow zone.
  *
  * @param containerRef - Root of the Slider layout block.
  */
 export function useSliderDropTarget(containerRef: Ref<HTMLElement | null>) {
-    const dropInsertIndex = ref<number | null>(null);
-
     /**
      * Returns the real Swiper slides, without the loop duplicates.
      */
@@ -28,36 +34,17 @@ export function useSliderDropTarget(containerRef: Ref<HTMLElement | null>) {
     }
 
     /**
-     * Resets the computed insertion target.
-     */
-    function clearDropTarget(): void {
-        dropInsertIndex.value = null;
-    }
-
-    /**
-     * Recomputes the insertion index from the horizontal position of the cursor.
+     * Index of the insertion point between the slides, by the horizontal cursor position.
      *
-     * @param event - Browser dragover event.
+     * @param event - Browser drag event.
+     * @returns Index of the insertion point, up to the number of slides.
      */
-    function updateDropTarget(event: DragEvent): void {
-        const slides = getDraggableSlides();
-        let targetIndex = slides.length;
-
-        for (let index = 0; index < slides.length; index += 1) {
-            const slideRect = slides[index].getBoundingClientRect();
-            if (event.clientX < slideRect.left + slideRect.width / 2) {
-                targetIndex = index;
-                break;
-            }
-        }
-
-        dropInsertIndex.value = targetIndex;
+    function resolveSliderDropIndex(event: DragEvent): number {
+        return resolveLinearDropIndex(event, 'horizontal', getDraggableSlides);
     }
 
     return {
-        dropInsertIndex,
         getDraggableSlides,
-        updateDropTarget,
-        clearDropTarget,
+        resolveSliderDropIndex,
     };
 }

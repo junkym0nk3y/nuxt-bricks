@@ -6,6 +6,7 @@
 | `gridDimensions.ts`      | The declared dimensions of a Grid: normalizing `rows`/`columns` out of an untrusted schema and the number of cells on a concrete viewport (the responsive overrides included) |
 | `gridDropPlacement.ts`   | Computing the targetIndex (the grid cell) by the cursor: the canvas scale, the padding, the gap and the actual tracks                                                         |
 | `gridOverlayGeometry.ts` | The pure geometry of the SVG visualization of a BlockGrid's grid (the column/row lines, the rectangles of the gaps)                                                           |
+| `linearDropPlacement.ts` | The insertion index of a linear drop zone by the cursor, plus the shared selection of the children of a zone                                                                  |
 | `inlineContent.ts`       | `applyColorToSvgContent` — substituting `currentColor` into the fill/stroke of an inline SVG (BlockSvg)                                                                       |
 | `publishedProps.ts`      | `resolvePublishedProps` — merging the definition defaults with the schema props for the published render                                                                      |
 | `responsiveCss.ts`       | Generating the CSS rules out of the `responsiveCssVars` of the definitions (the breakpoints of a published page)                                                              |

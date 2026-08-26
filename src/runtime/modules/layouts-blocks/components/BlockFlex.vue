@@ -8,6 +8,7 @@ import { computed, ref, inject, useCssModule, type CSSProperties, type Ref, type
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+import { queryLayoutDropItems, resolveLinearDropIndex } from '../utils/linearDropPlacement';
 
 // Composables
 import { useLayoutDropZone } from '../composables/useLayoutDropZone';
@@ -25,7 +26,6 @@ const slots = defineSlots<{
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const styles = useCssModule();
 const flexRef = ref<HTMLElement | null>(null);
-const dropInsertIndex = ref<number | null>(null);
 
 const justifyMap: Record<IFlexLayoutProps['justify'], CSSProperties['justifyContent']> = {
     start: 'flex-start',
@@ -85,52 +85,23 @@ const isHorizontal = computed(() => props.layoutProps.direction === 'row');
 
 // #region Methods
 /**
- * Resets the computed index of the flow placeholder.
- */
-function clearDropTarget(): void {
-    dropInsertIndex.value = null;
-}
-
-/**
- * Recomputes the index of the flow placeholder from the current cursor position.
+ * Index of the insertion point under the cursor, along the current flex axis.
  *
- * @param event - Browser dragover event.
+ * An unmounted container answers `null` rather than an empty zone: index 0 would be a
+ * promise of a place in a zone whose children cannot be read at all.
+ *
+ * @param event - Browser drag event.
+ * @returns Index of the insertion point, or null when there is nothing to measure.
  */
-function updateDropTarget(event: DragEvent): void {
-    const container = flexRef.value;
-    if (!container) {
-        return;
+function resolveFlexDropIndex(event: DragEvent): number | null {
+    if (!flexRef.value) {
+        return null;
     }
 
-    const children = Array.from(
-        container.querySelectorAll<HTMLElement>(':scope > [data-layout-drop-item="true"]')
+    return resolveLinearDropIndex(event, isHorizontal.value ? 'horizontal' : 'vertical', () =>
+        queryLayoutDropItems(flexRef.value)
     );
-
-    const pointerPosition = isHorizontal.value ? event.clientX : event.clientY;
-
-    if (children.length === 0) {
-        dropInsertIndex.value = 0;
-        return;
-    }
-
-    let targetIndex = children.length;
-
-    children.some((child, index) => {
-        const childRect = child.getBoundingClientRect();
-        const start = isHorizontal.value ? childRect.left : childRect.top;
-        const end = isHorizontal.value ? childRect.right : childRect.bottom;
-        const mid = start + (end - start) / 2;
-
-        if (pointerPosition < mid) {
-            targetIndex = index;
-            return true;
-        }
-        return false;
-    });
-
-    dropInsertIndex.value = targetIndex;
 }
-
 // #endregion
 
 // #region Drop zone
@@ -144,9 +115,7 @@ const {
 } = useLayoutDropZone({
     containerRef: flexRef,
     layoutId: () => props.layoutId,
-    onDragMove: updateDropTarget,
-    onReset: clearDropTarget,
-    resolveDropIndex: () => dropInsertIndex.value,
+    resolveDropIndex: resolveFlexDropIndex,
     placeholderClass: styles.dropPlaceholder,
 });
 // #endregion

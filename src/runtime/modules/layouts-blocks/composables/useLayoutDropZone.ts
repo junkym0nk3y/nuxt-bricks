@@ -11,6 +11,7 @@ import { inject, onBeforeUnmount, ref, toValue, watch } from 'vue';
 
 // Utils
 import { animateFlowPlaceholder, applyDropEffect } from '../../common/utils/dragAndDrop';
+import { queryLayoutDropItems } from '../utils/linearDropPlacement';
 
 // Constants
 import {
@@ -215,11 +216,7 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
 
         setActiveDropContainer(container);
 
-        const children =
-            options.resolvePlaceholderChildren?.() ??
-            Array.from(
-                container.querySelectorAll<HTMLElement>(':scope > [data-layout-drop-item="true"]')
-            );
+        const children = options.resolvePlaceholderChildren?.() ?? queryLayoutDropItems(container);
         const referenceNode = children[targetIndex] ?? null;
 
         // The position has not changed — leave the node alone: insertBefore reconnects
@@ -271,7 +268,6 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         }
 
         isDragOver.value = true;
-        options.onDragMove?.(event);
         syncDropPlaceholder(event);
     }
 
@@ -301,7 +297,6 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         }
 
         isDragOver.value = true;
-        options.onDragMove?.(event);
         syncDropPlaceholder(event);
     }
 
@@ -344,8 +339,6 @@ export function useLayoutDropZone(options: ILayoutDropZoneOptions): ILayoutDropZ
         }
         event.preventDefault();
         event.stopPropagation();
-
-        options.onDragMove?.(event);
 
         const movedComponentId = event.dataTransfer?.getData('component-id') || null;
         const layoutId = toValue(options.layoutId);

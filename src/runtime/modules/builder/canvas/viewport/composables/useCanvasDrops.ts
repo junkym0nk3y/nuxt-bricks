@@ -14,6 +14,10 @@ import { useComponentMoveFeedback } from '../../../core/composables/useComponent
 
 // Utils
 import { applyDropEffect } from '../../../../common/utils/dragAndDrop';
+import {
+    queryLayoutDropItems,
+    resolveLinearDropIndex,
+} from '../../../../layouts-blocks/utils/linearDropPlacement';
 import { suspendCanvasFlowTransitions } from '../../../core/utils/canvasFlow';
 import { buildComponentInsertPayload } from '../../../core/utils/componentInsertPayload';
 // #endregion
@@ -211,16 +215,9 @@ export function useCanvasDrops({
             return;
         }
 
-        const children = Array.from(
-            container.querySelectorAll<HTMLElement>(':scope > [data-layout-drop-item="true"]')
+        rootDropIndex.value = resolveLinearDropIndex(event, 'vertical', () =>
+            queryLayoutDropItems(container)
         );
-        const pointerY = event.clientY;
-        const hoveredIndex = children.findIndex((child) => {
-            const childRect = child.getBoundingClientRect();
-            return pointerY < childRect.top + childRect.height / 2;
-        });
-
-        rootDropIndex.value = hoveredIndex === -1 ? children.length : hoveredIndex;
     }
 
     /**

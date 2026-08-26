@@ -84,8 +84,7 @@ const devices = computed(() => injectedDevices?.value ?? DEFAULT_BRICKS_DEVICES)
 const activeSlideIndex = ref(0);
 const styles = useCssModule();
 
-const { dropInsertIndex, getDraggableSlides, updateDropTarget, clearDropTarget } =
-    useSliderDropTarget(sliderRef);
+const { getDraggableSlides, resolveSliderDropIndex } = useSliderDropTarget(sliderRef);
 // #endregion
 
 // #region Computed
@@ -232,9 +231,7 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
         containerRef: sliderRef,
         layoutId: () => props.layoutId,
         isEnabled: isEditor,
-        onDragMove: updateDropTarget,
-        onReset: clearDropTarget,
-        resolveDropIndex: () => dropInsertIndex.value,
+        resolveDropIndex: resolveSliderDropIndex,
         placeholderClass: `${styles.dropPlaceholder} swiper-slide`,
         resolvePlaceholderContainer: () =>
             sliderRef.value?.querySelector<HTMLElement>('.swiper-wrapper') ?? null,

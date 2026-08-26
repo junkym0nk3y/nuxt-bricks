@@ -5,6 +5,9 @@
 
 import type { MaybeRefOrGetter, Ref } from 'vue';
 
+/** Axis the children of a linear drop zone are laid out along */
+export type TLayoutDropAxis = 'horizontal' | 'vertical';
+
 /**
  * Detail of the custom `layout-drop` event.
  * Read by the canvas (builder/canvas → ILayoutDropDetail) — the fields have to match.
@@ -25,9 +28,6 @@ export interface ILayoutDropZoneOptions {
 
     /** The drop zone is active (slider: in editor mode only). Defaults to true */
     isEnabled?: MaybeRefOrGetter<boolean>;
-
-    /** Cursor movement carrying a payload (enter/over/drop) — recompute the drop indicator */
-    onDragMove?: (event: DragEvent) => void;
 
     /** Reset of the block's own state (drop indicator, the is-full flag) */
     onReset?: () => void;
@@ -78,4 +78,36 @@ export interface ILayoutDropZone {
     handleDragOver: (event: DragEvent) => void;
     handleDragLeave: (event: DragEvent) => void;
     handleDrop: (event: DragEvent) => void;
+}
+
+/**
+ * Configuration of the drop zone of a Grid block.
+ *
+ * The dimensions and the child count arrive as reactive sources rather than as numbers:
+ * both have responsive overrides, and a Figma-mode board draws every viewport at once —
+ * a value captured at setup would answer for the wrong viewport.
+ */
+export interface IGridDropZoneOptions {
+    /** Root element of the grid */
+    containerRef: Ref<HTMLElement | null>;
+
+    /** ID of the layout component (component.id from the schema) */
+    layoutId: MaybeRefOrGetter<string | undefined>;
+
+    /** Normalized number of columns on the current viewport */
+    columns: MaybeRefOrGetter<number>;
+
+    /** Normalized number of rows on the current viewport */
+    rows: MaybeRefOrGetter<number>;
+
+    /** How many children the slot actually paints — the ceiling of the placeholder cell */
+    renderedChildCount: MaybeRefOrGetter<number>;
+
+    /** CSS Modules class of the placeholder pinned to the target cell */
+    placeholderClass?: string;
+}
+
+export interface IGridDropZone extends ILayoutDropZone {
+    /** The grid is at capacity and refuses a new component (visual feedback) */
+    isGridFull: Ref<boolean>;
 }

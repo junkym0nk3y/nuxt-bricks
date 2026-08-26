@@ -6,6 +6,9 @@ import type { IBlockSectionProps } from '../types/blockProps';
 // Vue
 import { computed, ref, inject, useCssModule, type CSSProperties, type Ref, type Slot } from 'vue';
 
+// Utils
+import { queryLayoutDropItems, resolveLinearDropIndex } from '../utils/linearDropPlacement';
+
 // Composables
 import { useLayoutDropZone } from '../composables/useLayoutDropZone';
 // #endregion
@@ -22,7 +25,6 @@ const slots = defineSlots<{
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const styles = useCssModule();
 const sectionRef = ref<HTMLElement | null>(null);
-const dropInsertIndex = ref<number | null>(null);
 // #endregion
 
 // #region Computed
@@ -75,48 +77,18 @@ const sectionStyle = computed<CSSProperties>(() => {
 
 // #region Methods
 /**
- * Resets the computed index of the flow placeholder.
- */
-function clearDropTarget(): void {
-    dropInsertIndex.value = null;
-}
-
-/**
- * Computes the index of the flow placeholder from the vertical cursor position.
+ * Index of the insertion point under the cursor. A section stacks its children in a
+ * column, so the axis is fixed — the walk itself is the one every flow zone shares.
  *
- * @param event - Current dragover event.
+ * @param event - Browser drag event.
+ * @returns Index of the insertion point, or null when there is nothing to measure.
  */
-function updateDropTarget(event: DragEvent): void {
-    const container = sectionRef.value;
-    if (!container) {
-        return;
+function resolveSectionDropIndex(event: DragEvent): number | null {
+    if (!sectionRef.value) {
+        return null;
     }
 
-    const children = Array.from(
-        container.querySelectorAll<HTMLElement>(':scope > [data-layout-drop-item="true"]')
-    );
-
-    const pointerPosition = event.clientY;
-
-    if (children.length === 0) {
-        dropInsertIndex.value = 0;
-        return;
-    }
-
-    let targetIndex = children.length;
-
-    children.some((child, index) => {
-        const childRect = child.getBoundingClientRect();
-        const mid = childRect.top + (childRect.bottom - childRect.top) / 2;
-
-        if (pointerPosition < mid) {
-            targetIndex = index;
-            return true;
-        }
-        return false;
-    });
-
-    dropInsertIndex.value = targetIndex;
+    return resolveLinearDropIndex(event, 'vertical', () => queryLayoutDropItems(sectionRef.value));
 }
 // #endregion
 
@@ -131,9 +103,7 @@ const {
 } = useLayoutDropZone({
     containerRef: sectionRef,
     layoutId: () => props.layoutId,
-    onDragMove: updateDropTarget,
-    onReset: clearDropTarget,
-    resolveDropIndex: () => dropInsertIndex.value,
+    resolveDropIndex: resolveSectionDropIndex,
     placeholderClass: styles.dropPlaceholder,
 });
 // #endregion

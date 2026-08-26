@@ -248,25 +248,7 @@
 
 # Размер файлов
 
-## 14. `BlockGrid.vue` вышел за потолок размера SFC
-
-**Файл:** `layouts-blocks/components/BlockGrid.vue` (503 строки)
-
-`.claude/rules/vue-best-practices.md` держит потолок 300–500 строк, `oxlint`
-настроен на `max-lines: 500` (SFC он не читает, поэтому молчит).
-
-**Естественный шов:** drop-логика грида (ёмкость, `resolvePlaceholderCell`,
-измерение треков) в композабл рядом с `useLayoutDropZone`.
-
-Заодно в `#region Computed` этого файла лежат две константы
-(`DEFAULT_GRID_MIN_HEIGHT`, `EMPTY_ROW_MIN_HEIGHT`) и функция
-`buildGridTemplateRows` — порядок региона из `.claude/rules/vue-sfc.md` этого не
-предполагает.
-
-**Партия та же, что у обхода детей курсором в [П4](p4-duplication.md):** вынос
-drop-логики грида одновременно приводит файл под потолок.
-
-## 15. Два файла редактора у потолка `oxlint max-lines`, один его уже прошёл
+## 14. Два файла редактора у потолка `oxlint max-lines`, один его уже прошёл
 
 **Файлы:** `builder/app/composables/useBuilderSession.ts`,
 `builder/app/pages/[pagename].vue`
@@ -293,7 +275,7 @@ root.
 
 # Магические числа и нейминг
 
-## 16. Потолок истории и длительность переключения viewport — литералы без имени
+## 15. Потолок истории и длительность переключения viewport — литералы без имени
 
 **Файлы:** `builder/core/utils/history.ts:21`, `builder/core/stores/canvas.ts:212`,
 `:242`
@@ -307,7 +289,7 @@ root.
 совсем другое (буфер высоты в px) — такое совпадение приглашает «починить» одно через
 другое.
 
-## 17. Ожидание 450 мс без имени и без связи с источником задержки
+## 16. Ожидание 450 мс без имени и без связи с источником задержки
 
 **Файл:** `builder/shell/sidebar/components/BuilderShellSidebarSchemaTreeView.vue:145-150`
 
@@ -323,7 +305,7 @@ root.
 должно ждать фактического снятия признака перехода viewport, а затем `nextTick`;
 равные таймеры продолжат гоняться друг с другом.
 
-## 18. `previewPagename` держит адрес, а не имя
+## 17. `previewPagename` держит адрес, а не имя
 
 **Файл:** `builder/app/composables/useBuilderPage.ts` (`handlePreview`)
 
@@ -340,14 +322,14 @@ House-style репозитория — американская орфограф
 Комментарии выправлены; ниже осталось то, что является кодом, а не комментарием, и
 потому правится отдельно.
 
-## 19. Идентификатор `normalised` в `ui`
+## 18. Идентификатор `normalised` в `ui`
 
 **Файл:** `src/runtime/modules/ui/inputs/composables/useBricksInput.ts:245-248`
 
 Локальная переменная `normalised` стоит при функции `normalizeIncomingValue`
 рядом. Переименование — правка кода.
 
-## 20. `cancelled` против `canceled` в сообщении ошибки
+## 19. `cancelled` против `canceled` в сообщении ошибки
 
 **Файл:** `persistence/server/utils/storageErrors.ts:148`
 
@@ -360,7 +342,7 @@ House-style репозитория — американская орфограф
 Сообщение задаётся через `super()` в классе-наследнике `Error` — это строковый
 литерал, а не комментарий.
 
-## 21. `towards` против `toward`
+## 20. `towards` против `toward`
 
 **Файл:** `src/runtime/modules/ui/base/badge/types.d.ts`
 
@@ -372,7 +354,7 @@ House-style — американское `toward` (пять вхождений �
 
 # Границы доменов
 
-## 22. Тип `IInlineEditableProp` ре-экспортируется через util вместо импорта у владельца
+## 21. Тип `IInlineEditableProp` ре-экспортируется через util вместо импорта у владельца
 
 **Файл:** `builder/core/utils/inlineEditableProp.ts:15`
 
@@ -384,7 +366,7 @@ House-style — американское `toward` (пять вхождений �
 Развязка лишняя: `common` доступен canvas напрямую, и после её снятия у типа
 остаётся одно место объявления и одно место импорта.
 
-## 23. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
+## 22. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
 
 **Файл:** `common/constants/templates.ts:27-32`
 (`TEMPLATE_PICKER_SEARCH_THRESHOLD`), потребитель —
@@ -403,7 +385,7 @@ House-style — американское `toward` (пять вхождений �
 шаблона — с того, на котором список начинает прокручиваться. Остаётся только место
 объявления константы.
 
-## 24. Стили документации в глобальной таблице
+## 23. Стили документации в глобальной таблице
 
 См. пункт «Стили документации билдера лежат в глобальной таблице `default.scss`»
 выше — это одновременно и нарушение границ домена: билдерский класс живёт в таблице,
@@ -411,7 +393,7 @@ House-style — американское `toward` (пять вхождений �
 
 ---
 
-## 25. Статья документации уходит в `v-html` мимо `sanitize`
+## 24. Статья документации уходит в `v-html` мимо `sanitize`
 
 **Файлы:** `builder/documentation/components/TheBuilderDocumentationModal.vue:126`,
 источник HTML — `builder/documentation/composables/useMarkdownRenderer.ts:35`

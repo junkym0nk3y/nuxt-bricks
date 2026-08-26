@@ -4,27 +4,16 @@
 import type { IBlockGridProps, TGridLayoutVariant, TGridRowHeight } from '../types/blockProps';
 
 // Vue
-import {
-    computed,
-    ref,
-    inject,
-    nextTick,
-    onMounted,
-    onBeforeUnmount,
-    watch,
-    useCssModule,
-    type Ref,
-    type Slot,
-} from 'vue';
+import { computed, ref, inject, useCssModule, type Ref, type Slot } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
-import { calculateGridDropTargetIndex } from '../utils/gridDropPlacement';
 import { normalizeGridTrackCount } from '../utils/gridDimensions';
 import { countSlotContent } from '../utils/slotContent';
 
 // Composables
-import { useLayoutDropZone } from '../composables/useLayoutDropZone';
+import { useGridDropZone } from '../composables/useGridDropZone';
+import { useGridOverlayMetrics } from '../composables/useGridOverlayMetrics';
 
 // Components
 import BlockGridOverlay from './BlockGridOverlay.vue';
@@ -42,13 +31,14 @@ const slots = defineSlots<{
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const styles = useCssModule();
 const gridRef = ref<HTMLElement | null>(null);
-const containerSize = ref({ width: 0, height: 0 });
 
-/** Grid is at capacity and a drop is impossible (visual feedback) */
-const isGridFull = ref(false);
+const DEFAULT_GRID_MIN_HEIGHT = '10rem';
 
-/** Actual grid row sizes measured from the DOM */
-const actualRowSizes = ref<number[]>([]);
+/**
+ * Floor height of an unfilled grid row on the canvas. Without it, rows that are
+ * declared but not yet taken by content collapse to zero.
+ */
+const EMPTY_ROW_MIN_HEIGHT = '4rem';
 // #endregion
 
 // #region Computed
@@ -77,14 +67,6 @@ const minRowHeight = computed<number>(() =>
     Math.max(0, Number(props.layoutProps.minRowHeight) || 0)
 );
 
-const DEFAULT_GRID_MIN_HEIGHT = '10rem';
-
-/**
- * Floor height of an unfilled grid row on the canvas. Without it, rows that are
- * declared but not yet taken by content collapse to zero.
- */
-const EMPTY_ROW_MIN_HEIGHT = '4rem';
-
 /**
  * How many rows are already taken by content. Auto-placement fills the grid row by
  * row, so the estimate goes by the number of children; an item spanning several
@@ -97,9 +79,17 @@ const occupiedRows = computed<number>(() =>
 );
 
 /**
- * Builds the gridTemplateRows value out of the current settings.
+ * The gridTemplateRows value of the canvas grid.
+ *
+ * Rows without content have zero height while the gap between them stays: six declared
+ * rows do not fit into the block min-height, and the canvas shows a single row instead
+ * of the declared ones — there is nowhere to drop a component into the third row. A
+ * height floor makes the declared structure visible; taken rows stay on `auto` so that
+ * the canvas does not lie about the height of the content. The published page is
+ * untouched by this: there empty rows draw nothing, and rendering goes through separate
+ * code (renderPublished in the definition).
  */
-function buildGridTemplateRows(): string {
+const gridTemplateRows = computed<string>(() => {
     const rows = normalizedRows.value;
     const height = rowHeight.value;
     const minHeight = minRowHeight.value;
@@ -110,14 +100,6 @@ function buildGridTemplateRows(): string {
         return `repeat(${rows}, minmax(${minValue}, ${maxValue}))`;
     }
 
-    // Rows without content have zero height while the gap between them stays: six
-    // declared rows do not fit into the block min-height, and the canvas shows a
-    // single row instead of the declared ones — there is nowhere to drop a component
-    // into the third row. A height floor makes the declared structure visible; taken
-    // rows stay on `auto` so that the canvas does not lie about the height of the
-    // content. The published page is untouched by this: there empty rows draw
-    // nothing, and rendering goes through separate code (renderPublished in the
-    // definition).
     const filled = occupiedRows.value;
     if (filled >= rows) {
         return `repeat(${rows}, ${height})`;
@@ -125,7 +107,7 @@ function buildGridTemplateRows(): string {
 
     const emptyTracks = `repeat(${rows - filled}, minmax(${EMPTY_ROW_MIN_HEIGHT}, auto))`;
     return filled > 0 ? `repeat(${filled}, ${height}) ${emptyTracks}` : emptyTracks;
-}
+});
 
 const normalizedPaddingX = computed<number>(
     () => Math.round(Math.max(0, Number(props.layoutProps.paddingX) || 0) * 10) / 10
@@ -138,7 +120,7 @@ const gridStyle = computed<Record<string, string>>(() => {
     const style: Record<string, string> = {
         display: 'grid',
         gridTemplateColumns: `repeat(${normalizedColumns.value}, 1fr)`,
-        gridTemplateRows: buildGridTemplateRows(),
+        gridTemplateRows: gridTemplateRows.value,
         gridAutoRows: minRowHeight.value > 0 ? `minmax(${minRowHeight.value}rem, auto)` : 'auto',
         gap: convertPxToRem(normalizedGap.value),
         width: '100%',
@@ -175,218 +157,28 @@ const overlayStyle = computed<Record<string, string>>((): Record<string, string>
 });
 // #endregion
 
-// #region Methods
-/**
- * Synchronizes internal container size with DOM measurements.
- * Computes the content area (without padding) so the overlay lines up.
- * Also extracts actual row sizes from computed grid style.
- */
-function updateSize(): void {
-    if (gridRef.value) {
-        const computedStyle = window.getComputedStyle(gridRef.value);
-        const padLeft = parseFloat(computedStyle.paddingLeft) || 0;
-        const padRight = parseFloat(computedStyle.paddingRight) || 0;
-        const padTop = parseFloat(computedStyle.paddingTop) || 0;
-        const padBottom = parseFloat(computedStyle.paddingBottom) || 0;
-
-        containerSize.value = {
-            width: gridRef.value.offsetWidth - padLeft - padRight,
-            height: gridRef.value.offsetHeight - padTop - padBottom,
-        };
-
-        // Read the actual row sizes out of the CSS Grid
-        const gridRowSizes = computedStyle.gridTemplateRows;
-
-        if (gridRowSizes && gridRowSizes !== 'none') {
-            // Parse values like "100px 200px 150px" into an array of numbers
-            const sizes = gridRowSizes
-                .split(/\s+/)
-                .map((size) => parseFloat(size))
-                .filter((size) => !Number.isNaN(size) && size > 0);
-
-            actualRowSizes.value = sizes;
-        } else {
-            actualRowSizes.value = [];
-        }
-    }
-}
-
-/**
- * Returns the number of child items in the grid.
- */
-function getCurrentChildCount(): number {
-    if (!gridRef.value) {
-        return 0;
-    }
-    return gridRef.value.querySelectorAll(':scope > [data-layout-drop-item]').length;
-}
-
-/**
- * Checks whether the grid is filled to its maximum capacity (rows × columns).
- */
-function checkGridAtCapacity(): boolean {
-    const maxItems = normalizedRows.value * normalizedColumns.value;
-    return getCurrentChildCount() >= maxItems;
-}
-
-/**
- * Checks whether the component being dragged is a child of this grid.
- */
-function isChildOfThisGrid(componentId: string): boolean {
-    if (!gridRef.value) {
-        return false;
-    }
-
-    return (
-        gridRef.value.querySelector(
-            `:scope > [data-layout-drop-item][data-component-id="${CSS.escape(componentId)}"]`
-        ) !== null
-    );
-}
-
-/**
- * Capacity check on dragover. During dragover the data in dataTransfer cannot be
- * read (security), but its types can be inspected. A `component-id` type means an
- * existing component is being moved (possibly inside this very grid → swap). Only
- * adding a new component from the library is blocked while the grid is full.
- *
- * @param event - Browser dragover event.
- */
-function canAcceptGridDragOver(event: DragEvent): boolean {
-    const types = Array.from(event.dataTransfer?.types || []);
-    const isExistingComponent = types.includes('component-id');
-
-    if (!isExistingComponent && checkGridAtCapacity()) {
-        isGridFull.value = true;
-        return false;
-    }
-
-    isGridFull.value = false;
-    return true;
-}
-
-/**
- * Capacity check on drop: a full grid only allows its own children to be moved
- * around (an internal swap does not change the capacity).
- *
- * @param _event - Browser drop event (unused).
- * @param movedComponentId - ID of the component being moved, or null for a new one.
- */
-function canAcceptGridDrop(_event: DragEvent, movedComponentId: string | null): boolean {
-    if (!checkGridAtCapacity()) {
-        return true;
-    }
-
-    if (movedComponentId && isChildOfThisGrid(movedComponentId)) {
-        return true;
-    }
-
-    console.warn('[BlockGrid] Grid is at capacity, ignoring drop');
-    return false;
-}
-
-/**
- * Clears the grid-is-full flag.
- */
-function clearGridFull(): void {
-    isGridFull.value = false;
-}
-
-/**
- * Computes the targetIndex (the grid cell) from the cursor position.
- */
-function calculateDropTargetIndex(event: DragEvent): number | null {
-    return calculateGridDropTargetIndex(
-        event,
-        gridRef.value,
-        normalizedColumns.value,
-        normalizedRows.value
-    );
-}
-
-/**
- * Pins the insertion point to the target cell outside the grid flow.
- *
- * An ordinary flow placeholder becomes one more grid item here: with a full grid,
- * auto-placement added an implicit row, the grid grew, and the geometry moved with
- * it — the cell computed under the cursor started coming out wrong. An absolutely
- * positioned element is placed by its own grid-area and does not affect the layout.
- *
- * @param targetIndex - Index of the cell under the cursor.
- * @returns Inline styles of the placeholder (kebab-case).
- */
-function resolvePlaceholderCell(targetIndex: number): Record<string, string> {
-    const columns = normalizedColumns.value;
-
-    // A new component lands at the end of the children list: both insertion points
-    // in the store (addChildToLayout, moveComponentToLayout) clamp the index to their
-    // count. The placeholder has to point at that same cell — otherwise it promises
-    // the sixth row of an empty grid while the component appears in the first.
-    const cellIndex = Math.min(targetIndex, childCount.value);
-
-    // The span is mandatory: for an absolutely positioned grid child the end of the
-    // area is tied to the container edge by default, and the placeholder stretched
-    // down to the bottom of the grid.
-    return {
-        position: 'absolute',
-        'grid-column': `${(cellIndex % columns) + 1} / span 1`,
-        'grid-row': `${Math.floor(cellIndex / columns) + 1} / span 1`,
-        inset: '0',
-        width: 'auto',
-        height: 'auto',
-    };
-}
-// #endregion
-
 // #region Drop zone
-const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
-    useLayoutDropZone({
+const { isDragOver, isGridFull, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
+    useGridDropZone({
         containerRef: gridRef,
         layoutId: () => props.layoutId,
-        canAcceptDragOver: canAcceptGridDragOver,
-        canAcceptDrop: canAcceptGridDrop,
-        resolveDropIndex: calculateDropTargetIndex,
-        requireDropIndex: true,
-        onReset: clearGridFull,
-        extraDropDetail: { swap: true },
+        columns: normalizedColumns,
+        rows: normalizedRows,
+        renderedChildCount: childCount,
         placeholderClass: styles.dropPlaceholder,
-        resolvePlaceholderStyle: resolvePlaceholderCell,
     });
 // #endregion
 
-// #region Lifecycle
-onMounted(() => {
-    updateSize();
-    window.addEventListener('resize', updateSize);
-
-    const resizeObserver = new ResizeObserver(updateSize);
-    if (gridRef.value) {
-        resizeObserver.observe(gridRef.value);
-    }
-
-    onBeforeUnmount(() => {
-        window.removeEventListener('resize', updateSize);
-        resizeObserver.disconnect();
-    });
+// #region Overlay metrics
+// `gridStyle` already carries every declared source of the track layout — the number of
+// rows and columns, the row heights, the gap, the padding and the child count that
+// decides which rows count as taken. `gridVariant` is listed on its own because
+// lead-left and lead-right produce the very same inline style and differ only in which
+// child the stylesheet stretches across two columns, which re-flows the rows.
+const { containerSize, rowSizes } = useGridOverlayMetrics({
+    containerRef: gridRef,
+    remeasureOn: [gridStyle, gridVariant],
 });
-// #endregion
-
-// #region Watchers
-// The grid underlay is drawn from MEASURED tracks, and the measurement is refreshed
-// only by a window resize and by the ResizeObserver. Changing the number of rows or
-// the row height does not change the outer size of the block (min-height holds it),
-// so without this recalculation the underlay keeps the previous value: the panel
-// shows one row while the canvas still shows the previous four. Columns are in the
-// list for the same reason: changing their number re-flows the children and changes
-// the row heights, yet the sum of those heights may stay the same — and then the size
-// observer says nothing.
-watch(
-    [normalizedRows, normalizedColumns, rowHeight, minRowHeight, normalizedGap, childCount],
-    async () => {
-        await nextTick();
-        updateSize();
-    }
-);
 // #endregion
 </script>
 
@@ -416,7 +208,7 @@ watch(
             :container-size="containerSize"
             :columns="normalizedColumns"
             :gap="normalizedGap"
-            :row-sizes="actualRowSizes"
+            :row-sizes="rowSizes"
         />
 
         <slot />
