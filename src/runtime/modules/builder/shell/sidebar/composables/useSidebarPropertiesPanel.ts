@@ -20,6 +20,9 @@ import { usePropertyVariants } from './usePropertyVariants';
 import { useSidebarResponsiveScope } from './useSidebarResponsiveScope';
 import { useSidebarMediaSelection } from './useSidebarMediaSelection';
 
+// Constants
+import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
+
 // Utils
 import {
     coerceNumberValue,
@@ -193,7 +196,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
 
         const scope = layoutDeviceScope.value;
         const shouldUpdateResponsive =
-            scope !== 'desktop' && (isResponsiveLayout.value || property.responsive === true);
+            scope !== BASE_DEVICE_KEY && (isResponsiveLayout.value || property.responsive === true);
 
         if (shouldUpdateResponsive) {
             store.updateComponentResponsiveProp(

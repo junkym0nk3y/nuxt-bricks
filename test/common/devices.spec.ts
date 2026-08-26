@@ -13,6 +13,7 @@ import {
 
 // Utils
 import {
+    buildDeviceMediaQuery,
     deviceRanges,
     resolveDeviceIcon,
     resolveDeviceSet,
@@ -296,5 +297,22 @@ describe('deviceRanges', () => {
             { key: 'desktop', label: 'D', icon: 'device-desktop', width: 1600, aside: 2 },
         ]);
         expect(withoutLaptop[1]).toEqual({ key: 'tablet', min: 768, max: 1599 });
+    });
+});
+
+describe('buildDeviceMediaQuery', () => {
+    it.each([
+        [{ key: 'mobile', min: 0, max: 767 }, '@media (max-width: 767px)'],
+        [
+            { key: 'tablet', min: 768, max: 1279 },
+            '@media (min-width: 768px) and (max-width: 1279px)',
+        ],
+        [
+            { key: 'desktop', min: 1600, max: Number.POSITIVE_INFINITY },
+            '@media (min-width: 1600px)',
+        ],
+        [{ key: 'only', min: 0, max: Number.POSITIVE_INFINITY }, '@media all'],
+    ])('%o → %s', (range, expected) => {
+        expect(buildDeviceMediaQuery(range)).toBe(expected);
     });
 });

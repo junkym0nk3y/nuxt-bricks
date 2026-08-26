@@ -3,7 +3,7 @@
 import type { IBricksResolvedDevice, TBricksResolvedDeviceSet } from '../../types/devices';
 
 // Utils
-import { deviceRanges } from './devices';
+import { buildDeviceMediaQuery, deviceRanges } from './devices';
 // #endregion
 
 /**
@@ -53,17 +53,7 @@ ${buildContainerProps(device, '            ')}
 
     const publishedRules = devices
         .map((device, index) => {
-            const range = ranges[index];
-            const conditions = [
-                range.min > 0 ? `(min-width: ${range.min}px)` : '',
-                Number.isFinite(range.max) ? `(max-width: ${range.max}px)` : '',
-            ].filter(Boolean);
-
-            // The narrowest device has no lower bound and the widest one no upper
-            // bound; there may be no conditions left at all when there is a single
-            // device
-            const query =
-                conditions.length > 0 ? `@media ${conditions.join(' and ')}` : '@media all';
+            const query = buildDeviceMediaQuery(ranges[index]);
 
             return `        ${query} {
             .bricks-container:where(:not(.bricks-canvas *)) {

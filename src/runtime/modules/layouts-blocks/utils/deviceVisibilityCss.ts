@@ -3,7 +3,7 @@
 import type { TBricksResolvedDeviceSet } from '../../common/types/devices';
 
 // Utils
-import { deviceRanges } from '../../common/utils/bricks/devices';
+import { buildDeviceMediaQuery, deviceRanges } from '../../common/utils/bricks/devices';
 // #endregion
 
 /**
@@ -28,13 +28,7 @@ export function buildDeviceVisibilityCss(devices: TBricksResolvedDeviceSet): str
 
     const publishedRules = deviceRanges(devices)
         .map((range) => {
-            const conditions = [
-                range.min > 0 ? `(min-width: ${range.min}px)` : '',
-                Number.isFinite(range.max) ? `(max-width: ${range.max}px)` : '',
-            ].filter(Boolean);
-
-            const query =
-                conditions.length > 0 ? `@media ${conditions.join(' and ')}` : '@media all';
+            const query = buildDeviceMediaQuery(range);
 
             return `        ${query} {
             .bricks-hide--${range.key}:not(.bricks-canvas *) { display: none !important; }

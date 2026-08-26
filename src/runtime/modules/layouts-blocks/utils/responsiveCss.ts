@@ -7,7 +7,7 @@ import type { IResponsiveCssBlock } from '../types/responsiveCss';
 import { BASE_DEVICE_KEY, BASE_VAR_SUFFIX } from '../../common/constants/devices';
 
 // Utils
-import { deviceRanges } from '../../common/utils/bricks/devices';
+import { buildDeviceMediaQuery, deviceRanges } from '../../common/utils/bricks/devices';
 
 // Registry
 import { BLOCK_REGISTRY } from '../registry';
@@ -114,13 +114,7 @@ export function buildResponsiveLayoutCss(devices: TBricksResolvedDeviceSet): str
 
     const published = deviceRanges(devices)
         .map((range) => {
-            const conditions = [
-                range.min > 0 ? `(min-width: ${range.min}px)` : '',
-                Number.isFinite(range.max) ? `(max-width: ${range.max}px)` : '',
-            ].filter(Boolean);
-
-            const query =
-                conditions.length > 0 ? `@media ${conditions.join(' and ')}` : '@media all';
+            const query = buildDeviceMediaQuery(range);
 
             const rules = blocks
                 .map((block) => buildBlockRule(block.selector, block, range.key, '            '))

@@ -91,6 +91,7 @@ describe('buildDeviceVisibilityCss', () => {
         const css = buildDeviceVisibilityCss(TRIO);
 
         expect(css).toContain('@media (max-width: 767px)');
+        expect(css).toContain('@media (min-width: 768px) and (max-width: 1599px)');
         expect(css).toContain('@media (min-width: 1600px)');
     });
 });

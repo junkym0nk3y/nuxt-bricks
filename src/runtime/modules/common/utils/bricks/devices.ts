@@ -399,4 +399,27 @@ export function deviceRanges(devices: ReadonlyArray<IBricksPageDevice>): IBricks
         max: index === devices.length - 1 ? Number.POSITIVE_INFINITY : devices[index + 1].width - 1,
     }));
 }
+
+/**
+ * Builds the media at-rule prefix of a range for the generated CSS.
+ *
+ * The narrowest range has no lower bound and the widest one no upper bound, so a
+ * range normally yields one condition or two. A range with neither bound — a
+ * one-entry input, which the validated set never is — falls back to `@media all`:
+ * an at-rule with an empty condition is invalid CSS.
+ *
+ * The braces and the indentation stay with the caller: they belong to its CSS
+ * template, not to the query.
+ *
+ * @param range - Window width range of a device.
+ * @returns The at-rule prefix without the opening brace.
+ */
+export function buildDeviceMediaQuery(range: IBricksDeviceRange): string {
+    const conditions = [
+        range.min > 0 ? `(min-width: ${range.min}px)` : '',
+        Number.isFinite(range.max) ? `(max-width: ${range.max}px)` : '',
+    ].filter(Boolean);
+
+    return conditions.length > 0 ? `@media ${conditions.join(' and ')}` : '@media all';
+}
 // #endregion

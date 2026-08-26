@@ -15,12 +15,15 @@ export interface IApiError {
 }
 
 /**
- * Data shape for the frontend.
- * The database returns snake_case; the keys are camelized on the way out by
- * `toCamelCase` (common/utils/case-transform.ts).
+ * The part a page carries wherever it travels: an editorial row, a published
+ * response, a saved version.
+ *
+ * Only the fields whose type AND optionality coincide in all three live here. The
+ * identity fields stay apart on purpose — `id` of a version is the id of the
+ * snapshot rather than of the page, and `createdAt` is the moment of the snapshot
+ * rather than of the page.
  */
-export interface IBricksPageRow {
-    id: number;
+export interface IBricksPageMetadata {
     pagename: string;
     title: string | null;
     description: string | null;
@@ -43,6 +46,15 @@ export interface IBricksPageRow {
     viewportConfig: TBricksPageDeviceSet | null;
     schema: IBricksSchema;
     published: boolean;
+}
+
+/**
+ * Data shape for the frontend.
+ * The database returns snake_case; the keys are camelized on the way out by
+ * `toCamelCase` (common/utils/case-transform.ts).
+ */
+export interface IBricksPageRow extends IBricksPageMetadata {
+    id: number;
     /** Monotonic counter of row changes — the precondition of optimistic locking */
     revision: number;
     createdAt: string;
@@ -59,30 +71,8 @@ export type TBricksPageSummaryRow = Omit<IBricksPageRow, 'schema'>;
 /**
  * Data shape for the frontend (a flat structure without settings).
  */
-export interface IPublishedPage {
+export interface IPublishedPage extends IBricksPageMetadata {
     id: number;
-    pagename: string;
-    title: string | null;
-    description: string | null;
-    keywords: string | null;
-    backgroundColor: string | null;
-    layout: string | null;
-    socialImage: string | null;
-    urlPrefix: string | null;
-    subdomain: string | null;
-    thumbnailUrl: string | null;
-    /**
-     * The page's own device set; `null` — the page inherits the project set.
-     *
-     * A device width serves both as the canvas sheet and as the `min-width` of its
-     * media-query range, so the set is the single source of the page layout. The
-     * `null` semantics matter for the history: a restored version of an inheriting
-     * page will show the CURRENT project set rather than the one in effect at the
-     * moment of the snapshot.
-     */
-    viewportConfig: TBricksPageDeviceSet | null;
-    schema: IBricksSchema;
-    published: boolean;
     /**
      * Revision of the editorial row for optimistic locking. Optional only because
      * the public projection (`/api/bricks/public/**`) does not return the field.
@@ -142,29 +132,7 @@ export interface IPageVersionSummary {
 /**
  * Full snapshot of a page version: meta + schema as of the moment it was saved.
  */
-export interface IPageVersion extends IPageVersionSummary {
-    pagename: string;
-    title: string | null;
-    description: string | null;
-    keywords: string | null;
-    socialImage: string | null;
-    layout: string | null;
-    backgroundColor: string | null;
-    urlPrefix: string | null;
-    subdomain: string | null;
-    /**
-     * The page's own device set; `null` — the page inherits the project set.
-     *
-     * A device width serves both as the canvas sheet and as the `min-width` of its
-     * media-query range, so the set is the single source of the page layout. The
-     * `null` semantics matter for the history: a restored version of an inheriting
-     * page will show the CURRENT project set rather than the one in effect at the
-     * moment of the snapshot.
-     */
-    viewportConfig: TBricksPageDeviceSet | null;
-    schema: IBricksSchema;
-    published: boolean;
-}
+export interface IPageVersion extends IPageVersionSummary, IBricksPageMetadata {}
 
 export interface ICreatePagePayload {
     pagename: string;

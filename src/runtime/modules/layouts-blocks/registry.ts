@@ -15,6 +15,9 @@ import { blockMediaDefinition } from './components/blockMedia.definition';
 import { blockAccordionDefinition } from './components/blockAccordion.definition';
 import { blockSvgDefinition } from './components/blockSvg.definition';
 
+// Constants
+import { BASE_DEVICE_KEY } from '../common/constants/devices';
+
 // Utils
 import { readOwnKey } from '../common/utils/safeRecord';
 // #endregion
@@ -184,7 +187,7 @@ export function resolveBlockProps(
 
     const resolved: Record<string, unknown> = { ...baseProps };
 
-    if (definition.responsiveMode === 'all' && viewport !== 'desktop') {
+    if (definition.responsiveMode === 'all' && viewport !== BASE_DEVICE_KEY) {
         const responsive = baseProps.responsive;
         if (responsive && typeof responsive === 'object') {
             const overrides = (responsive as Record<string, unknown>)[viewport];

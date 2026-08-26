@@ -163,7 +163,7 @@ defineExpose({
                 <span :class="$style.deviceScopeTitle">{{ t('bricks.properties.device') }}</span>
 
                 <BricksButton
-                    v-if="layoutDeviceScope !== 'desktop' && hasResponsiveOverridesForScope"
+                    v-if="layoutDeviceScope !== BASE_DEVICE_KEY && hasResponsiveOverridesForScope"
                     size="sm"
                     variant="ghost"
                     @click="handleResetLayoutDeviceScopeOverrides"
