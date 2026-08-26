@@ -24,7 +24,6 @@ import {
 
 // #region Props
 const props = withDefaults(defineProps<IRendererProps>(), {
-    allComponents: () => [],
     resolvedProps: () => new Map<string, Record<string, unknown>>(),
     placeholderLabels: null,
 });
@@ -34,9 +33,9 @@ const props = withDefaults(defineProps<IRendererProps>(), {
 const styles = useCssModule();
 const { findImportModule } = useBrickImports();
 const { resolveBrickComponent } = useRendererBricks({ findImportModule });
-const allComponents = computed(() => props.allComponents ?? []);
+const componentIndex = computed(() => props.componentIndex);
 const { renderLayoutComponent, needsContainerWrapper } = useRendererLayouts({
-    allComponents,
+    componentIndex,
     styles,
     renderChild: (component) => renderComponent(component),
 });
@@ -57,12 +56,15 @@ function renderComponent(component: IBricksComponent) {
         ariaAttrs['aria-hidden'] = 'true';
     }
 
+    // The container carries `aria-hidden` when there is one, the component itself
+    // otherwise. The answer is computed once and handed to the wrapper: asking twice
+    // spread one decision over two functions and held only as long as both agreed
     const hasContainer = needsContainerWrapper(component);
-    const innerAttrs = hasContainer ? {} : ariaAttrs;
+    const componentAttrs = hasContainer ? {} : ariaAttrs;
 
     return wrapWithContainer(
-        renderLayoutOrBrick(component, visibilityClasses, innerAttrs),
-        component,
+        renderLayoutOrBrick(component, visibilityClasses, componentAttrs),
+        hasContainer,
         visibilityClasses,
         ariaAttrs
     );
@@ -205,17 +207,17 @@ function renderUiComponent(
  * Wraps the component into a container when a fixed width is required.
  *
  * @param content - The already prepared vnode.
- * @param component - Schema component to check.
+ * @param hasContainer - Whether a container is required; decided by the caller.
+ * @param visibilityClasses - Device visibility classes of the component.
+ * @param containerAttrs - Attributes that belong to the container alone.
  * @returns The original content, or the vnode wrapped into a container.
  */
 function wrapWithContainer(
-    content: ReturnType<typeof h>,
-    component: IBricksComponent,
+    content: VNode,
+    hasContainer: boolean,
     visibilityClasses: string[],
-    extraAttrs: Record<string, string | undefined> = {}
-) {
-    const hasContainer = needsContainerWrapper(component);
-
+    containerAttrs: Record<string, string | undefined>
+): VNode {
     if (!hasContainer) {
         return content;
     }
@@ -224,7 +226,7 @@ function wrapWithContainer(
         'div',
         {
             class: ['bricks-container', styles.container, ...visibilityClasses],
-            ...extraAttrs,
+            ...containerAttrs,
         },
         [content]
     );

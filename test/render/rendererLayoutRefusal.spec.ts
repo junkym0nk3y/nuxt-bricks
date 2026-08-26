@@ -39,6 +39,7 @@ vi.mock('../../src/runtime/modules/common/composables/useBrickImports', () => ({
 // #endregion
 
 import TheRenderer from '../../src/runtime/modules/render/components/TheRenderer.vue';
+import { buildRendererComponentIndex } from '../../src/runtime/modules/render/utils/componentIndex';
 
 /**
  * Grid component of a schema (registry name 'Grid', renderPublished — an eager
@@ -93,7 +94,11 @@ describe('TheRenderer: a layout block refused over a cycle', () => {
         const b = makeGrid('b', ['a'], 'a');
 
         const wrapper = mount(TheRenderer, {
-            props: { component: a, allComponents: [a, b], placeholderLabels: LABELS },
+            props: {
+                component: a,
+                componentIndex: buildRendererComponentIndex([a, b]),
+                placeholderLabels: LABELS,
+            },
         });
 
         expect(findImportModuleMock).not.toHaveBeenCalled();
@@ -109,7 +114,7 @@ describe('TheRenderer: a layout block refused over a cycle', () => {
         const wrapper = mount(TheRenderer, {
             props: {
                 component: makeBrick(),
-                allComponents: [makeBrick()],
+                componentIndex: buildRendererComponentIndex([makeBrick()]),
                 placeholderLabels: LABELS,
             },
         });
@@ -123,7 +128,7 @@ describe('TheRenderer: a layout block refused over a cycle', () => {
     it('without labels leaves an empty node in place of the component', () => {
         const brick = makeBrick();
         const wrapper = mount(TheRenderer, {
-            props: { component: brick, allComponents: [brick] },
+            props: { component: brick, componentIndex: buildRendererComponentIndex([brick]) },
         });
 
         expect(wrapper.html()).not.toContain('unavailable');
@@ -136,7 +141,7 @@ describe('TheRenderer: a layout block refused over a cycle', () => {
     it('the empty node keeps the grid placement and the html id', () => {
         const brick = { ...makeBrick(), htmlId: 'promo', gridColumn: '2 / 4', gridRow: '1 / 2' };
         const wrapper = mount(TheRenderer, {
-            props: { component: brick, allComponents: [brick] },
+            props: { component: brick, componentIndex: buildRendererComponentIndex([brick]) },
         });
 
         const node = wrapper.find('#promo');

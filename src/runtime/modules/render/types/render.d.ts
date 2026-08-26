@@ -23,7 +23,16 @@ export interface IRendererPlaceholderLabels {
 
 export interface IRendererProps {
     component: IBricksComponent;
-    allComponents?: IBricksComponent[];
+    /**
+     * The schema components by id, built once per page rather than per renderer:
+     * the page mounts one renderer per root component, so an index derived inside
+     * the renderer would be rebuilt as many times as there are roots.
+     *
+     * Required with no default on purpose: an omitted index renders every container
+     * childless, and that is a silent defect — as a required prop it is a type error
+     * instead.
+     */
+    componentIndex: ReadonlyMap<string, IBricksComponent>;
     /** The key is `component.id` from the schema, hence a `Map` as the container. */
     resolvedProps?: Map<string, Record<string, unknown>>;
     /** Diagnostics of an unavailable component; `null` on a published page. */
@@ -33,7 +42,7 @@ export interface IRendererProps {
 export type TRendererChildRenderer = (component: IBricksComponent) => VNodeChild;
 
 export interface IRendererLayoutsOptions {
-    allComponents: Ref<IBricksComponent[]>;
+    componentIndex: Ref<ReadonlyMap<string, IBricksComponent>>;
     styles: Record<string, string>;
     renderChild: TRendererChildRenderer;
 }

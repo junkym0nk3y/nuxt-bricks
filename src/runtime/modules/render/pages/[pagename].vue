@@ -21,6 +21,7 @@ import { useRendererDataSources } from '../composables/useRendererDataSources';
 import { useRendererPreviewSync } from '../composables/useRendererPreviewSync';
 import { normalizeBrickPath } from '../../common/utils/bricks/paths';
 import { isRenderableSchemaComponent } from '../../common/utils/bricks/schemaContract';
+import { buildRendererComponentIndex } from '../utils/componentIndex';
 import {
     PREVIEW_VERSION_QUERY_PARAM,
     getBricksPageDataKey,
@@ -152,6 +153,14 @@ const rootComponents = computed<IBricksComponent[]>(() =>
     allComponents.value.filter((component: IBricksComponent) => !component.parent)
 );
 
+// One index for the whole page rather than one per renderer: the template mounts a
+// renderer per root component, so an index derived inside the renderer would be
+// rebuilt as many times as there are roots — on a flat page, more work than the
+// linear lookup it replaces
+const componentIndex = computed<ReadonlyMap<string, IBricksComponent>>(() =>
+    buildRendererComponentIndex(allComponents.value)
+);
+
 // Diagnostics of an unavailable component are editor-facing, so only the preview
 // surface hands them over; on the published page the renderer gets null and puts an
 // empty node in the failed cell instead of a dashed box with text
@@ -271,7 +280,7 @@ useHead(() => {
                 v-for="component in rootComponents"
                 :key="component.id"
                 :component="component"
-                :all-components="allComponents"
+                :component-index="componentIndex"
                 :resolved-props="resolvedProps"
                 :placeholder-labels="placeholderLabels"
             />

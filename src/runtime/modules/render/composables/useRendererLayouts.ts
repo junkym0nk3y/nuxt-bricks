@@ -18,12 +18,12 @@ import { MAX_COMPONENT_TREE_DEPTH } from '../../common/utils/bricks/schemaContra
  * in its definition (containers — `h('div')` with per-device CSS vars, leaf
  * blocks — a `.vue` component of their own).
  *
- * @param options - The schema data, the styles and the function that renders
- * child components.
+ * @param options - The component index of the schema, the styles and the function
+ * that renders child components.
  * @returns The needsContainerWrapper and renderLayoutComponent functions.
  */
 export function useRendererLayouts({
-    allComponents,
+    componentIndex,
     styles,
     renderChild,
 }: IRendererLayoutsOptions) {
@@ -54,17 +54,24 @@ export function useRendererLayouts({
     /**
      * Returns the list of child components.
      *
+     * The index is read at call time and never captured into a local: blocks that
+     * render their children later (the slider calls renderSlide from its own `.vue`
+     * long after renderPublished has returned) would otherwise resolve ids against
+     * the schema that was current when the composable was created, and the live
+     * preview replaces the schema underneath them.
+     *
      * @param component - The parent layout.
-     * @returns The filtered list of child components.
+     * @returns The child components, in the order of `children`, missing references
+     * dropped.
      */
     function getChildComponents(component: IBricksComponent): IBricksComponent[] {
-        if (!component.children || !allComponents.value.length) {
+        if (!component.children) {
             return [];
         }
 
         return component.children
-            .map((childId) => allComponents.value.find((item) => item.id === childId))
-            .filter(Boolean) as IBricksComponent[];
+            .map((childId) => componentIndex.value.get(childId))
+            .filter((child): child is IBricksComponent => Boolean(child));
     }
 
     /**

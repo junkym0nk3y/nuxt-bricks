@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Composables
 import { useRendererLayouts } from '../../src/runtime/modules/render/composables/useRendererLayouts';
+import { buildRendererComponentIndex } from '../../src/runtime/modules/render/utils/componentIndex';
 import { MAX_COMPONENT_TREE_DEPTH } from '../../src/runtime/modules/common/utils/bricks/schemaContract';
 // #endregion
 
@@ -62,7 +63,7 @@ function createHarness(components: IBricksComponent[]) {
     });
 
     const api = useRendererLayouts({
-        allComponents: computed(() => components),
+        componentIndex: computed(() => buildRendererComponentIndex(components)),
         styles: {},
         renderChild: (child: IBricksComponent) => {
             calls.renderChild += 1;

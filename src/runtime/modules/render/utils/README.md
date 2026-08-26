@@ -4,6 +4,7 @@ The pure utilities of the render of a published page (isomorphic, with no Nuxt c
 
 | File                           | Purpose                                                                                                                                                                                          |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `componentIndex.ts`            | `buildRendererComponentIndex` — the "id → component" index of a schema, the first occurrence of a repeated id winning (a linear `find` answered with the first one)                              |
 | `dataSourceLogging.ts`         | Redacting the production logs of the data sources: a URL → its target (`local`/the origin), an error → the allow-list `{name, statusCode}`                                                       |
 | `dataSourceParams.ts`          | The URL parameters of the data sources: the check of a resolved value (a string, a finite number, a boolean) and the substitution into the template with a report of the unresolved placeholders |
 | `dataSourcePolicy.ts`          | The policy of the data sources: the allow-list of the methods (GET/HEAD) and of the URLs (relative ones / the permitted hosts)                                                                   |
