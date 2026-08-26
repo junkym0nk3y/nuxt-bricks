@@ -78,131 +78,159 @@ export default defineConfig({
              * the same reason — its well-covered core would mask a hole in `media` or
              * `templates`.
              *
-             * The values stand a little under what the suite reaches today, so
-             * rounding and one defensive branch do not turn the gate into noise. A
-             * gap of five points and more stops being a gate at all, which is why
-             * they are not rounded down to a comfortable number.
+             * Lines and statements are percentages; functions and branches are
+             * negative, and a negative threshold caps the absolute number of
+             * uncovered entities instead. The split is not a matter of taste: line
+             * counts run into the hundreds and thousands per domain, where a percent
+             * is a fine-grained unit, while functions run from fourteen to a few
+             * hundred — one uncovered function costs seven points of the smallest
+             * glob. Percentages there measure the shape of the decomposition rather
+             * than the loss of behavior: breaking one covered function into five
+             * named ones drops the number without touching what the suite proves,
+             * and that is exactly how these thresholds went red once already.
              *
-             * What the margin buys and what it costs, both measured: a domain that
-             * loses its spec file is caught at once (documentation went to 0% and the
-             * run named the glob), while a single uncovered helper added to a domain
-             * is not — it fits inside the margin. The gate watches for a domain losing
-             * ground, not for every branch.
+             * The caps are exact — they record the uncovered debt as measured, with
+             * no margin. Growth past a cap turns the gate red, and the answer is one
+             * of two: a test that distinguishes a real defect, or a deliberate raise
+             * of the cap here, visible in review.
+             *
+             * Pulling a cap back down once coverage improves is a manual step, and
+             * nothing in the run performs it: `autoUpdate` stays off, because a gate
+             * that moves its own bar is not a gate. The exactness therefore holds on
+             * the day a cap is written and decays from there — while the freed slack
+             * sits unrecorded, a regression back into it passes green. Take the slack
+             * out in the same change that frees it.
+             *
+             * What the gate does NOT promise, so that nobody reads more into a green
+             * run: it does not prove that every helper has a test, and it does not
+             * catch the deletion of any spec file — a spec may uniquely cover a
+             * single function, or its coverage may be duplicated by a neighbor. What
+             * it catches is the uncovered debt of a domain growing past the number
+             * written here. Behavior is the business of review and of the live
+             * verification.
+             *
+             * Two files sit in the report as accepted debt rather than as a signal:
+             * `src/module.ts` and the canvas `useCanvasPan.ts` are loaded by no test,
+             * and for such a file v8 reports one uncovered function for the whole
+             * file. That single count says "never executed", not "one function is
+             * missing a test": the real map of nested functions only appears once
+             * something imports the file, so an import written to turn `0/1` into
+             * `1/1` would buy a number and no knowledge.
              */
             thresholds: {
                 'src/*.ts': {
                     lines: 57.5,
                     statements: 57.5,
-                    branches: 75.3,
-                    functions: 90.3,
+                    branches: -42,
+                    functions: -7,
                 },
                 'src/runtime/server/**': {
                     lines: 52.1,
                     statements: 52.1,
-                    branches: 79.6,
-                    functions: 65.2,
+                    branches: -92,
+                    functions: -36,
                 },
                 'src/runtime/{middleware,plugins,layouts}/**': {
                     lines: 10.5,
                     statements: 10.5,
-                    branches: 62.7,
-                    functions: 84.5,
+                    branches: -10,
+                    functions: -1,
                 },
                 'src/runtime/modules/common/**': {
                     lines: 91,
                     statements: 91,
-                    branches: 88.6,
-                    functions: 92.6,
+                    branches: -64,
+                    functions: -9,
                 },
                 'src/runtime/modules/layouts-blocks/**': {
                     lines: 58.5,
                     statements: 58.5,
-                    branches: 73.8,
-                    functions: 42.2,
+                    branches: -77,
+                    functions: -31,
                 },
                 'src/runtime/modules/persistence/**': {
                     lines: 84.2,
                     statements: 84.2,
-                    branches: 85.2,
-                    functions: 83,
+                    branches: -138,
+                    functions: -39,
                 },
                 'src/runtime/modules/render/**': {
                     lines: 59.3,
                     statements: 59.3,
-                    branches: 80.2,
-                    functions: 75.2,
+                    branches: -52,
+                    functions: -12,
                 },
                 'src/runtime/modules/text-editor/**': {
                     lines: 10.1,
                     statements: 10.1,
-                    branches: 70.6,
-                    functions: 77,
+                    branches: -51,
+                    functions: -13,
                 },
                 'src/runtime/modules/ui/**': {
                     lines: 64.5,
                     statements: 64.5,
-                    branches: 83.7,
-                    functions: 58,
+                    branches: -39,
+                    functions: -26,
                 },
                 'src/runtime/modules/builder/app/**': {
                     lines: 47.4,
                     statements: 47.4,
-                    branches: 83.9,
-                    functions: 81.2,
+                    branches: -48,
+                    functions: -19,
                 },
                 'src/runtime/modules/builder/auth/**': {
                     lines: 65.8,
                     statements: 65.8,
-                    branches: 84.7,
-                    functions: 66.3,
+                    branches: -12,
+                    functions: -16,
                 },
                 'src/runtime/modules/builder/canvas/**': {
                     lines: 10.8,
                     statements: 10.8,
-                    branches: 74.4,
-                    functions: 78.3,
+                    branches: -37,
+                    functions: -24,
                 },
                 'src/runtime/modules/builder/core/**': {
                     lines: 57.2,
                     statements: 57.2,
-                    branches: 68.2,
-                    functions: 58.3,
+                    branches: -127,
+                    functions: -65,
                 },
                 'src/runtime/modules/builder/documentation/**': {
                     lines: 50.3,
                     statements: 50.3,
-                    branches: 81.7,
-                    functions: 92,
+                    branches: -9,
+                    functions: -1,
                 },
                 'src/runtime/modules/builder/media/**': {
                     lines: 66.5,
                     statements: 66.5,
-                    branches: 77.8,
-                    functions: 68.4,
+                    branches: -104,
+                    functions: -49,
                 },
                 'src/runtime/modules/builder/publish/**': {
                     lines: 60.7,
                     statements: 60.7,
-                    branches: 82.7,
-                    functions: 73.5,
+                    branches: -129,
+                    functions: -62,
                 },
                 'src/runtime/modules/builder/shell/**': {
                     lines: 36.5,
                     statements: 36.5,
-                    branches: 71,
-                    functions: 47.2,
+                    branches: -86,
+                    functions: -72,
                 },
                 'src/runtime/modules/builder/templates/**': {
                     lines: 33.4,
                     statements: 33.4,
-                    branches: 76.6,
-                    functions: 62.6,
+                    branches: -11,
+                    functions: -11,
                 },
                 'src/runtime/modules/builder/users/**': {
                     lines: 85.4,
                     statements: 85.4,
-                    branches: 91.4,
-                    functions: 61.7,
+                    branches: -15,
+                    functions: -25,
                 },
             },
         },

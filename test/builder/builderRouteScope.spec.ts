@@ -18,7 +18,10 @@ vi.mock('#imports', () => ({
 }));
 // #endregion
 
-import { runOnBuilderRoute } from '../../src/runtime/plugins/utils/builderRouteScope';
+import {
+    runOnBricksSurface,
+    runOnBuilderRoute,
+} from '../../src/runtime/plugins/utils/builderRouteScope';
 
 /** A deferred installation: the test decides when it ends and how. */
 interface IDeferredInstall {
@@ -144,5 +147,37 @@ describe('lazy installation on the builder routes', () => {
         await getBeforeResolve()({ path: '/pricing' });
 
         expect(deferred.calls()).toBe(0);
+    });
+});
+
+/**
+ * The two entry points differ in the path predicate alone — the mechanics of the
+ * one-time installation are already covered above through `runOnBuilderRoute`, so
+ * what is checked here is the difference itself: the preview surface belongs to the
+ * kit (the glyph of the chosen device is drawn by its banner), while a published
+ * page of the consumer must not pull the builder chunks in.
+ */
+describe('lazy installation on the builder and preview surfaces', () => {
+    beforeEach(() => {
+        routerMock.beforeResolve.mockReset();
+        requestUrlMock.pathname = '/';
+    });
+
+    it('installs on the preview route, which the builder-only scope leaves out', async () => {
+        const install = vi.fn(() => Promise.resolve());
+        await runOnBricksSurface(install);
+
+        await getBeforeResolve()({ path: '/bricks-preview/blog/post' });
+
+        expect(install).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves a published page of the consumer alone', async () => {
+        const install = vi.fn(() => Promise.resolve());
+        await runOnBricksSurface(install);
+
+        await getBeforeResolve()({ path: '/blog/post' });
+
+        expect(install).not.toHaveBeenCalled();
     });
 });

@@ -10,6 +10,15 @@
  * Checked here is the map rather than the numbers: for every `.ts`/`.vue` under
  * `src/` there is a glob in the config that covers it. Whether the numbers are
  * high enough is the business of the coverage run itself.
+ *
+ * One thing about the numbers is checked all the same — their sign. Functions and
+ * branches are capped in entities (a negative threshold), not in percent, because
+ * on a glob of fourteen functions one uncovered function costs seven points and the
+ * percentage ends up measuring how the code is decomposed rather than what the
+ * suite proves. That is not a preference but a repair: measured in percent, these
+ * two metrics had gone red on refactorings that removed no test at all. The
+ * decision lives in a comment in the config, and a comment cannot stop a
+ * well-meaning hand from writing `functions: 78.3` back.
  */
 
 // #region Imports
@@ -32,7 +41,7 @@ import vitestConfig from '../../vitest.config';
 // lives on the branches rather than on the union — the config is read here through
 // the shape this spec actually needs
 interface ICoverageWithThresholds {
-    thresholds?: Record<string, unknown>;
+    thresholds?: Record<string, Record<string, unknown>>;
 }
 // #endregion
 
@@ -129,6 +138,23 @@ describe('coverage thresholds: the map has no holes', () => {
         }
 
         expect(uncovered).toEqual([]);
+    });
+
+    it('caps functions and branches in entities rather than in percent', () => {
+        const coverage = vitestConfig.test?.coverage as ICoverageWithThresholds | undefined;
+        const wrongUnit: string[] = [];
+
+        for (const [glob, values] of Object.entries(coverage?.thresholds ?? {})) {
+            for (const metric of ['functions', 'branches']) {
+                const value = values[metric];
+
+                if (typeof value !== 'number' || value >= 0) {
+                    wrongUnit.push(`${glob}.${metric} = ${String(value)}`);
+                }
+            }
+        }
+
+        expect(wrongUnit).toEqual([]);
     });
 
     it('lists no threshold for a directory that no longer exists', () => {
