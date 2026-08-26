@@ -1,19 +1,19 @@
 // #region Imports
+// Types
 import type { NodeViewRendererProps } from '@tiptap/core';
+import type { IResizableNodeViewInternals } from './types';
+
+// TipTap
 import Image from '@tiptap/extension-image';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { PluginKey } from '@tiptap/pm/state';
+
+// Utils
+import { createResizableMediaAttributes, createResizableMediaPlugins } from './resizableMedia';
 // #endregion
 
-/**
- * Internal fields of ResizableNodeView — @tiptap/extension-image does not export the
- * type, so they are reached through the `getNodeViewInternals` normalization.
- */
-interface IResizableNodeViewInternals {
-    dom?: HTMLElement;
-    node?: { attrs?: { width?: unknown; height?: unknown } };
-    element?: HTMLElement;
-    applyInitialSize?: () => void;
-}
+const floatSyncPluginKey = new PluginKey('resizableImageFloatSync');
+const customSizeClearPluginKey = new PluginKey('resizableImageCustomSizeClear');
+const DEFAULT_IMAGE_WIDTH = 300;
 
 /**
  * Normalizes the result of the parent NodeView factory down to the internal fields.
@@ -25,49 +25,6 @@ function getNodeViewInternals(view: unknown): IResizableNodeViewInternals {
     return (view ?? {}) as IResizableNodeViewInternals;
 }
 
-const FLOAT_CLASSES = ['float-left', 'float-right', 'float-none'] as const;
-const VALIGN_CLASSES = ['valign-baseline', 'valign-middle', 'valign-top', 'valign-bottom'] as const;
-const floatSyncPluginKey = new PluginKey('resizableImageFloatSync');
-const customSizeClearPluginKey = new PluginKey('resizableImageCustomSizeClear');
-const DEFAULT_IMAGE_WIDTH = 300;
-
-/**
- * Pulls a dimension carrying a unit (rem, em, %) out of the inline style of the element.
- * Returns null for px values — those are handled by the regular width/height attributes.
- */
-function extractStyledDimension(element: HTMLElement, prop: 'width' | 'height'): string | null {
-    const style = element.getAttribute('style');
-    if (!style) {
-        return null;
-    }
-
-    const regex = new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*(\\d+(?:\\.\\d+)?(?:rem|em|%))`, 'i');
-    const match = style.match(regex);
-    return match ? match[1] : null;
-}
-
-/**
- * Applies a custom size to the DOM element of the container.
- * em values are converted into px against the computed font-size of the element,
- * because the font-size context differs between the sidebar editor and the canvas.
- */
-function applyCustomDimension(
-    container: HTMLElement,
-    prop: 'width' | 'height',
-    value: string
-): void {
-    const emMatch = value.match(/^(\d+(?:\.\d+)?)em$/);
-
-    if (emMatch) {
-        const num = parseFloat(emMatch[1]);
-        const computedFontSize = parseFloat(getComputedStyle(container).fontSize) || 16;
-        container.style[prop] = `${num * computedFontSize}px`;
-        return;
-    }
-
-    container.style[prop] = value;
-}
-
 /**
  * The official Image extension, extended with float support (text wrapping) and with
  * the resize built into TipTap v3.
@@ -77,90 +34,14 @@ function applyCustomDimension(
  * attribute). The parseHTML selector is `img[src]:not([data-segment-id])` to keep it from
  * clashing with InlineSegmentImage.
  *
- * Carries a ProseMirror plugin that syncs the float attribute into the DOM while editing,
- * because ResizableNodeView does not apply the renderHTML attributes to the DOM elements.
+ * The attributes of the wrapping and of the custom size, and the plugins syncing them into
+ * the DOM, are shared with the video extension (`resizableMedia`).
  */
 const ResizableImageBase = Image.extend({
     addAttributes() {
         return {
             ...this.parent?.(),
-            float: {
-                default: null,
-                parseHTML: (element: HTMLElement) => {
-                    if (element.classList.contains('float-left')) {
-                        return 'left';
-                    }
-                    if (element.classList.contains('float-right')) {
-                        return 'right';
-                    }
-                    // `float-none` is not what the interface writes — clearing the float
-                    // drops the attribute instead — but incoming markup carries it (the
-                    // code view keeps whatever was typed), and the class means something
-                    // of its own: `float: none` plus zero margins, unlike the absence of
-                    // the class. Without this branch an edit of such an image silently
-                    // dropped the class and the picture regained the default margins
-                    if (element.classList.contains('float-none')) {
-                        return 'none';
-                    }
-
-                    // Backward compat: the data-float attribute of the old format
-                    return element.getAttribute('data-float') || null;
-                },
-                renderHTML: (attributes: Record<string, unknown>) => {
-                    if (!attributes.float) {
-                        return {};
-                    }
-
-                    return { class: `float-${attributes.float}` };
-                },
-            },
-            verticalAlign: {
-                default: null,
-                parseHTML: (element: HTMLElement) => {
-                    for (const cls of VALIGN_CLASSES) {
-                        if (element.classList.contains(cls)) {
-                            return cls.replace('valign-', '');
-                        }
-                    }
-                    return null;
-                },
-                renderHTML: (attributes: Record<string, unknown>) => {
-                    if (!attributes.verticalAlign) {
-                        return {};
-                    }
-                    return { class: `valign-${attributes.verticalAlign}` };
-                },
-            },
-            customWidth: {
-                default: null,
-                parseHTML: (element: HTMLElement) =>
-                    element.getAttribute('data-custom-width') ||
-                    extractStyledDimension(element, 'width'),
-                renderHTML: (attributes: Record<string, unknown>) => {
-                    if (!attributes.customWidth) {
-                        return {};
-                    }
-                    return {
-                        'data-custom-width': attributes.customWidth,
-                        style: `width: ${attributes.customWidth}; max-width: 100%`,
-                    };
-                },
-            },
-            customHeight: {
-                default: null,
-                parseHTML: (element: HTMLElement) =>
-                    element.getAttribute('data-custom-height') ||
-                    extractStyledDimension(element, 'height'),
-                renderHTML: (attributes: Record<string, unknown>) => {
-                    if (!attributes.customHeight) {
-                        return {};
-                    }
-                    return {
-                        'data-custom-height': attributes.customHeight,
-                        style: `height: ${attributes.customHeight}`,
-                    };
-                },
-            },
+            ...createResizableMediaAttributes(),
             /**
              * Deferred loading of the images inside the text. The sanitizer has allowed
              * the attributes for a long time, but nobody was setting them: a long article
@@ -269,137 +150,12 @@ const ResizableImageBase = Image.extend({
         };
     },
 
-    /**
-     * ProseMirror plugin that syncs the float attribute of the image nodes into the DOM.
-     * ResizableNodeView (TipTap v3) does not apply the renderHTML attributes to
-     * data-resize-container, so the float class has to be set by hand after every
-     * transaction.
-     */
     addProseMirrorPlugins() {
-        return [
-            new Plugin({
-                key: floatSyncPluginKey,
-                view() {
-                    return {
-                        update(view) {
-                            view.state.doc.descendants((node, pos) => {
-                                if (node.type.name !== 'image') {
-                                    return;
-                                }
-
-                                const domNode = view.nodeDOM(pos);
-                                if (!(domNode instanceof HTMLElement)) {
-                                    return;
-                                }
-
-                                // domNode is the data-resize-container (the NodeView root)
-                                const container = domNode.hasAttribute('data-resize-container')
-                                    ? domNode
-                                    : domNode.closest('[data-resize-container]');
-
-                                if (!container) {
-                                    return;
-                                }
-
-                                container.classList.remove(...FLOAT_CLASSES, ...VALIGN_CLASSES);
-
-                                if (node.attrs.float) {
-                                    container.classList.add(`float-${node.attrs.float}`);
-                                }
-
-                                if (node.attrs.verticalAlign) {
-                                    container.classList.add(`valign-${node.attrs.verticalAlign}`);
-                                }
-
-                                // Sync the custom sizes (rem, em, %) into the DOM
-                                // container. With only one of them set, the other one
-                                // follows the aspect ratio.
-                                const cw = node.attrs.customWidth as string | null;
-                                const ch = node.attrs.customHeight as string | null;
-                                const el = container as HTMLElement;
-
-                                if (cw && ch) {
-                                    applyCustomDimension(el, 'width', cw);
-                                    applyCustomDimension(el, 'height', ch);
-                                } else if (cw) {
-                                    applyCustomDimension(el, 'width', cw);
-                                    // offsetWidth gives the real pixels after layout (rem/em → px)
-                                    if (node.attrs.width && node.attrs.height) {
-                                        const ratio = node.attrs.width / node.attrs.height;
-                                        const actualW = el.offsetWidth;
-                                        if (actualW && ratio) {
-                                            el.style.height = `${Math.round(actualW / ratio)}px`;
-                                        }
-                                    }
-                                } else if (ch) {
-                                    applyCustomDimension(el, 'height', ch);
-                                    if (node.attrs.width && node.attrs.height) {
-                                        const ratio = node.attrs.width / node.attrs.height;
-                                        const actualH = el.offsetHeight;
-                                        if (actualH && ratio) {
-                                            el.style.width = `${Math.round(actualH * ratio)}px`;
-                                        }
-                                    }
-                                }
-                            });
-                        },
-                    };
-                },
-            }),
-            // Clears customWidth/customHeight on a drag-resize (width/height change
-            // with no meta flag)
-            new Plugin({
-                key: customSizeClearPluginKey,
-                appendTransaction(transactions, oldState, newState) {
-                    if (transactions.some((tr) => tr.getMeta('customSize'))) {
-                        return null;
-                    }
-
-                    if (oldState.doc.eq(newState.doc)) {
-                        return null;
-                    }
-
-                    let clearTr: ReturnType<typeof newState.tr.setNodeMarkup> | null = null;
-
-                    newState.doc.descendants((newNode, pos) => {
-                        if (newNode.type.name !== 'image') {
-                            return;
-                        }
-
-                        if (!newNode.attrs.customWidth && !newNode.attrs.customHeight) {
-                            return;
-                        }
-
-                        const oldNode = oldState.doc.nodeAt(pos);
-
-                        if (
-                            !oldNode ||
-                            oldNode.type.name !== 'image' ||
-                            oldNode.attrs.src !== newNode.attrs.src
-                        ) {
-                            return;
-                        }
-
-                        if (
-                            newNode.attrs.width !== oldNode.attrs.width ||
-                            newNode.attrs.height !== oldNode.attrs.height
-                        ) {
-                            if (!clearTr) {
-                                clearTr = newState.tr;
-                            }
-
-                            clearTr.setNodeMarkup(pos, undefined, {
-                                ...newNode.attrs,
-                                customWidth: null,
-                                customHeight: null,
-                            });
-                        }
-                    });
-
-                    return clearTr;
-                },
-            }),
-        ];
+        return createResizableMediaPlugins({
+            nodeName: 'image',
+            floatSyncKey: floatSyncPluginKey,
+            customSizeClearKey: customSizeClearPluginKey,
+        });
     },
 });
 

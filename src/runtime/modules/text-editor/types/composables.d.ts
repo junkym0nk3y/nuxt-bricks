@@ -86,8 +86,6 @@ export interface IToolbarStateSyncOptions {
 export interface IToolbarStateSync {
     /** Refs of the current font/color/spacing values for the toolbar selects */
     toolbarState: IToolbarStateRefs;
-    /** Transaction counter — the reactive dependency that recomputes toolbarGroups */
-    editorTransactionCount: Ref<number>;
     /** Config of the toolbar groups (empty with no editor or with isEnabled = false) */
     toolbarGroups: ComputedRef<IToolbarGroup[]>;
     /** Resets the toolbar state to the defaults (say, when the edited property changes) */

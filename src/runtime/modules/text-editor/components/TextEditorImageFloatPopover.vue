@@ -38,7 +38,6 @@ const VALIGN_OPTIONS = [
     { value: 'top', icon: 'md:vertical-align-top', label: 'bricks.textEditor.alignTop' },
     { value: 'bottom', icon: 'md:vertical-align-bottom', label: 'bricks.textEditor.alignBottom' },
 ] as const;
-const POPOVER_WIDTH = 270;
 
 const isVisible = ref(false);
 const popoverTop = ref(0);
@@ -60,11 +59,24 @@ const isFloatCleared = computed<boolean>(
 // #endregion
 
 // #region Methods
-/** Moves the popover to sit above the selected element */
+/**
+ * Anchors the popover to the top center of the selected element.
+ *
+ * The coordinates are the anchor point itself, not the corner of the popover: the shift
+ * onto its own size (half the width to the left, the full height plus the gap upwards) is
+ * left to the `transform` of the root class. Written out here, that shift needs the size
+ * of the popover as a number — and the size is made up of eight buttons, two separators,
+ * the gaps, the padding of the surface and its border, so every one of those had to be
+ * repeated in JS. The width kept as a constant here said 270 px while the measured one is
+ * 262, and the popover sat off center by half that difference.
+ *
+ * The coordinates stay in px on purpose: getBoundingClientRect answers in CSS pixels, and
+ * putting them through the rem base of the project would only add a scale error.
+ */
 function updatePosition(element: HTMLElement): void {
     const rect = element.getBoundingClientRect();
-    popoverTop.value = rect.top - 44;
-    popoverLeft.value = rect.left + rect.width / 2 - POPOVER_WIDTH / 2;
+    popoverTop.value = rect.top;
+    popoverLeft.value = rect.left + rect.width / 2;
 }
 
 /** Sets the float attribute on the media element */
@@ -264,6 +276,7 @@ onBeforeUnmount(() => {
     position: fixed;
     display: flex;
     gap: 0.2rem;
+    transform: translate(-50%, calc(-100% - 0.6rem));
 }
 
 .button {

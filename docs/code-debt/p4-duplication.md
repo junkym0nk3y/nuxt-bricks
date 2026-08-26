@@ -14,33 +14,7 @@
 
 # Дубли кода
 
-## 1. `resizableImage` и `resizableVideo` — два почти дословных файла
-
-**Файлы:** `text-editor/tiptap/resizableImage.ts`,
-`text-editor/tiptap/resizableVideo.ts`
-
-Совпадения проверены сравнением текста, а не на глаз:
-
-- `extractStyledDimension` и `applyCustomDimension` — дословно одинаковые функции в
-  обоих файлах (различается только длина JSDoc);
-- `FLOAT_CLASSES` и `VALIGN_CLASSES` — одинаковые константы;
-- тело плагина `floatSync` совпадает посимвольно после замены имени типа узла
-  (`image` против `video`) — расходятся только комментарии;
-- тело `appendTransaction` плагина очистки `customWidth`/`customHeight` совпадает
-  после той же замены полностью, включая комментарии.
-
-**Кандидат:** общий модуль в `text-editor/utils/` для двух функций и фабрика
-плагинов, принимающая имя типа узла. Сейчас исправление дефекта в одном файле нужно
-помнить продублировать во второй.
-
-**Целиком объединять расширения нельзя.** Общими становятся только атрибуты
-float/vertical-align/размера, хелперы измерения и фабрики sync-плагинов,
-принимающие имя типа узла — с РАЗНЫМИ `PluginKey`. NodeView картинки и видео
-остаются раздельными.
-
----
-
-## 2. `debouncedSaveToHistory` объявлен дважды, с двумя независимыми таймерами
+## 1. `debouncedSaveToHistory` объявлен дважды, с двумя независимыми таймерами
 
 **Файлы:** `builder/core/stores/actions/properties.ts:12`,
 `stores/actions/schema.ts:15`
@@ -57,7 +31,7 @@ float/vertical-align/размера, хелперы измерения и фаб
 
 ---
 
-## 3. Приведение строки к числу продублировано в двух экшенах
+## 2. Приведение строки к числу продублировано в двух экшенах
 
 **Файл:** `builder/core/stores/actions/properties.ts:42-52`, `:149-159`
 
@@ -69,7 +43,7 @@ float/vertical-align/размера, хелперы измерения и фаб
 
 ---
 
-## 4. Снятие `responsive` записано двумя способами в одном домене
+## 3. Снятие `responsive` записано двумя способами в одном домене
 
 **Файлы:** `builder/core/stores/actions/properties.ts:110-120` против
 `builder/core/utils/deviceKeyCleanup.ts:20-34`
@@ -83,7 +57,7 @@ float/vertical-align/размера, хелперы измерения и фаб
 
 ---
 
-## 5. Замер высоты по контенту и пара watch-ей продублированы кодом
+## 4. Замер высоты по контенту и пара watch-ей продублированы кодом
 
 **Файлы:** `builder/canvas/viewport/composables/useCanvasContainerMetrics.ts:26-37`,
 `:65-69` и `viewport/components/BuilderCanvasViewport.vue:135-158`, `:187-191`
@@ -105,7 +79,7 @@ float/vertical-align/размера, хелперы измерения и фаб
 
 ---
 
-## 6. Редакторы аккордеона и галереи повторяют один и тот же список операций
+## 5. Редакторы аккордеона и галереи повторяют один и тот же список операций
 
 **Файлы:** `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:49-146`,
 `property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue:69-186`
@@ -123,7 +97,7 @@ float/vertical-align/размера, хелперы измерения и фаб
 
 ---
 
-## 7. `clampToPropertyRange` дублирует `clampValue`
+## 6. `clampToPropertyRange` дублирует `clampValue`
 
 **Файлы:** `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyGridSizeEditor.vue:168-181`,
 `sidebar/composables/useSpacingEditor.ts:61-71`
@@ -138,7 +112,7 @@ float/vertical-align/размера, хелперы измерения и фаб
 
 ---
 
-## 8. Три watcher-а превью карточки с одинаковым телом
+## 7. Три watcher-а превью карточки с одинаковым телом
 
 **Файл:** `builder/shell/sidebar/composables/useComponentCardPreview.ts:295-316`
 
@@ -149,7 +123,7 @@ float/vertical-align/размера, хелперы измерения и фаб
 
 ---
 
-## 9. Высота превью продублирована из CSS константами
+## 8. Высота превью продублирована из CSS константами
 
 **Файлы:** `builder/shell/sidebar/composables/useComponentCardPreview.ts:45-49`,
 `sidebar/components/BuilderShellSidebarComponentCard.vue:285`
@@ -165,7 +139,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 10. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
+## 9. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
 
 **Файлы:** `builder/users/utils/userFormatting.ts:26-47`, владелец —
 `common/utils/bricks/dates.ts:1-34`
@@ -185,7 +159,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 11. Задержка поиска втроена по трём доменам, а рационал — у копий
+## 10. Задержка поиска втроена по трём доменам, а рационал — у копий
 
 **Файлы:** `builder/users/composables/useUsersList.ts:14-15`,
 `builder/templates/composables/useTemplatesList.ts:14-15`,
@@ -205,7 +179,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 12. Список ролей продублирован в двух компонентах
+## 11. Список ролей продублирован в двух компонентах
 
 **Файлы:** `builder/users/components/BuilderUsersRolePill.vue:64-69`,
 `builder/users/components/TheBuilderUsersCreateModal.vue:71-72`, владелец набора —
@@ -221,7 +195,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 13. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
+## 12. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryCategoryTabs.vue`,
 владелец вида — `ui/base/tabs/BricksTabBarItem.vue` (вариант `underline`, размер `sm`)
@@ -270,7 +244,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 14. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
+## 13. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
 
 **Файлы:** `plugins/builder/veeValidateSetup.ts`,
 `plugins/builder/textEditorToolbarSetup.ts`,
@@ -293,7 +267,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 15. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
+## 14. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
 
 **Файлы:** `builder/media/components/TheBuilderMediaGalleryModal.vue:104-195`,
 `components/TheBuilderMediaSection.vue:106-152`
@@ -312,7 +286,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 16. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
+## 15. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryMetaPanel.vue:88-131`,
 `components/BuilderMediaSectionDetailsPanel.vue:90-171`
@@ -331,7 +305,7 @@ slug».
 
 ---
 
-## 17. Нативный `<select>` вместо кит-компонента в резолвере изображений
+## 16. Нативный `<select>` вместо кит-компонента в резолвере изображений
 
 **Файлы:** `builder/media/components/BuilderMediaImageResolverItem.vue:95-103,177-181`,
 `components/TheBuilderMediaImageResolverModal.vue:114-123,199-203`
@@ -349,7 +323,7 @@ slug».
 
 ---
 
-## 18. Формы сохранения и переименования шаблона — копия друг друга
+## 17. Формы сохранения и переименования шаблона — копия друг друга
 
 **Файлы:** `builder/templates/composables/useTemplateSaveForm.ts` (171 строка),
 `useTemplateRenameForm.ts` (146 строк)
@@ -374,7 +348,7 @@ slug».
 
 ---
 
-## 19. Мета-строка шаблона собирается дважды
+## 18. Мета-строка шаблона собирается дважды
 
 **Файлы:** `builder/templates/components/BuilderTemplatesCard.vue:70-75`
 (`metaLine`), `BuilderTemplatesPickerList.vue:84-89` (`buildMetaLine`)
@@ -393,7 +367,7 @@ slug».
 
 ---
 
-## 20. Исход `window.open` проверяет одна функция из трёх
+## 19. Исход `window.open` проверяет одна функция из трёх
 
 **Файлы:** `builder/publish/composables/usePublishPreview.ts`
 (`previewCurrentPage` против `previewPageVersion`), `usePublishPageActions.ts`
@@ -414,7 +388,7 @@ slug».
 
 ---
 
-## 21. `DARK_MODE_COOKIE` против литерала в редакторе
+## 20. `DARK_MODE_COOKIE` против литерала в редакторе
 
 **Файлы:** `builder/publish/composables/usePublishDashboardPreferences.ts`
 (константа), `builder/app/pages/[pagename].vue` (литерал `'bricks-dark-mode'`)
@@ -433,7 +407,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 22. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
+## 21. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
 
 **Файлы:** `persistence/server/http/httpMediaMethods.ts` (`getMediaByUrl`),
 `src/runtime/server/api/bricks/media/s3-proxy.post.ts:59`
@@ -451,7 +425,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 23. `IImageLocation` собирает семь полей, читается одно
+## 22. `IImageLocation` собирает семь полей, читается одно
 
 **Файлы:** `builder/media/types/schemaImageResolver.d.ts:22-30`, заполнение —
 `utils/schemaImageExtractor.ts` (`createLocation`), единственное чтение —
@@ -471,7 +445,7 @@ published-поверхность о ней не знает.
 
 # Упрощения
 
-## 24. `inferPropertyType` — карта, написанная цепочкой `if` с отключённым правилом
+## 23. `inferPropertyType` — карта, написанная цепочкой `if` с отключённым правилом
 
 **Файл:** `builder/core/composables/useComponentProperties.ts:31`
 
@@ -490,7 +464,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 25. `validatePropertyValue` разбирает тип через `switch`
+## 24. `validatePropertyValue` разбирает тип через `switch`
 
 **Файл:** `builder/core/composables/useComponentProperties.ts:173`
 
@@ -506,7 +480,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 26. `findSiblingContext` возвращает поле с двумя разными смыслами, и вызывающий его перевычисляет
+## 25. `findSiblingContext` возвращает поле с двумя разными смыслами, и вызывающий его перевычисляет
 
 **Файл:** `builder/core/stores/actions/order.ts:22-56`, `:67-116`
 
@@ -521,7 +495,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 27. `handleNormalizeProps` игнорирует второй аргумент, объявленный контрактом
+## 26. `handleNormalizeProps` игнорирует второй аргумент, объявленный контрактом
 
 **Файлы:** `builder/shell/sidebar/composables/usePropertyVariants.ts:148-153`,
 `sidebar/types/composables.d.ts:32-35`
@@ -537,7 +511,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 28. Инлайновый SVG-шеврон вместо иконки кита
+## 27. Инлайновый SVG-шеврон вместо иконки кита
 
 **Файл:** `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:405-422`
 
@@ -550,7 +524,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 29. `isPasswordActionVisible` — псевдоним `canChangePassword`
+## 28. `isPasswordActionVisible` — псевдоним `canChangePassword`
 
 **Файл:** `builder/users/components/BuilderUsersListRow.vue:114-125`
 
@@ -571,7 +545,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 30. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
+## 29. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
 
 **Файл:** `builder/app/composables/useBuilderPage.ts`
 
@@ -585,7 +559,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 31. Пустые делегаты в composition root
+## 30. Пустые делегаты в composition root
 
 **Файл:** `builder/app/pages/[pagename].vue`
 
@@ -600,7 +574,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 32. `previewCurrentPage`: два `Date.now()` и строка ради числа
+## 31. `previewCurrentPage`: два `Date.now()` и строка ради числа
 
 **Файл:** `builder/publish/composables/usePublishPreview.ts` (`previewCurrentPage`)
 
@@ -616,7 +590,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 33. `openGeneration` инкрементируется дважды подряд
+## 32. `openGeneration` инкрементируется дважды подряд
 
 **Файл:** `builder/auth/composables/useAuthAvatarCrop.ts:139-143`
 
@@ -625,28 +599,3 @@ published-поверхность о ней не знает.
 счётчик никто не читает, так что поведение верное, но номер поколения растёт вдвое
 быстрее числа открытий — при отладке это читается как «файл открывали дважды».
 Достаточно одного инкремента.
-
----
-
-## 34. Отступ попавера над медиа — безымянное число рядом с именованным
-
-**Файл:** `text-editor/components/TextEditorImageFloatPopover.vue`
-(`updatePosition`)
-
-Ширина попавера вынесена в константу `POPOVER_WIDTH = 270` и участвует в расчёте
-центровки, а вертикальный подъём над элементом остаётся литералом:
-`popoverTop.value = rect.top - 44`. Число связано с высотой самого попавера
-(2.8rem кнопки плюс отбивка), то есть при изменении вида поедет молча.
-
----
-
-## 35. Условие `editorTransactionCount.value < 0` читается как барьер
-
-**Файл:** `text-editor/composables/useToolbarStateSync.ts` (`toolbarGroups`)
-
-Счётчик только инкрементируется (`editorTransactionCount.value++`), поэтому
-`editorTransactionCount.value < 0` не бывает истинным никогда. Чтение `.value`
-внутри условия существует ради регистрации реактивной зависимости — приём рабочий,
-но в виде третьего слагаемого в `if` он выглядит проверкой на невозможное состояние.
-Комментарий над `computed` про зависимость от счётчика есть, а вот сам код о своём
-назначении не говорит.

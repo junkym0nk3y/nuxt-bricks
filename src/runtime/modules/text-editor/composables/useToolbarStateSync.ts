@@ -47,22 +47,34 @@ export function useToolbarStateSync(
         currentLetterSpacing: ref<string>(DEFAULT_TOOLBAR_STATE.letterSpacing),
     };
 
-    /** Transaction counter that drives the reactive refresh of the toolbar */
-    const editorTransactionCount = ref<number>(0);
+    /** Revision bumped by every editor transaction, private to the composable */
+    const toolbarRefreshRevision = ref<number>(0);
 
     const availableFonts = computed<string[]>(() => config.fonts ?? []);
 
     /**
-     * Config of the toolbar groups.
-     * Depends on editorTransactionCount so that it recomputes on every editor
-     * transaction (refreshing isActive() of the buttons as the selection or the
-     * cursor moves).
+     * Reads the refresh revision to register the reactive dependency on it.
+     *
+     * The revision is the only way the toolbar learns about a moved cursor: `isActive()`
+     * of the buttons is not reactive, so nothing else in the computed changes when the
+     * selection moves within the same formatting. The read used to sit inside the guard
+     * of the computed as `revision < 0`, where it read as a check for an impossible
+     * state instead of a subscription.
+     *
+     * @returns Current value of the revision (the caller has no use for it).
      */
+    function trackToolbarRefresh(): number {
+        return toolbarRefreshRevision.value;
+    }
+
+    /** Config of the toolbar groups, recomputed on every editor transaction */
     const toolbarGroups = computed<IToolbarGroup[]>(() => {
+        trackToolbarRefresh();
+
         const editor = toValue(editorRef);
         const isEnabled = toValue(options.isEnabled ?? true);
 
-        if (!editor || !isEnabled || editorTransactionCount.value < 0) {
+        if (!editor || !isEnabled) {
             return [];
         }
 
@@ -95,7 +107,7 @@ export function useToolbarStateSync(
         }
 
         function handleTransaction(): void {
-            editorTransactionCount.value++;
+            toolbarRefreshRevision.value++;
             $textEditorToolbar.syncToolbarState(editor!, toolbarState);
         }
 
@@ -107,7 +119,6 @@ export function useToolbarStateSync(
 
     return {
         toolbarState,
-        editorTransactionCount,
         toolbarGroups,
         resetToolbarState,
     };
