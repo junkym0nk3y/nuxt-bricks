@@ -96,3 +96,61 @@ lifecycle-правилом бакета `AbortIncompleteMultipartUpload` (см. 
 существующий получает отказ по причине ёмкости; dragleave и drop флаг снимают. Мутации:
 вернуть гейту `boolean`, позвать колбэк до сброса, всегда чистить флаг на отклонённом
 dragover — первый сценарий должен падать.
+
+---
+
+## 3. Published-рендер не применяет coercion пропов у шести блоков
+
+**Файлы:** `layouts-blocks/components/blockSection.definition.ts`,
+`blockSlider.definition.ts`, `blockText.definition.ts`; проверить также
+`blockMedia.definition.ts`, `blockAccordion.definition.ts`, `blockSvg.definition.ts`
+
+Канвас получает пропы через `resolveBlockProps`, и тот прогоняет каждое объявленное
+свойство через coercion по дескриптору: не-finite и нечисловое значение сворачиваются в
+`default`, значение вне `min`/`max` зажимается. Published-рендер читает **сырые** пропы
+схемы — переменные устройств нужны до слияния, — и поэтому дескриптор не смотрит вовсе.
+На краевых значениях две поверхности расходятся, причём published выдаёт невалидный CSS.
+
+Замерено пробником по обеим поверхностям (значение `Infinity` в схеме):
+
+| Блок    | Свойство                      | Канвас | Published     |
+| ------- | ----------------------------- | ------ | ------------- |
+| Section | `paddingTop`, `paddingBottom` | `4`    | `Infinityrem` |
+| Section | `paddingX`                    | `0`    | `Infinityrem` |
+| Slider  | `slidesPerView`               | `3`    | `Infinity`    |
+| Text    | `fontSize`                    | `1.8`  | `Infinityrem` |
+
+Список неполный: пробник брал по три первых числовых свойства каждого блока, а у Media,
+Accordion и Svg свойства не проверялись. Проверять весь набор, а не только эти строки.
+
+**Механизм починки в репозитории уже есть:** `coerceBlockProps` в
+`layouts-blocks/utils/propertyCoercion.ts` — та же coercion, что применяет реестр,
+включая спуск в `responsive[<устройство>]`. Grid, Flex и Space через него уже проходят:
+пропы берутся не из `component.props`, а из
+`coerceBlockProps(definition.properties, component.props)` (дескрипторы приходят из
+`ctx.definition`, самоссылки на объект определения не нужно). Шаблон теста — раздел
+«published layout props go through the same coercion as the canvas» в
+`test/layouts-blocks/blockPropNormalization.spec.ts`.
+
+**Порядок обязателен: coercion сырых пропов — ДО подстановки дефолтов**, и «одной
+строкой» обходятся не все. У Section и Media результат нужен в одном месте, а у Slider
+нормализованный объект должен уехать и в `resolvePublishedProps`, и в построение
+responsive-переменных (`buildSliderVars`) — сейчас это два независимых чтения
+`component.props`, и покрыть надо оба. У Text порядок несущий по другой причине.
+`buildTextFontSizeVars` отличает «своего `fontSize` нет» от «есть» ровно проверкой
+`props.fontSize !== undefined`, и на отсутствии выдаёт прежние размеры из
+`BLOCK_TEXT_LEGACY_FONT_SIZES`. Сейчас published читает сырые `component.props`
+напрямую — `resolvePublishedProps` в этом рендере не участвует, — поэтому применить к ним
+`coerceBlockProps` безопасно: отсутствующих свойств оно не добавляет (условие «свойство
+присутствует»). Ломается это ровно в одном случае: если по ходу починки пропы сперва
+прогнать через подстановку дефолтов (`resolvePublishedProps` или любую другую), у схемы
+без `fontSize` свойство появится со значением дефолта, ветка legacy отключится, и все
+существующие страницы разом сменят размер текста на узких устройствах. То есть порядок —
+единственная защита этой ветки, и его надо удержать, а не восстановить потом.
+
+**Почему не сделано заодно:** coercion трогает **все** свойства блока, а не только
+числовые — на трёх блоках партии заметно новое поведение у `Flex.direction`,
+`Space.direction` и `Space.dividerStyle`, где значение вне списка опций прежде уезжало в
+CSS как есть. У остальных шести published-путь несёт свои особенности (см. порядок выше),
+и каждый блок просит своей проверки, а Slider и Svg ещё и не встречаются ни в одной схеме
+playground, то есть вживую не смотрятся вовсе.

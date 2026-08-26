@@ -6,45 +6,9 @@ import { h, type VNode } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+import { mapFlexAlign, mapFlexJustify } from '../utils/flexAlignment';
+import { coerceBlockProps } from '../utils/propertyCoercion';
 import { gridPlacementStyle, makeResponsiveVarGroup } from '../utils/responsiveVars';
-
-const FLEX_JUSTIFY_CSS: Record<string, string> = {
-    start: 'flex-start',
-    center: 'center',
-    end: 'flex-end',
-    'space-between': 'space-between',
-    'space-around': 'space-around',
-};
-
-const FLEX_ALIGN_CSS: Record<string, string> = {
-    stretch: 'stretch',
-    start: 'flex-start',
-    center: 'center',
-    end: 'flex-end',
-    baseline: 'baseline',
-};
-
-/**
- * Maps a justify value ('start', 'center', 'end', 'space-between', 'space-around') onto
- * the CSS flex justify-content.
- *
- * @param justify - Alignment value out of props (the schema does not guarantee the type).
- * @returns CSS value for justify-content.
- */
-function mapFlexJustify(justify?: unknown): string {
-    return FLEX_JUSTIFY_CSS[String(justify)] ?? 'flex-start';
-}
-
-/**
- * Maps an align value ('stretch', 'start', 'center', 'end', 'baseline') onto the CSS
- * flex align-items.
- *
- * @param align - Alignment value out of props (the schema does not guarantee the type).
- * @returns CSS value for align-items.
- */
-function mapFlexAlign(align?: unknown): string {
-    return FLEX_ALIGN_CSS[String(align)] ?? 'stretch';
-}
 
 /**
  * Computes the group of Flex CSS variables from the resolved props.
@@ -74,8 +38,12 @@ function computeFlexVars(resolved: Record<string, unknown>): Record<string, stri
  * @returns VNode of the flex component.
  */
 function renderFlexPublished(ctx: IBlockRenderContext): VNode {
-    const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
-    const currentProps = component.props as Record<string, unknown>;
+    const { component, definition, extraClasses, extraAttrs, styles, renderChild } = ctx;
+    const { getChildComponents } = ctx;
+    const currentProps = coerceBlockProps(
+        definition.properties,
+        component.props as Record<string, unknown>
+    );
 
     const style = {
         display: 'flex',

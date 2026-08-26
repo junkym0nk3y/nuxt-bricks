@@ -35,7 +35,7 @@ export interface IFlexLayoutProps {
 }
 
 export interface ISpaceProps {
-    size: string | number; // a number in rem (2.4) or a string with a unit ('2.4rem')
+    size: number; // rem; a string with a unit is not part of the contract (see normalizeSpaceSize)
     direction: 'vertical' | 'horizontal' | 'both';
     showDivider?: boolean;
     dividerColor?: string; // CSS color, default: var(--bricks-base-200)

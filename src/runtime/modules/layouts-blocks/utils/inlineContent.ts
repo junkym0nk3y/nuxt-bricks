@@ -1,27 +1,19 @@
-// #region Helpers
 /**
- * Prepares SVG content for inline insertion.
+ * Trims SVG content and, when a color is given, hands its fill/stroke to currentColor.
  *
- * @param svgContent - Contents of the SVG file.
- * @returns Cleaned SVG with the whitespace trimmed.
- */
-function normalizeSvgContent(svgContent: string): string {
-    return svgContent.trim();
-}
-
-/**
- * Applies a color to SVG content by replacing fill/stroke with currentColor.
+ * `fill="none"` and `stroke="none"` are left alone: they say the shape is not painted,
+ * and repainting them would fill an outline icon solid.
  *
  * @param svgContent - Original SVG content.
  * @param color - Text color to apply.
- * @returns SVG content with currentColor substituted in.
+ * @returns Trimmed SVG content, with currentColor substituted in when asked.
  */
 export function applyColorToSvgContent(svgContent: string, color?: string): string {
     if (!svgContent) {
         return svgContent;
     }
 
-    let normalized = normalizeSvgContent(svgContent);
+    let normalized = svgContent.trim();
 
     if (color) {
         const fillRegex = /fill="(?!none)[^"]*"/gi;
@@ -37,4 +29,3 @@ export function applyColorToSvgContent(svgContent: string, color?: string): stri
 
     return normalized;
 }
-// #endregion

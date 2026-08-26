@@ -178,10 +178,6 @@ const ssrFallbackStyle = computed<Record<string, string>>(() => ({
     '--bricks-slider-gap': `${spaceBetween.value}px`,
 }));
 
-const sliderRootStyle = computed<Record<string, string>>(() => ({
-    pointerEvents: 'auto',
-}));
-
 const parsedCaptions = computed<ISliderCaption[]>(() =>
     parseSliderCaptions(props.layoutProps.captions)
 );
@@ -251,7 +247,7 @@ const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop
                 [$style._dragOver]: isEditor && isDragOver,
             },
         ]"
-        :style="sliderRootStyle"
+        style="pointer-events: auto"
         :data-layout-drop-zone="isEditor ? 'true' : null"
         @dragenter="handleDragEnter"
         @dragover="handleDragOver"

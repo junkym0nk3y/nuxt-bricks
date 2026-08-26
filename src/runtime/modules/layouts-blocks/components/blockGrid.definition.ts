@@ -5,8 +5,13 @@ import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 // Vue
 import { h, type VNode } from 'vue';
 
+// Constants
+import { BLOCK_GRID_MIN_HEIGHT } from '../constants/blockGrid';
+
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+import { normalizeGridTrackCount } from '../utils/gridTracks';
+import { coerceBlockProps } from '../utils/propertyCoercion';
 import { gridPlacementStyle, makeResponsiveVarGroup } from '../utils/responsiveVars';
 
 /**
@@ -64,27 +69,30 @@ function normalizeGridRowHeight(value: unknown): TGridRowHeight {
 }
 
 /**
- * Builds the gridTemplateRows value.
+ * Builds the gridTemplateRows value of a published page.
  *
- * @param rows - Number of rows (no less than 1).
+ * Named for its surface, and deliberately not shared with the canvas counterpart
+ * (`canvasGridTemplateRows` in BlockGrid.vue): the canvas gives its unfilled rows a
+ * height floor so that the declared structure stays visible to the editor, and a
+ * published page must not gain that floor by way of a shared mode flag.
+ *
+ * @param rows - Declared number of rows.
  * @param rowHeight - Row height mode.
  * @param minRowHeight - Minimum row height in rem.
  * @returns CSS value for gridTemplateRows.
  */
-function buildGridTemplateRows(
+function buildPublishedGridTemplateRows(
     rows: number,
     rowHeight: TGridRowHeight,
     minRowHeight: number
 ): string {
-    const normalizedRows = Math.max(1, rows);
-
     if (minRowHeight > 0) {
         const minValue = `${minRowHeight}rem`;
         const maxValue = rowHeight === '1fr' ? '1fr' : 'auto';
-        return `repeat(${normalizedRows}, minmax(${minValue}, ${maxValue}))`;
+        return `repeat(${rows}, minmax(${minValue}, ${maxValue}))`;
     }
 
-    return `repeat(${normalizedRows}, ${rowHeight})`;
+    return `repeat(${rows}, ${rowHeight})`;
 }
 
 /**
@@ -100,8 +108,8 @@ function buildGridTemplateRows(
  * @returns Values of the group variables, without the prefix and the device suffix.
  */
 function computeGridVars(resolved: Record<string, unknown>): Record<string, string> {
-    const columns = Math.max(1, Number(resolved.columns) || 1);
-    const rows = Math.max(1, Number(resolved.rows) || 1);
+    const columns = normalizeGridTrackCount(Number(resolved.columns));
+    const rows = normalizeGridTrackCount(Number(resolved.rows));
     const gap = Math.max(0, Number(resolved.gap) || 0);
     const rowHeight = normalizeGridRowHeight(resolved.rowHeight);
     const minRowHeight = Math.max(0, Number(resolved.minRowHeight) || 0);
@@ -110,7 +118,7 @@ function computeGridVars(resolved: Record<string, unknown>): Record<string, stri
 
     return {
         columns: String(columns),
-        rows: buildGridTemplateRows(rows, rowHeight, minRowHeight),
+        rows: buildPublishedGridTemplateRows(rows, rowHeight, minRowHeight),
         'auto-rows': minRowHeight > 0 ? `minmax(${minRowHeight}rem, auto)` : 'auto',
         gap: convertPxToRem(gap),
         'auto-flow': variant === 'default' ? 'row' : 'row dense',
@@ -126,8 +134,16 @@ function computeGridVars(resolved: Record<string, unknown>): Record<string, stri
  * @returns Grid VNode.
  */
 function renderGridPublished(ctx: IBlockRenderContext): VNode {
-    const { component, extraClasses, extraAttrs, styles, renderChild, getChildComponents } = ctx;
-    const currentProps = component.props as Record<string, unknown>;
+    const { component, definition, extraClasses, extraAttrs, styles, renderChild } = ctx;
+    const { getChildComponents } = ctx;
+    // The canvas gets its props through the registry, which coerces them against the
+    // property definitions; the published render reads the raw schema. Coercing here is
+    // what keeps a broken `columns` from becoming `repeat(Infinity, 1fr)` on the page
+    // while the editor quietly shows the default.
+    const currentProps = coerceBlockProps(
+        definition.properties,
+        component.props as Record<string, unknown>
+    );
 
     const style: Record<string, string> = {
         display: 'grid',
@@ -136,7 +152,7 @@ function renderGridPublished(ctx: IBlockRenderContext): VNode {
         gridTemplateRows: 'var(--bricks-grid-rows, var(--bricks-grid-rows-base, auto))',
         gridAutoRows: 'var(--bricks-grid-auto-rows, var(--bricks-grid-auto-rows-base, auto))',
         gap: 'var(--bricks-grid-gap, var(--bricks-grid-gap-base, 0rem))',
-        minHeight: '10rem',
+        minHeight: BLOCK_GRID_MIN_HEIGHT,
         backgroundColor: 'transparent',
         border: 'none',
         borderRadius: '0',

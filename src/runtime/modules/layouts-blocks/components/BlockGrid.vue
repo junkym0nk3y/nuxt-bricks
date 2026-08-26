@@ -6,9 +6,12 @@ import type { IBlockGridProps, TGridLayoutVariant, TGridRowHeight } from '../typ
 // Vue
 import { computed, ref, inject, useCssModule, type Ref, type Slot } from 'vue';
 
+// Constants
+import { BLOCK_GRID_MIN_HEIGHT } from '../constants/blockGrid';
+
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
-import { normalizeGridTrackCount } from '../utils/gridDimensions';
+import { normalizeGridTrackCount } from '../utils/gridTracks';
 import { countSlotContent } from '../utils/slotContent';
 
 // Composables
@@ -31,8 +34,6 @@ const slots = defineSlots<{
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const styles = useCssModule();
 const gridRef = ref<HTMLElement | null>(null);
-
-const DEFAULT_GRID_MIN_HEIGHT = '10rem';
 
 /**
  * Floor height of an unfilled grid row on the canvas. Without it, rows that are
@@ -81,6 +82,11 @@ const occupiedRows = computed<number>(() =>
 /**
  * The gridTemplateRows value of the canvas grid.
  *
+ * Named for its surface, and deliberately not shared with the published counterpart
+ * (`buildPublishedGridTemplateRows`): the empty-row floor below belongs to the editor
+ * alone, and one function with a mode flag would let an edit to the canvas view change
+ * the CSS of a published page.
+ *
  * Rows without content have zero height while the gap between them stays: six declared
  * rows do not fit into the block min-height, and the canvas shows a single row instead
  * of the declared ones — there is nowhere to drop a component into the third row. A
@@ -89,7 +95,7 @@ const occupiedRows = computed<number>(() =>
  * untouched by this: there empty rows draw nothing, and rendering goes through separate
  * code (renderPublished in the definition).
  */
-const gridTemplateRows = computed<string>(() => {
+const canvasGridTemplateRows = computed<string>(() => {
     const rows = normalizedRows.value;
     const height = rowHeight.value;
     const minHeight = minRowHeight.value;
@@ -120,7 +126,7 @@ const gridStyle = computed<Record<string, string>>(() => {
     const style: Record<string, string> = {
         display: 'grid',
         gridTemplateColumns: `repeat(${normalizedColumns.value}, 1fr)`,
-        gridTemplateRows: gridTemplateRows.value,
+        gridTemplateRows: canvasGridTemplateRows.value,
         gridAutoRows: minRowHeight.value > 0 ? `minmax(${minRowHeight.value}rem, auto)` : 'auto',
         gap: convertPxToRem(normalizedGap.value),
         width: '100%',
@@ -128,7 +134,7 @@ const gridStyle = computed<Record<string, string>>(() => {
         pointerEvents: 'auto',
         gridAutoFlow: gridAutoFlow.value,
         alignItems: 'stretch',
-        minHeight: DEFAULT_GRID_MIN_HEIGHT,
+        minHeight: BLOCK_GRID_MIN_HEIGHT,
         '--bricks-grid-accent-span': String(accentSpan.value),
     };
 

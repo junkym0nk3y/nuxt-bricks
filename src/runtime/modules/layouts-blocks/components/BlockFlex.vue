@@ -1,13 +1,14 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IBlockFlexProps, IFlexLayoutProps } from '../types/blockProps';
+import type { IBlockFlexProps } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, useCssModule, type CSSProperties, type Ref, type Slot } from 'vue';
 
 // Utils
 import { convertPxToRem } from '../../common/utils/main';
+import { mapFlexAlign, mapFlexJustify } from '../utils/flexAlignment';
 import { queryLayoutDropItems, resolveLinearDropIndex } from '../utils/linearDropPlacement';
 
 // Composables
@@ -26,22 +27,6 @@ const slots = defineSlots<{
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const styles = useCssModule();
 const flexRef = ref<HTMLElement | null>(null);
-
-const justifyMap: Record<IFlexLayoutProps['justify'], CSSProperties['justifyContent']> = {
-    start: 'flex-start',
-    center: 'center',
-    end: 'flex-end',
-    'space-between': 'space-between',
-    'space-around': 'space-around',
-};
-
-const alignMap: Record<IFlexLayoutProps['align'], CSSProperties['alignItems']> = {
-    stretch: 'stretch',
-    start: 'flex-start',
-    center: 'center',
-    end: 'flex-end',
-    baseline: 'baseline',
-};
 // #endregion
 
 // #region Computed
@@ -60,8 +45,8 @@ const flexStyle = computed<CSSProperties>(() => {
     const style: CSSProperties = {
         display: 'flex',
         flexDirection: props.layoutProps.direction,
-        justifyContent: justifyMap[props.layoutProps.justify],
-        alignItems: alignMap[props.layoutProps.align ?? 'stretch'],
+        justifyContent: mapFlexJustify(props.layoutProps.justify),
+        alignItems: mapFlexAlign(props.layoutProps.align),
         flexWrap: props.layoutProps.wrap ? 'wrap' : 'nowrap',
         gap: convertPxToRem(props.layoutProps.gap),
         width: '100%',

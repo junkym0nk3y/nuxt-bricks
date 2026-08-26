@@ -4,33 +4,13 @@ import type { IBlockDefinition, IBlockRenderContext } from '../types/registry';
 // Vue
 import { h, type VNode } from 'vue';
 
+// Constants
+import { BLOCK_SPACE_DEFAULT_SIZE, BLOCK_SPACE_MIN_SIZE } from '../constants/blockSpace';
+
 // Utils
-import { convertPxToRem } from '../../common/utils/main';
+import { coerceBlockProps } from '../utils/propertyCoercion';
 import { gridPlacementStyle, makeResponsiveVars, toRem } from '../utils/responsiveVars';
-
-/**
- * Normalizes a spacing value to rem.
- * Numbers are read as rem (2.4 → "2.4rem", for example).
- * Strings in px are converted to rem.
- *
- * @param size - Spacing value (a number of rem, or a string).
- * @returns Normalized value in rem.
- */
-function normalizeSpacingSize(size: string | number): string {
-    // Numbers are already in rem — just add the unit
-    if (typeof size === 'number') {
-        return `${size}rem`;
-    }
-
-    // A string in px — convert to rem
-    if (size.endsWith('px')) {
-        const numericValue = Number(size.replace('px', ''));
-        return convertPxToRem(Number.isFinite(numericValue) ? numericValue : 0);
-    }
-
-    // Any other string comes back as it is (it already carries a unit)
-    return size;
-}
+import { normalizeSpaceSize } from '../utils/spaceSize';
 
 /**
  * Renders the divider line inside a Space.
@@ -71,10 +51,11 @@ function renderSpaceDivider(spaceProps: Record<string, unknown>, isVertical: boo
  * @returns VNode of the spacer component.
  */
 function renderSpacePublished(ctx: IBlockRenderContext): VNode {
-    const { component, extraClasses, extraAttrs, styles } = ctx;
-    const currentProps = component.props as Record<string, unknown>;
-
-    const toSize = (v: unknown): string => normalizeSpacingSize((v || '2.4rem') as string | number);
+    const { component, definition, extraClasses, extraAttrs, styles } = ctx;
+    const currentProps = coerceBlockProps(
+        definition.properties,
+        component.props as Record<string, unknown>
+    );
 
     const style: Record<string, string> = {
         backgroundColor: 'transparent',
@@ -85,7 +66,7 @@ function renderSpacePublished(ctx: IBlockRenderContext): VNode {
             currentProps.size,
             currentProps,
             'size',
-            toSize
+            normalizeSpaceSize
         ),
         ...makeResponsiveVars(
             '--bricks-space-divider-mx',
@@ -148,8 +129,8 @@ export const blockSpaceDefinition: IBlockDefinition = {
             name: 'size',
             type: 'number',
             label: 'bricks.blocks.space.props.size.label',
-            default: 2.4,
-            min: 0,
+            default: BLOCK_SPACE_DEFAULT_SIZE,
+            min: BLOCK_SPACE_MIN_SIZE,
             step: 0.2,
             description: 'bricks.blocks.space.props.size.description',
             responsive: true,

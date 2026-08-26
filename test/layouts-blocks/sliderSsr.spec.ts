@@ -89,6 +89,17 @@ describe('BlockSlider SSR fallback', () => {
         expect(html).not.toContain('--bricks-slider-spv-desktop');
     });
 
+    it('корень несёт pointer-events: инертность прямых детей канваса снимается инлайном', async () => {
+        // `.BuilderCanvasItem > *` kills interactivity on every direct child, and the
+        // block puts it back explicitly. An inline style outranks any selector, so the
+        // restore holds no matter how the CSS modules happen to be ordered — a rule on
+        // the class of the block would tie with the ban on specificity and depend on
+        // load order
+        const html = await renderSliderToString({ isEditor: true });
+
+        expect(html).toContain('pointer-events:auto');
+    });
+
     it('editor: SSR-fallback не рендерится', async () => {
         const html = await renderSliderToString({ isEditor: true });
 

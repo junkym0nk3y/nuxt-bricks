@@ -1,12 +1,11 @@
 /**
- * The declared dimensions of a Grid block (pure functions).
+ * The declared capacity of a Grid block on a concrete viewport.
  *
- * A single place for two reasons. First, `rows`/`columns` arrive from a schema
- * and are untrusted: zero, a negative number, a fraction and a missing value all
- * have to fold into one track rather than into an invalid CSS template. Second,
- * both dimensions have responsive overrides, so the number of cells is a
- * property of a CONCRETE viewport — a Grid of 2 cells on mobile and of 8 on
- * desktop is one and the same block.
+ * Both dimensions have responsive overrides, so the number of cells is a property
+ * of a CONCRETE viewport — a Grid of 2 cells on mobile and of 8 on desktop is one
+ * and the same block. Normalizing the track counts themselves is pure and lives in
+ * `gridTracks.ts`; this file reads the registry and therefore cannot be imported
+ * by a block definition.
  */
 
 // #region Imports
@@ -14,23 +13,9 @@
 import type { IBricksComponent, TBricksDeviceKey } from '../../common/types/brick';
 
 // Utils
+import { normalizeGridTrackCount } from './gridTracks';
 import { resolveBlockProps } from '../registry';
 // #endregion
-
-/**
- * Normalizes the declared number of tracks (rows or columns) into a whole number
- * of at least one.
- *
- * @param value - Value of the block property.
- * @returns The number of tracks, at least 1.
- */
-export function normalizeGridTrackCount(value: number | undefined): number {
-    if (!value || value < 1) {
-        return 1;
-    }
-
-    return Math.floor(value);
-}
 
 /**
  * The number of cells a Grid declares on the given viewport.

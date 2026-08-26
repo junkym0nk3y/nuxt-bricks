@@ -5,6 +5,9 @@ import type { IBlockSpaceProps } from '../types/blockProps';
 
 // Vue
 import { computed, ref, inject, type Ref } from 'vue';
+
+// Utils
+import { normalizeSpaceSize } from '../utils/spaceSize';
 // #endregion
 
 // #region Props
@@ -13,51 +16,17 @@ const props = withDefaults(defineProps<IBlockSpaceProps>(), {});
 
 // #region Data
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
-type TSpaceStyle = Record<string, string>;
-// #endregion
-
-// #region Methods
-/**
- * Normalizes a size value, adding 'rem' when it is a number.
- * String values ('2.4rem') keep working.
- *
- * @param rawSize - Size value (a number or a string)
- * @returns String carrying a unit
- */
-function normalizeSize(rawSize: string | number | undefined): string {
-    if (rawSize === undefined || rawSize === null) {
-        return '2.4rem';
-    }
-
-    // A number — add rem
-    if (typeof rawSize === 'number') {
-        return `${rawSize}rem`;
-    }
-
-    const trimmed = String(rawSize).trim();
-    if (!trimmed) {
-        return '2.4rem';
-    }
-
-    // Just a number inside a string — add rem
-    if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
-        return `${trimmed}rem`;
-    }
-
-    // Otherwise it comes back as it is (it already carries a unit)
-    return trimmed;
-}
 // #endregion
 
 // #region Computed
-const normalizedSize = computed<string>(() => normalizeSize(props.layoutProps.size));
+const normalizedSize = computed<string>(() => normalizeSpaceSize(props.layoutProps.size));
 
-const spaceStyle = computed<TSpaceStyle>(() => {
+const spaceStyle = computed<Record<string, string>>(() => {
     // The spacer background stays entirely in CSS: an inline `background-color`
     // overrode the editor backing and the hover highlight of the zone. In CSS it is a
     // delicate diagonal hatch rather than a squared-paper grid, so the spacer reads as
     // empty space without fighting the canvas grid or shimmering at small heights.
-    const style: TSpaceStyle = {};
+    const style: Record<string, string> = {};
 
     if (props.layoutProps.direction === 'vertical' || props.layoutProps.direction === 'both') {
         style.height = normalizedSize.value;
@@ -79,7 +48,7 @@ const isVerticalDivider = computed<boolean>(
     () => props.layoutProps.direction === 'vertical' || props.layoutProps.direction === 'both'
 );
 
-const dividerStyle = computed<TSpaceStyle>((): TSpaceStyle => {
+const dividerStyle = computed<Record<string, string>>((): Record<string, string> => {
     const lp = props.layoutProps;
     const color = lp.dividerColor || 'var(--bricks-base-200)';
     const borderWidth = `${Math.max(1, Number(lp.dividerWidth) || 1)}px`;

@@ -20,6 +20,7 @@ import { BASE_DEVICE_KEY } from '../common/constants/devices';
 
 // Utils
 import { readOwnKey } from '../common/utils/safeRecord';
+import { coercePropertyValue } from './utils/propertyCoercion';
 // #endregion
 
 /**
@@ -130,40 +131,6 @@ export function resolveBlockSeedProps(
 }
 
 /**
- * Coerces a value according to its property definition.
- *
- * @param value - Raw value out of props.
- * @param property - Property definition.
- * @returns Normalized value.
- */
-function coercePropValue(value: unknown, property: ILayoutProperty): unknown {
-    if (property.type === 'number') {
-        let numeric = Number(value);
-        if (!Number.isFinite(numeric)) {
-            numeric = Number(property.default) || 0;
-        }
-        if (property.min !== undefined) {
-            numeric = Math.max(property.min, numeric);
-        }
-        if (property.max !== undefined) {
-            numeric = Math.min(property.max, numeric);
-        }
-        return numeric;
-    }
-
-    if (property.type === 'boolean') {
-        return Boolean(value);
-    }
-
-    if (property.type === 'select' && property.options) {
-        const isValid = property.options.some((option) => option.value === value);
-        return isValid ? value : property.default;
-    }
-
-    return value;
-}
-
-/**
  * Resolves the props of a block for a viewport: a generic merge of
  * `props.responsive[viewport]` (when responsiveMode === 'all') plus coercion by the
  * property definitions. The select-against-options validation here reproduces the
@@ -199,7 +166,7 @@ export function resolveBlockProps(
 
     for (const property of definition.properties) {
         if (property.name in resolved) {
-            resolved[property.name] = coercePropValue(resolved[property.name], property);
+            resolved[property.name] = coercePropertyValue(resolved[property.name], property);
         }
     }
 

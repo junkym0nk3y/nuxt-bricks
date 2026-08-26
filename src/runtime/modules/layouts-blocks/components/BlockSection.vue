@@ -25,6 +25,16 @@ const slots = defineSlots<{
 const showGrid = inject<Ref<boolean>>('showGrid', ref(true));
 const styles = useCssModule();
 const sectionRef = ref<HTMLElement | null>(null);
+
+/**
+ * Height floor of a section that declares none, on the canvas only.
+ *
+ * An editor affordance rather than a look of the block: a section with no content and
+ * no `minHeight` would collapse to its padding, and there would be nowhere to drop the
+ * first component. A published page keeps honoring a declared `0` — which is why this
+ * value is local and not shared with the unconditional floor of a Grid.
+ */
+const CANVAS_SECTION_MIN_HEIGHT = '10rem';
 // #endregion
 
 // #region Computed
@@ -67,7 +77,7 @@ const sectionStyle = computed<CSSProperties>(() => {
     if (minHeight > 0) {
         style.minHeight = `${minHeight}rem`;
     } else {
-        style.minHeight = '10rem';
+        style.minHeight = CANVAS_SECTION_MIN_HEIGHT;
     }
 
     return style;
