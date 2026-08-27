@@ -10,10 +10,6 @@ import type { ILayoutProperty } from '../../../common/types/layoutProperty';
 import { readOwnKey } from '../../../common/utils/safeRecord';
 // #endregion
 
-// The type travels with the helpers so that `useCanvasItemInlineEditing` takes both
-// from one place
-export type { IInlineEditableProp } from '../../../common/types/inlineEditing';
-
 /** Inline-editable types of a layout block: no `input`, or Media's CSS props get caught */
 const INLINE_EDITABLE_LAYOUT_TYPES = new Set<string>(['inline-content', 'textarea']);
 

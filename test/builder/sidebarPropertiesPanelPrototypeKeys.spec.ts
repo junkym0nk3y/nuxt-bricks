@@ -72,7 +72,6 @@ vi.mock('vue-i18n', () => ({
 vi.mock('../../src/runtime/modules/builder/shell/sidebar/composables/usePropertyVariants', () => ({
     usePropertyVariants: () => ({
         componentVariants: computed(() => ({})),
-        handleNormalizeProps: vi.fn(),
     }),
 }));
 

@@ -48,10 +48,6 @@ export interface IUseSidebarMediaSelectionOptions {
 
 /** Shared property handlers passed down into the editors of the panel */
 export interface ISidebarPropertyHandlers {
-    handleNormalizeProps: (
-        data: IComponentVariant,
-        editorType: TPropertyEditorType
-    ) => Record<string, unknown>;
     handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
     handleOpenMediaGallery: (
         property: IPropertyDefinition,

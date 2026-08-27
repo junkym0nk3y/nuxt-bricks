@@ -107,7 +107,6 @@ function mountPanel(deviceScope: 'desktop' | 'mobile') {
             htmlIdValue: '',
             handleSetHtmlId: vi.fn(),
             handleChangeValues: vi.fn(),
-            handleNormalizeProps: () => ({ label: 'Payload' }),
             handleOpenMediaGallery: vi.fn(),
         },
         global: { stubs: { BricksInput: true } },

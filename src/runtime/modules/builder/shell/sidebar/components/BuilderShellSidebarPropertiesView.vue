@@ -65,7 +65,6 @@ const {
     store,
     componentEditors,
     componentVariants,
-    handleNormalizeProps,
     selectedComponentName,
     selectedComponentDescription,
     orderedPropertyNames,
@@ -196,7 +195,6 @@ defineExpose({
                     :is-hidden-value="isHiddenValue"
                     :device-visibility-value="deviceVisibilityValue"
                     :html-id-value="htmlIdValue"
-                    :handle-normalize-props="handleNormalizeProps"
                     :handle-change-values="handleChangeValues"
                     :handle-open-media-gallery="handleOpenMediaGallery"
                     :handle-toggle-full-width="handleToggleFullWidth"

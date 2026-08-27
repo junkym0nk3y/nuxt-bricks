@@ -96,7 +96,6 @@ function mountEditors(deviceVisibility: Record<string, boolean>) {
             htmlIdValue: '',
             handleSetHtmlId: vi.fn(),
             handleChangeValues: vi.fn(),
-            handleNormalizeProps: vi.fn(),
             handleOpenMediaGallery: vi.fn(),
         },
         global: { stubs: { BricksInput: true } },

@@ -116,6 +116,15 @@ export default defineConfig({
              * missing a test": the real map of nested functions only appears once
              * something imports the file, so an import written to turn `0/1` into
              * `1/1` would buy a number and no knowledge.
+             *
+             * The reverse of that is why the function cap of the sidebar is the
+             * highest one here. A spec that mounts a component for the FIRST time
+             * raises the uncovered counts of its domain without a single test being
+             * lost: the file used to report `0/1`, and once it is loaded the real map
+             * of its handlers and branches appears at once. That is what the grid size
+             * editor did to `builder/shell` — the measurement became honest, the debt
+             * did not grow. A cap lowered "back" after such a spec would only forbid
+             * loading the file again.
              */
             thresholds: {
                 'src/*.ts': {
@@ -193,8 +202,8 @@ export default defineConfig({
                 'src/runtime/modules/builder/core/**': {
                     lines: 57.2,
                     statements: 57.2,
-                    branches: -127,
-                    functions: -65,
+                    branches: -119,
+                    functions: -56,
                 },
                 'src/runtime/modules/builder/documentation/**': {
                     lines: 50.3,
@@ -217,8 +226,8 @@ export default defineConfig({
                 'src/runtime/modules/builder/shell/**': {
                     lines: 36.5,
                     statements: 36.5,
-                    branches: -86,
-                    functions: -72,
+                    branches: -107,
+                    functions: -75,
                 },
                 'src/runtime/modules/builder/templates/**': {
                     lines: 33.4,

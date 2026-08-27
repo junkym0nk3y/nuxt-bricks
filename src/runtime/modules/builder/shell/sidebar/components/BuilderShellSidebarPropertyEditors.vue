@@ -386,7 +386,6 @@ watch(
                         :type="item.type"
                         :variant="item.componentData"
                         :component-editors="props.componentEditors"
-                        :handle-normalize-props="props.handleNormalizeProps"
                         :handle-change-values="emitChange"
                         :handle-open-media-gallery="openMedia"
                     />
@@ -438,7 +437,6 @@ watch(
                                     :type="item.type"
                                     :variant="item.componentData"
                                     :component-editors="props.componentEditors"
-                                    :handle-normalize-props="props.handleNormalizeProps"
                                     :handle-change-values="emitChange"
                                     :handle-open-media-gallery="openMedia"
                                 />

@@ -161,7 +161,7 @@ export function useBuilderDraftPersistence(options: IBuilderDraftPersistenceOpti
      * It saves unconditionally rather than only under a scheduled timer: "there is
      * no timer" does not mean "there is nothing to save". An edit of a prop changes
      * the component in the store synchronously and calls `saveToHistory` through a
-     * debounce of 300 ms of its own (`core/stores/actions/properties.ts`), so inside
+     * debounce of 300 ms of its own (`core/stores/actions/historyDebounce.ts`), so inside
      * that window `historyIndex` is still the previous one, the watcher below has
      * not fired and there is no timer — while `buildCurrentSnapshot` returns the new
      * value already. The price is a possible extra write into localStorage when the

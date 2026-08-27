@@ -17,6 +17,9 @@ import type { IComponentVariant } from './types';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Utils
+import { clampToPropertyRange } from '../../utils/propertyRange';
+
 // Components
 import BricksInput from '../../../../../ui/inputs/BricksInput.vue';
 // #endregion
@@ -55,9 +58,11 @@ const isHovering = computed<boolean>(() => hoverCol.value > 0 && hoverRow.value 
  * store four.
  */
 const hoveredColumns = computed<number>(() =>
-    clampToPropertyRange(props.columnsVariant, hoverCol.value)
+    clampToPropertyRange(hoverCol.value, props.columnsVariant.property)
 );
-const hoveredRows = computed<number>(() => clampToPropertyRange(props.rowsVariant, hoverRow.value));
+const hoveredRows = computed<number>(() =>
+    clampToPropertyRange(hoverRow.value, props.rowsVariant.property)
+);
 
 /**
  * Live caption: under the cursor it shows the size a click would write, otherwise the
@@ -160,30 +165,6 @@ function handleGridLeave(): void {
 }
 
 /**
- * Clamps a cell number to the range of the property: the grid offers the same 8×6 to
- * every block with a "columns/rows" pair, while a property may carry a min/max of its
- * own — the numeric field respects it, and a click on the grid has to as well.
- *
- * @param variant - Variant of the property being edited.
- * @param value - Cell number picked in the grid.
- * @returns Value inside the range of the property.
- */
-function clampToPropertyRange(variant: IComponentVariant, value: number): number {
-    const { min, max } = variant.property;
-    let next = value;
-
-    if (typeof min === 'number') {
-        next = Math.max(min, next);
-    }
-
-    if (typeof max === 'number') {
-        next = Math.min(max, next);
-    }
-
-    return next;
-}
-
-/**
  * Writes both properties from a single click on a cell. The write goes as two calls of
  * the shared panel handler, and that handler is the one deciding whether it lands in
  * the base prop or in the override of the active device.
@@ -194,11 +175,11 @@ function clampToPropertyRange(variant: IComponentVariant, value: number): number
 function handleCellClick(col: number, row: number): void {
     props.handleChangeValues(
         props.columnsVariant.property,
-        clampToPropertyRange(props.columnsVariant, col)
+        clampToPropertyRange(col, props.columnsVariant.property)
     );
     props.handleChangeValues(
         props.rowsVariant.property,
-        clampToPropertyRange(props.rowsVariant, row)
+        clampToPropertyRange(row, props.rowsVariant.property)
     );
 }
 

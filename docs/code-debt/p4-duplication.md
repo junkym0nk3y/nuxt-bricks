@@ -14,50 +14,7 @@
 
 # Дубли кода
 
-## 1. `debouncedSaveToHistory` объявлен дважды, с двумя независимыми таймерами
-
-**Файлы:** `builder/core/stores/actions/properties.ts:12`,
-`stores/actions/schema.ts:15`
-
-Оба файла создают свой `useDebounceFn((store) => store.saveToHistory(), 300)`. Это
-не только дубль кода: таймеры разные, поэтому правка свойства и правка `htmlId`,
-сделанные подряд внутри одного окна в 300 мс, дадут две записи истории вместо
-одной, а порог 300 живёт двумя литералами в двух файлах.
-
-**Один модульный синглтон на замену двум — хуже нынешнего дубля:** он смешает
-разные инстансы Pinia и разные SSR-запросы, то есть один рендер начнёт отменять
-таймер другого. Планировщик должен принадлежать стору
-(`WeakMap<IComponentsStore, …>` либо поле стора).
-
----
-
-## 2. Приведение строки к числу продублировано в двух экшенах
-
-**Файл:** `builder/core/stores/actions/properties.ts:42-52`, `:149-159`
-
-`updateComponentProp` и `updateComponentResponsiveProp` содержат один и тот же
-одиннадцатистрочный блок: `trim`, пустая строка в `''`, регексп
-`/^-?\d+(\.\d+)?$/`, проверка `Number.isNaN`. Разойтись копии могут молча — правка
-регекспа в одной ветке оставит другую с прежним поведением, а различаются они только
-тем, куда потом ложится значение (в `props` или в `props.responsive[device]`).
-
----
-
-## 3. Снятие `responsive` записано двумя способами в одном домене
-
-**Файлы:** `builder/core/stores/actions/properties.ts:110-120` против
-`builder/core/utils/deviceKeyCleanup.ts:20-34`
-
-`updateComponentIdentityProps` собирает `props` со спредом `...currentProps`
-(который тащит прежний `responsive`), условно дописывает новый и затем отдельным
-`delete` убирает ключ, если он оказался пустым. `cleanComponent` ту же задачу решает
-без `delete`: деструктуризацией
-`const { responsive: _dropped, ...withoutResponsive } = props`. Второй вариант
-короче и не мутирует уже присвоенный объект; сейчас в области живут оба.
-
----
-
-## 4. Замер высоты по контенту и пара watch-ей продублированы кодом
+## 1. Замер высоты по контенту и пара watch-ей продублированы кодом
 
 **Файлы:** `builder/canvas/viewport/composables/useCanvasContainerMetrics.ts:26-37`,
 `:65-69` и `viewport/components/BuilderCanvasViewport.vue:135-158`, `:187-191`
@@ -79,7 +36,7 @@
 
 ---
 
-## 5. Редакторы аккордеона и галереи повторяют один и тот же список операций
+## 2. Редакторы аккордеона и галереи повторяют один и тот же список операций
 
 **Файлы:** `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:49-146`,
 `property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue:69-186`
@@ -97,22 +54,7 @@
 
 ---
 
-## 6. `clampToPropertyRange` дублирует `clampValue`
-
-**Файлы:** `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyGridSizeEditor.vue:168-181`,
-`sidebar/composables/useSpacingEditor.ts:61-71`
-
-Обе функции берут `min`/`max` из `variant.property` и прижимают к ним число.
-Отличие одно: spacing-версия дополнительно округляет до одной десятой. Рядом в
-`useSpacingEditor` то же округление `Math.round(x * 10) / 10` написано трижды
-(`formatSpacingValue`, `toNumberValue`, `clampValue`).
-
-**Округление spacing в общий clamp не переносить:** grid-редактору оно не нужно,
-а перенос сделает шаг сетки дробным.
-
----
-
-## 7. Три watcher-а превью карточки с одинаковым телом
+## 3. Три watcher-а превью карточки с одинаковым телом
 
 **Файл:** `builder/shell/sidebar/composables/useComponentCardPreview.ts:295-316`
 
@@ -123,7 +65,7 @@
 
 ---
 
-## 8. Высота превью продублирована из CSS константами
+## 4. Высота превью продублирована из CSS константами
 
 **Файлы:** `builder/shell/sidebar/composables/useComponentCardPreview.ts:45-49`,
 `sidebar/components/BuilderShellSidebarComponentCard.vue:285`
@@ -139,7 +81,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 9. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
+## 5. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
 
 **Файлы:** `builder/users/utils/userFormatting.ts:26-47`, владелец —
 `common/utils/bricks/dates.ts:1-34`
@@ -159,7 +101,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 10. Задержка поиска втроена по трём доменам, а рационал — у копий
+## 6. Задержка поиска втроена по трём доменам, а рационал — у копий
 
 **Файлы:** `builder/users/composables/useUsersList.ts:14-15`,
 `builder/templates/composables/useTemplatesList.ts:14-15`,
@@ -179,7 +121,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 11. Список ролей продублирован в двух компонентах
+## 7. Список ролей продублирован в двух компонентах
 
 **Файлы:** `builder/users/components/BuilderUsersRolePill.vue:64-69`,
 `builder/users/components/TheBuilderUsersCreateModal.vue:71-72`, владелец набора —
@@ -195,7 +137,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 12. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
+## 8. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryCategoryTabs.vue`,
 владелец вида — `ui/base/tabs/BricksTabBarItem.vue` (вариант `underline`, размер `sm`)
@@ -244,7 +186,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 13. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
+## 9. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
 
 **Файлы:** `plugins/builder/veeValidateSetup.ts`,
 `plugins/builder/textEditorToolbarSetup.ts`,
@@ -267,7 +209,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 14. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
+## 10. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
 
 **Файлы:** `builder/media/components/TheBuilderMediaGalleryModal.vue:104-195`,
 `components/TheBuilderMediaSection.vue:106-152`
@@ -286,7 +228,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 15. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
+## 11. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryMetaPanel.vue:88-131`,
 `components/BuilderMediaSectionDetailsPanel.vue:90-171`
@@ -305,7 +247,7 @@ slug».
 
 ---
 
-## 16. Нативный `<select>` вместо кит-компонента в резолвере изображений
+## 12. Нативный `<select>` вместо кит-компонента в резолвере изображений
 
 **Файлы:** `builder/media/components/BuilderMediaImageResolverItem.vue:95-103,177-181`,
 `components/TheBuilderMediaImageResolverModal.vue:114-123,199-203`
@@ -323,7 +265,7 @@ slug».
 
 ---
 
-## 17. Формы сохранения и переименования шаблона — копия друг друга
+## 13. Формы сохранения и переименования шаблона — копия друг друга
 
 **Файлы:** `builder/templates/composables/useTemplateSaveForm.ts` (171 строка),
 `useTemplateRenameForm.ts` (146 строк)
@@ -348,7 +290,7 @@ slug».
 
 ---
 
-## 18. Мета-строка шаблона собирается дважды
+## 14. Мета-строка шаблона собирается дважды
 
 **Файлы:** `builder/templates/components/BuilderTemplatesCard.vue:70-75`
 (`metaLine`), `BuilderTemplatesPickerList.vue:84-89` (`buildMetaLine`)
@@ -367,7 +309,7 @@ slug».
 
 ---
 
-## 19. Исход `window.open` проверяет одна функция из трёх
+## 15. Исход `window.open` проверяет одна функция из трёх
 
 **Файлы:** `builder/publish/composables/usePublishPreview.ts`
 (`previewCurrentPage` против `previewPageVersion`), `usePublishPageActions.ts`
@@ -388,7 +330,7 @@ slug».
 
 ---
 
-## 20. `DARK_MODE_COOKIE` против литерала в редакторе
+## 16. `DARK_MODE_COOKIE` против литерала в редакторе
 
 **Файлы:** `builder/publish/composables/usePublishDashboardPreferences.ts`
 (константа), `builder/app/pages/[pagename].vue` (литерал `'bricks-dark-mode'`)
@@ -407,7 +349,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 21. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
+## 17. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
 
 **Файлы:** `persistence/server/http/httpMediaMethods.ts` (`getMediaByUrl`),
 `src/runtime/server/api/bricks/media/s3-proxy.post.ts:59`
@@ -425,7 +367,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 22. `IImageLocation` собирает семь полей, читается одно
+## 18. `IImageLocation` собирает семь полей, читается одно
 
 **Файлы:** `builder/media/types/schemaImageResolver.d.ts:22-30`, заполнение —
 `utils/schemaImageExtractor.ts` (`createLocation`), единственное чтение —
@@ -445,73 +387,7 @@ published-поверхность о ней не знает.
 
 # Упрощения
 
-## 23. `inferPropertyType` — карта, написанная цепочкой `if` с отключённым правилом
-
-**Файл:** `builder/core/composables/useComponentProperties.ts:31`
-
-Одиннадцать подряд идущих `if (value.type === '<literal>')` возвращают либо тот же
-литерал, либо `'select'` (для `select`/`tabs`/`modal-select`), и только после них
-идут две содержательные ветки — список опций и вывод типа из `default`. Цепочка
-стоит проекту `// eslint-disable-next-line complexity`.
-
-Правило проекта прямо предписывает карту вместо разбора по равенствам
-(`.claude/rules/typescript.md`, «Prefer Object Maps over Switch»), а рядом в этом же
-файле такая карта уже есть — `SELECTOR_TYPE_BY_PROPERTY`. Замена одиннадцати ветвей
-на `Record<string, TPropertyType>` снимает и disable-директиву.
-
-**Неизвестный тип свойства в отказ не превращать:** сейчас он деградирует мягко, и
-карта обязана сохранить это фоллбэком, а не бросать.
-
----
-
-## 24. `validatePropertyValue` разбирает тип через `switch`
-
-**Файл:** `builder/core/composables/useComponentProperties.ts:173`
-
-Второй `// eslint-disable-next-line complexity` в файле прикрывает `switch` по
-`property.type`. Правило проекта — карта вместо `switch`; здесь значением карты был
-бы предикат (`Record<TPropertyType, (value: unknown) => boolean>`), а `default: true`
-выражался бы фоллбэком на «всегда истинно».
-
-Отдельно от пункта выше, потому что чинится независимо.
-
-**`default: true` сохранить фоллбэком:** незнакомое свойство обязано остаться
-проходимым, иначе новый тип начнёт молча блокировать ввод.
-
----
-
-## 25. `findSiblingContext` возвращает поле с двумя разными смыслами, и вызывающий его перевычисляет
-
-**Файл:** `builder/core/stores/actions/order.ts:22-56`, `:67-116`
-
-Хелпер отдаёт `{ siblings, index, parentId }`, но `siblings` — это то живой
-`parent.children` (вложенная ветка), то свежая копия идентификаторов
-(`rootComponents.map(...)` в корневой). Мутировать через поле поэтому нельзя, и
-`moveComponentUp`/`moveComponentDown` заново достают родителя, его `children` и
-индекс — то есть повторяют работу хелпера целиком, оставляя от него только проверку
-границ.
-
-Разделение на «индекс» и «массив, в котором двигаем» сняло бы дубль.
-
----
-
-## 26. `handleNormalizeProps` игнорирует второй аргумент, объявленный контрактом
-
-**Файлы:** `builder/shell/sidebar/composables/usePropertyVariants.ts:148-153`,
-`sidebar/types/composables.d.ts:32-35`
-
-Контракт объявляет `(data, editorType) => Record<string, unknown>`, реализация
-принимает `_editorType` и не смотрит на него — вся работа в
-`normalizeVariantProps(data)`. Через панель аргумент честно протаскивается двумя
-слоями (`ISidebarPropertyHandlers` →
-`BuilderShellSidebarPropertyEditorRow.vue:51`).
-
-Либо тип свойства нужен нормализации, и тогда она его не использует, либо не нужен —
-и тогда его протаскивают зря.
-
----
-
-## 27. Инлайновый SVG-шеврон вместо иконки кита
+## 19. Инлайновый SVG-шеврон вместо иконки кита
 
 **Файл:** `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:405-422`
 
@@ -524,7 +400,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 28. `isPasswordActionVisible` — псевдоним `canChangePassword`
+## 20. `isPasswordActionVisible` — псевдоним `canChangePassword`
 
 **Файл:** `builder/users/components/BuilderUsersListRow.vue:114-125`
 
@@ -545,7 +421,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 29. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
+## 21. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
 
 **Файл:** `builder/app/composables/useBuilderPage.ts`
 
@@ -559,7 +435,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 30. Пустые делегаты в composition root
+## 22. Пустые делегаты в composition root
 
 **Файл:** `builder/app/pages/[pagename].vue`
 
@@ -574,7 +450,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 31. `previewCurrentPage`: два `Date.now()` и строка ради числа
+## 23. `previewCurrentPage`: два `Date.now()` и строка ради числа
 
 **Файл:** `builder/publish/composables/usePublishPreview.ts` (`previewCurrentPage`)
 
@@ -590,7 +466,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 32. `openGeneration` инкрементируется дважды подряд
+## 24. `openGeneration` инкрементируется дважды подряд
 
 **Файл:** `builder/auth/composables/useAuthAvatarCrop.ts:139-143`
 

@@ -2,6 +2,8 @@
 // Types
 import type { IBricksComponent, IBricksSchema } from '../../../common/types/brick';
 
+// Utils
+import { withResponsiveProps } from './responsiveProps';
 // #endregion
 
 /**
@@ -25,13 +27,7 @@ function cleanComponent(component: IBricksComponent, removedKeys: Set<string>): 
             )
         );
 
-        // An empty `responsive` is not left behind as a stub key: otherwise the
-        // serialized schema piles up a `responsive: {}` on every block ever touched
-        const { responsive: _dropped, ...withoutResponsive } = props;
-        nextProps =
-            Object.keys(kept).length > 0
-                ? { ...withoutResponsive, responsive: kept }
-                : withoutResponsive;
+        nextProps = withResponsiveProps(props, kept);
     }
 
     const visibility = component.deviceVisibility;

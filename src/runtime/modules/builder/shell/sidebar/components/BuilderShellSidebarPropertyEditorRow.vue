@@ -15,6 +15,7 @@ import { useI18n } from 'vue-i18n';
 
 // Utils
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
+import { normalizeVariantProps } from '../utils/normalizeVariantProps';
 // #endregion
 
 // #region Props
@@ -48,7 +49,7 @@ const resolvedEditorProps = computed<Record<string, unknown>>(() => {
         return { label: props.variant.label, type: props.type };
     }
 
-    const normalized = props.handleNormalizeProps(props.variant, props.type);
+    const normalized = normalizeVariantProps(props.variant);
     if (props.type === 'input') {
         return {
             ...normalized,

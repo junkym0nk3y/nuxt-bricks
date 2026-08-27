@@ -78,6 +78,23 @@ describe('updateComponentIdentityProps', () => {
         expect(responsive).not.toHaveProperty('tablet');
     });
 
+    it('сохраняет позицию ключа responsive среди пропсов', () => {
+        // Позиция значима: снимки черновика сравниваются как `JSON.stringify`
+        // (`publish/utils/draftSnapshots`), и уехавший в конец ключ превратил бы две
+        // семантически равные схемы в разные — чистый черновик пометился бы грязным
+        const store = makeStore({
+            src: 'a.webp',
+            responsive: { mobile: { width: '50%' } },
+            title: 'Caption',
+        });
+
+        propertyActions.updateComponentIdentityProps.call(store as never, 'c1', {
+            src: 'b.webp',
+        } as never);
+
+        expect(Object.keys(store.component.props)).toEqual(['src', 'responsive', 'title']);
+    });
+
     it('не оставляет пустой ключ responsive в сериализуемой схеме', () => {
         const store = makeStore({ src: 'a.webp', responsive: { mobile: { src: 'a-m.webp' } } });
 

@@ -100,7 +100,7 @@ const buildPage = createPageBuilder({
 
 // core/utils/history.ts, clampHistory(limit = 50)
 const HISTORY_LIMIT = 50;
-// core/stores/actions/properties.ts, debouncedSaveToHistory
+// core/stores/actions/historyDebounce.ts, scheduleHistorySave
 const PROP_HISTORY_DEBOUNCE_MS = 300;
 
 describe('черновик билдера: автосейв и сброс при уходе со страницы', () => {

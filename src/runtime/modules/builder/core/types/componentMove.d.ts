@@ -81,3 +81,21 @@ export interface IReorderWithinLayoutParams {
     swap: boolean;
     getComponentById: (id: string) => IBricksComponent | undefined;
 }
+
+/**
+ * Position of a component among its siblings.
+ *
+ * `children` is the LIVE array of the parent, the one a rearrangement swaps entries in;
+ * at the root level there is no such array — the order of the root lives in the flat
+ * `components` list, and only the store knows how to rewrite it. Hence two fields
+ * instead of one "siblings": a single field would be a live array in one branch and a
+ * throwaway copy of ids in the other, and a caller could not mutate through it.
+ */
+export interface IComponentSiblingContext {
+    /** Index of the component among its siblings. */
+    index: number;
+    /** How many siblings there are, the ceiling of a move down. */
+    count: number;
+    /** Live children array of the parent; null at the root level. */
+    children: string[] | null;
+}

@@ -1,4 +1,5 @@
 import type { IComponentsOrderActions, IComponentsStore } from '../types';
+import type { IComponentSiblingContext } from '../../types/componentMove';
 
 /**
  * Corrects the target index after the moved sibling has been pulled out.
@@ -12,17 +13,14 @@ export function adjustReorderTargetIndex(currentIndex: number, targetIndex: numb
 }
 
 /**
- * Finds the index of a component among its siblings (the root list, or the children
+ * Finds the position of a component among its siblings (the root list, or the children
  * of a layout).
  *
  * @param store - Components store.
  * @param id - Id of the component.
- * @returns The siblings and the index, or null when there are none.
+ * @returns The position, or null when the component has no place in the graph.
  */
-function findSiblingContext(
-    store: IComponentsStore,
-    id: string
-): { siblings: string[]; index: number; parentId: string | null } | null {
+function findSiblingContext(store: IComponentsStore, id: string): IComponentSiblingContext | null {
     const component = store.getComponentById(id);
     if (!component) {
         return null;
@@ -39,7 +37,7 @@ function findSiblingContext(
             return null;
         }
 
-        return { siblings: parent.children, index, parentId: component.parent };
+        return { index, count: parent.children.length, children: parent.children };
     }
 
     const rootComponents = store.getRootComponents();
@@ -48,11 +46,17 @@ function findSiblingContext(
         return null;
     }
 
-    return {
-        siblings: rootComponents.map((item) => item.id),
-        index,
-        parentId: null,
-    };
+    return { index, count: rootComponents.length, children: null };
+}
+
+/**
+ * Swaps two neighboring entries of a children list in place.
+ *
+ * @param children - Live children array of the parent.
+ * @param index - Index of the first of the pair.
+ */
+function swapWithNext(children: string[], index: number): void {
+    [children[index], children[index + 1]] = [children[index + 1], children[index]];
 }
 
 /**
@@ -70,21 +74,13 @@ export const orderActions: IComponentsOrderActions = {
             return;
         }
 
-        if (context.parentId) {
-            const parent = this.getComponentById(context.parentId);
-            if (!parent?.children) {
-                return;
-            }
-            const arr = parent.children;
-            const idx = arr.indexOf(id);
-            if (idx <= 0) {
-                return;
-            }
-            [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+        if (context.children) {
+            swapWithNext(context.children, context.index - 1);
             this.saveToHistory();
-        } else {
-            this.moveComponentToRoot(id, context.index - 1);
+            return;
         }
+
+        this.moveComponentToRoot(id, context.index - 1);
     },
 
     /**
@@ -94,24 +90,21 @@ export const orderActions: IComponentsOrderActions = {
      */
     moveComponentDown(this: IComponentsStore, id: string) {
         const context = findSiblingContext(this, id);
-        if (!context || context.index >= context.siblings.length - 1) {
+        if (!context || context.index >= context.count - 1) {
             return;
         }
 
-        if (context.parentId) {
-            const parent = this.getComponentById(context.parentId);
-            if (!parent?.children) {
-                return;
-            }
-            const arr = parent.children;
-            const idx = arr.indexOf(id);
-            if (idx === -1 || idx >= arr.length - 1) {
-                return;
-            }
-            [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+        if (context.children) {
+            swapWithNext(context.children, context.index);
             this.saveToHistory();
-        } else {
-            this.moveComponentToRoot(id, context.index + 1);
+            return;
         }
+
+        // `moveComponentToRoot` takes the gap of the destination in the list BEFORE the
+        // component is pulled out of it, and corrects the index itself
+        // (`adjustReorderTargetIndex`). So the gap behind the next sibling is `index + 2`:
+        // `index + 1` corrects back into the current position and the move down does
+        // nothing at all.
+        this.moveComponentToRoot(id, context.index + 2);
     },
 };

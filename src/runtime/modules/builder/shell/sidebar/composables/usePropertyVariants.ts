@@ -10,7 +10,6 @@ import { useI18n } from 'vue-i18n';
 // Utils
 import { readOwnKey } from '../../../../common/utils/safeRecord';
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
-import { normalizeVariantProps } from '../utils/normalizeVariantProps';
 import {
     VARIANT_BUILDERS,
     buildInputVariant,
@@ -23,9 +22,7 @@ import {
 import {
     PROPERTY_EDITOR_ORDER,
     type TComponentVariantsMap,
-    type IComponentVariant,
     type IPropertyVariantContext,
-    type TPropertyEditorType,
 } from '../components/property-editors/types';
 // #endregion
 
@@ -35,7 +32,7 @@ import {
  * (utils/variantBuilders.ts).
  *
  * @param selectedComponentData - Computed data of the selected component.
- * @returns The property variants and the props normalizer.
+ * @returns The property variants.
  */
 export function usePropertyVariants(
     selectedComponentData: ComputedRef<ISelectedComponentData | null>
@@ -140,23 +137,9 @@ export function usePropertyVariants(
         return readOwnKey(componentProps, showWhen.field) === showWhen.equals;
     }
 
-    /**
-     * Normalizes the props handed over to the editor components.
-     *
-     * @param data - Data of the property variant.
-     * @param _editorType - Editor type, part of the contract and unused here.
-     * @returns Normalized props object.
-     */
-    function handleNormalizeProps(
-        data: IComponentVariant,
-        _editorType: TPropertyEditorType
-    ): Record<string, unknown> {
-        return normalizeVariantProps(data);
-    }
     // #endregion
 
     return {
         componentVariants,
-        handleNormalizeProps,
     };
 }

@@ -10,11 +10,7 @@ import { useHistoryStore } from '../history';
 import { useNavigationStore } from '../navigation';
 import type { IComponentsSchemaActions, IComponentsStore } from '../types';
 import { normalizeDeviceVisibility } from '../../../../common/utils/bricks/deviceVisibility';
-import { useDebounceFn } from '@vueuse/core';
-
-const debouncedSaveToHistory = useDebounceFn((store: IComponentsStore) => {
-    store.saveToHistory();
-}, 300);
+import { scheduleHistorySave } from './historyDebounce';
 
 /**
  * Collects the meta the schema carries out of the navigation store.
@@ -63,7 +59,7 @@ export const schemaActions: IComponentsSchemaActions = {
         }
 
         component.htmlId = htmlId || undefined;
-        debouncedSaveToHistory(this);
+        scheduleHistorySave(this);
     },
 
     /**

@@ -1,6 +1,7 @@
 // #region Imports
 // Types
 import type { ICanvasItemProps } from '../../types/components';
+import type { IInlineEditableProp } from '../../../../common/types/inlineEditing';
 
 // Vue
 import { computed, provide, watch, type ComputedRef } from 'vue';
@@ -21,7 +22,6 @@ import { getLayoutProperties } from '../../../core/utils/layoutProperties';
 import {
     findAllInlineEditableLayoutProps,
     findAllInlineEditableBrickProps,
-    type IInlineEditableProp,
 } from '../../../core/utils/inlineEditableProp';
 // #endregion
 

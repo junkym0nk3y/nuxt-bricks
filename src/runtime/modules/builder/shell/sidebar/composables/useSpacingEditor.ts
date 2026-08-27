@@ -12,10 +12,23 @@ import type {
 // Vue
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+// Utils
+import { clampToPropertyRange } from '../utils/propertyRange';
 // #endregion
 
 /** Default stepper step, used when the definition sets no `step` */
 const DEFAULT_SPACING_STEP = 0.2;
+
+/**
+ * Rounds to one decimal place — the resolution of the spacing scale.
+ *
+ * @param value - Numeric value.
+ * @returns The value with a single decimal place.
+ */
+function roundToTenth(value: number): number {
+    return Math.round(value * 10) / 10;
+}
 
 /**
  * Formats the value of a side with no trailing zeros (`1.2`, not `1.20`).
@@ -24,7 +37,7 @@ const DEFAULT_SPACING_STEP = 0.2;
  * @returns String to display.
  */
 export function formatSpacingValue(value: number): string {
-    return String(Math.round(value * 10) / 10);
+    return String(roundToTenth(value));
 }
 
 /**
@@ -36,7 +49,7 @@ export function formatSpacingValue(value: number): string {
  */
 function toNumberValue(value: unknown): number {
     const parsed = Number(value);
-    return Number.isFinite(parsed) ? Math.round(parsed * 10) / 10 : 0;
+    return Number.isFinite(parsed) ? roundToTenth(parsed) : 0;
 }
 
 /**
@@ -54,20 +67,19 @@ function makeStepperSlot(side: TSpacingSideKey, variant: IComponentVariant): ISp
  * Clamps the value to the min/max range of the property and rounds it to one decimal
  * place.
  *
+ * The rounding has the last word, and that costs something worth naming: a bound which
+ * is not itself a multiple of 0.1 can be overshot by up to 0.05 — a `max: 3.25` stores
+ * 3.3. The other order would respect such a bound exactly and store 3.25, an off-grid
+ * number the field then displays as "3.3": what is shown and what is stored would part
+ * ways. No block of the package declares a bound off the 0.1 grid, so the overshoot is
+ * a trade taken on paper; the parting of display and value would be visible.
+ *
  * @param slot - Slot of the editable side.
  * @param value - Candidate value.
  * @returns Value ready to be written into the props.
  */
 function clampValue(slot: ISpacingStepperSlot, value: number): number {
-    const { min, max } = slot.variant.property;
-    let next = value;
-    if (typeof min === 'number') {
-        next = Math.max(min, next);
-    }
-    if (typeof max === 'number') {
-        next = Math.min(max, next);
-    }
-    return Math.round(next * 10) / 10;
+    return roundToTenth(clampToPropertyRange(value, slot.variant.property));
 }
 
 /**

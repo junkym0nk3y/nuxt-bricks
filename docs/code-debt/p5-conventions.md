@@ -354,19 +354,7 @@ House-style — американское `toward` (пять вхождений �
 
 # Границы доменов
 
-## 21. Тип `IInlineEditableProp` ре-экспортируется через util вместо импорта у владельца
-
-**Файл:** `builder/core/utils/inlineEditableProp.ts:15`
-
-Тип объявлен в `common/types/inlineEditing.d.ts` и оттуда же импортируется в
-`text-editor/stores/inlineEditing.ts`. Единственный потребитель ре-экспорта —
-`builder/canvas/editing/composables/useCanvasItemInlineEditing.ts:24`, который берёт
-тип из util одним оператором вместе с функциями.
-
-Развязка лишняя: `common` доступен canvas напрямую, и после её снятия у типа
-остаётся одно место объявления и одно место импорта.
-
-## 22. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
+## 21. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
 
 **Файл:** `common/constants/templates.ts:27-32`
 (`TEMPLATE_PICKER_SEARCH_THRESHOLD`), потребитель —
@@ -385,7 +373,7 @@ House-style — американское `toward` (пять вхождений �
 шаблона — с того, на котором список начинает прокручиваться. Остаётся только место
 объявления константы.
 
-## 23. Стили документации в глобальной таблице
+## 22. Стили документации в глобальной таблице
 
 См. пункт «Стили документации билдера лежат в глобальной таблице `default.scss`»
 выше — это одновременно и нарушение границ домена: билдерский класс живёт в таблице,
@@ -393,7 +381,7 @@ House-style — американское `toward` (пять вхождений �
 
 ---
 
-## 24. Статья документации уходит в `v-html` мимо `sanitize`
+## 23. Статья документации уходит в `v-html` мимо `sanitize`
 
 **Файлы:** `builder/documentation/components/TheBuilderDocumentationModal.vue:126`,
 источник HTML — `builder/documentation/composables/useMarkdownRenderer.ts:35`

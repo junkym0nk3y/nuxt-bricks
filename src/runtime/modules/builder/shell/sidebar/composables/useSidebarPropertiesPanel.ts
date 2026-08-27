@@ -57,9 +57,7 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         handleResetLayoutDeviceScopeOverrides,
     } = useSidebarResponsiveScope();
 
-    const { componentVariants, handleNormalizeProps } = usePropertyVariants(
-        selectedComponentDataForVariants
-    );
+    const { componentVariants } = usePropertyVariants(selectedComponentDataForVariants);
 
     const { handleOpenMediaGallery, handleMediaSelect } = useSidebarMediaSelection({
         onOpenMediaGallery: options.onOpenMediaGallery,
@@ -272,7 +270,6 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         store,
         componentEditors,
         componentVariants,
-        handleNormalizeProps,
         selectedComponentName,
         selectedComponentDescription,
         orderedPropertyNames,

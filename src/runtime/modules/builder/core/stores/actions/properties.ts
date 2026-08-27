@@ -2,16 +2,39 @@ import type { IComponentsPropertyActions, IComponentsStore } from '../types';
 import type { TBricksDeviceKey, TBrickPropValue } from '../../../../common/types/brick';
 
 // Utils
-import { useDebounceFn } from '@vueuse/core';
+import { scheduleHistorySave } from './historyDebounce';
+import { withResponsiveProps } from '../../utils/responsiveProps';
 
 /**
- * A debounced saveToHistory for property updates.
- * It keeps a fast run of value changes — the plus and minus buttons, for instance —
- * from serializing the schema dozens of times.
+ * A string that holds a plain decimal number becomes one.
+ *
+ * The last heuristic border of the store: the panel already coerces by the declared
+ * type of the property, but a generic input, a direct call of the store and the other
+ * editors reach the props through here. Anything the pattern does not accept — an
+ * exponent, a leading plus, a bare dot — stays the string it arrived as, in its
+ * original form rather than trimmed.
+ *
+ * @param value - New value coming from the UI.
+ * @returns The number, or the value unchanged.
  */
-const debouncedSaveToHistory = useDebounceFn((store: IComponentsStore) => {
-    store.saveToHistory();
-}, 300);
+function coerceNumericString(value: TBrickPropValue): TBrickPropValue {
+    if (typeof value !== 'string') {
+        return value;
+    }
+
+    const trimmedValue = value.trim();
+    if (trimmedValue === '') {
+        return '';
+    }
+
+    if (!/^-?\d+(\.\d+)?$/.test(trimmedValue)) {
+        return value;
+    }
+
+    const numValue = Number(trimmedValue);
+
+    return Number.isNaN(numValue) ? value : numValue;
+}
 
 /**
  * Actions that update the props of components already placed on the canvas.
@@ -37,26 +60,12 @@ export const propertyActions: IComponentsPropertyActions = {
             return;
         }
 
-        let finalValue: TBrickPropValue = value;
-
-        if (typeof value === 'string') {
-            const trimmedValue = value.trim();
-            if (trimmedValue === '') {
-                finalValue = '';
-            } else if (/^-?\d+(\.\d+)?$/.test(trimmedValue)) {
-                const numValue = Number(trimmedValue);
-                if (!Number.isNaN(numValue)) {
-                    finalValue = numValue;
-                }
-            }
-        }
-
         component.props = {
             ...component.props,
-            [propName]: finalValue,
+            [propName]: coerceNumericString(value),
         };
 
-        debouncedSaveToHistory(this);
+        scheduleHistorySave(this);
     },
 
     /**
@@ -107,19 +116,11 @@ export const propertyActions: IComponentsPropertyActions = {
             }
         }
 
-        component.props = {
-            ...currentProps,
-            ...patch,
-            ...(Object.keys(nextResponsive).length > 0 ? { responsive: nextResponsive } : {}),
-        };
+        // The map is written AFTER the patch is merged: a `responsive` of the patch
+        // itself must not slip past the invariant of the key
+        component.props = withResponsiveProps({ ...currentProps, ...patch }, nextResponsive);
 
-        // An empty `responsive` is not left behind as a stub key — the reason is at
-        // `utils/deviceKeyCleanup.cleanComponent`, which strips the same key
-        if (Object.keys(nextResponsive).length === 0) {
-            delete (component.props as Record<string, unknown>).responsive;
-        }
-
-        debouncedSaveToHistory(this);
+        scheduleHistorySave(this);
     },
 
     /**
@@ -144,20 +145,6 @@ export const propertyActions: IComponentsPropertyActions = {
             return;
         }
 
-        let finalValue: TBrickPropValue = value;
-
-        if (typeof value === 'string') {
-            const trimmedValue = value.trim();
-            if (trimmedValue === '') {
-                finalValue = '';
-            } else if (/^-?\d+(\.\d+)?$/.test(trimmedValue)) {
-                const numValue = Number(trimmedValue);
-                if (!Number.isNaN(numValue)) {
-                    finalValue = numValue;
-                }
-            }
-        }
-
         const currentProps = component.props as Record<string, unknown>;
         const responsive = (currentProps.responsive ?? {}) as Record<string, unknown>;
         const deviceOverrides = ((responsive as Record<string, unknown>)[device] ?? {}) as Record<
@@ -165,18 +152,15 @@ export const propertyActions: IComponentsPropertyActions = {
             unknown
         >;
 
-        component.props = {
-            ...currentProps,
-            responsive: {
-                ...responsive,
-                [device]: {
-                    ...deviceOverrides,
-                    [propName]: finalValue,
-                },
+        component.props = withResponsiveProps(currentProps, {
+            ...responsive,
+            [device]: {
+                ...deviceOverrides,
+                [propName]: coerceNumericString(value),
             },
-        };
+        });
 
-        debouncedSaveToHistory(this);
+        scheduleHistorySave(this);
     },
 
     /**
@@ -208,19 +192,7 @@ export const propertyActions: IComponentsPropertyActions = {
 
         const { [device]: _removed, ...rest } = responsive as Record<string, unknown>;
 
-        const nextResponsive = rest;
-
-        if (Object.keys(nextResponsive).length === 0) {
-            const { responsive: _responsiveKey, ...withoutResponsive } = currentProps;
-            component.props = {
-                ...withoutResponsive,
-            };
-        } else {
-            component.props = {
-                ...currentProps,
-                responsive: nextResponsive,
-            };
-        }
+        component.props = withResponsiveProps(currentProps, rest);
 
         this.saveToHistory();
     },

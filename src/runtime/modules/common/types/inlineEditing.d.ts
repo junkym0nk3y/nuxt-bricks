@@ -1,6 +1,5 @@
 /**
- * Contract of inline editing — breaks the cyclic type import
- * builder/core/utils/inlineEditableProp ↔ editor/stores/inlineEditing.
+ * Contracts of inline editing, shared by the builder and the text editor.
  */
 import type { TBrickPropValue } from './brick';
 

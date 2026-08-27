@@ -4,8 +4,6 @@
 
 import type {
     TComponentVariantsMap,
-    IComponentVariant,
-    TPropertyEditorType,
     ISpacingStepperSlot,
     TSpacingSlot,
     TSpacingSideKey,
@@ -30,10 +28,6 @@ export type { ISelectedComponentData } from '../../../core/stores/types';
  */
 export interface IUsePropertyVariantsReturn {
     componentVariants: ComputedRef<TComponentVariantsMap>;
-    handleNormalizeProps: (
-        data: IComponentVariant,
-        editorType: TPropertyEditorType
-    ) => Record<string, unknown>;
 }
 // #endregion
 
