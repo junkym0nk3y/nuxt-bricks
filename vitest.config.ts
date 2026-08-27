@@ -224,10 +224,10 @@ export default defineConfig({
                     functions: -62,
                 },
                 'src/runtime/modules/builder/shell/**': {
-                    lines: 36.5,
-                    statements: 36.5,
-                    branches: -121,
-                    functions: -79,
+                    lines: 46.4,
+                    statements: 46.4,
+                    branches: -118,
+                    functions: -73,
                 },
                 'src/runtime/modules/builder/templates/**': {
                     lines: 33.4,

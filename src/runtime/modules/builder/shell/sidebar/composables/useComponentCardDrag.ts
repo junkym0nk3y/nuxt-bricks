@@ -4,7 +4,7 @@
  */
 
 // Types
-import type { IDragComposable, ISidebarComponentCardProps } from '../components/types';
+import type { IDragComposable, ISidebarComponentCardProps } from '../types/components';
 import type { IDragVisualSize } from '../../../../common/types/brick';
 import type { IComponentCardDrag } from '../types/composables';
 

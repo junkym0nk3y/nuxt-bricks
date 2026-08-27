@@ -1,23 +1,16 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { ISidebarPropertySpacingEditorSideProps } from '../../types/sidebarProperties';
+import type {
+    ISidebarPropertySpacingEditorSideProps,
+    ISidebarPropertySpacingEditorSideEmits,
+} from '../../types/sidebarProperties';
 
 // Utils
 import { formatSpacingValue } from '../../composables/useSpacingEditor';
 
 // Vue
 import { useI18n } from 'vue-i18n';
-// #endregion
-
-// #region Interfaces
-interface IEmits {
-    step: [direction: 1 | -1];
-    'start-edit': [];
-    'commit-edit': [];
-    'cancel-edit': [];
-    'update:editingValue': [value: string];
-}
 // #endregion
 
 // #region Props
@@ -29,7 +22,7 @@ const props = withDefaults(defineProps<ISidebarPropertySpacingEditorSideProps>()
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IEmits>();
+const emit = defineEmits<ISidebarPropertySpacingEditorSideEmits>();
 // #endregion
 
 // #region Data

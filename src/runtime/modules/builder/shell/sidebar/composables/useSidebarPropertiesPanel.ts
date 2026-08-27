@@ -6,7 +6,10 @@ import type {
     TBricksDeviceKey,
     TBrickPropValue,
 } from '../../../../common/types/brick';
-import type { IUseSidebarPropertiesPanelOptions } from '../types/sidebarProperties';
+import type {
+    IUseSidebarPropertiesPanelOptions,
+    IUseSidebarPropertiesPanelReturn,
+} from '../types/composables';
 
 // Vue
 import { computed } from 'vue';
@@ -40,9 +43,11 @@ import { readOwnKey } from '../../../../common/utils/safeRecord';
  * picking and the brick description, and hands the UI ready-made handlers.
  *
  * @param options - Callbacks into the parts of the interface that live outside.
- * @returns The stores, the computed data and the methods of the properties panel.
+ * @returns The computed data and the methods of the properties panel.
  */
-export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOptions) {
+export function useSidebarPropertiesPanel(
+    options: IUseSidebarPropertiesPanelOptions
+): IUseSidebarPropertiesPanelReturn {
     // #region Data
     const store = useComponentsStore();
     const { t, te } = useI18n();
@@ -66,6 +71,12 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
     // #endregion
 
     // #region Computed
+    // The panel keys its editors by this id, and it is read off `selectedComponent`
+    // because that is the source the template read before the id moved in here.
+    // `selectedComponentData` is not the same value: it answers null once the
+    // selection leaves the component list, while the raw selection still names it.
+    const selectedComponentId = computed<string>(() => store.selectedComponent?.id ?? '');
+
     const selectedComponentName = computed(
         () => store.selectedComponentData?.component?.componentName || ''
     );
@@ -264,12 +275,24 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         }
         store.setComponentHtmlId(selected.id, htmlId);
     }
+
+    /**
+     * Removes the selected component from the canvas.
+     */
+    function handleDeleteSelectedComponent(): void {
+        const selected = store.selectedComponentData;
+        if (!selected) {
+            return;
+        }
+
+        store.removeComponent(selected.id);
+    }
     // #endregion
 
     return {
-        store,
         componentEditors,
         componentVariants,
+        selectedComponentId,
         selectedComponentName,
         selectedComponentDescription,
         orderedPropertyNames,
@@ -292,5 +315,6 @@ export function useSidebarPropertiesPanel(options: IUseSidebarPropertiesPanelOpt
         handleMediaSelect,
         handleSetLayoutDeviceScope,
         handleResetLayoutDeviceScopeOverrides,
+        handleDeleteSelectedComponent,
     };
 }

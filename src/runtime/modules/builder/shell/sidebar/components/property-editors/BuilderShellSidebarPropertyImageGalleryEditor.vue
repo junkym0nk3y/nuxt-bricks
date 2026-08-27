@@ -31,6 +31,9 @@ import type { IPropertyImageGalleryEditorProps, IPropertyImageGalleryEditorEmits
 import { computed, useCssModule } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useEditableItemsList } from '../../composables/useEditableItemsList';
+
 // Components
 import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
 import BricksIconButton from '../../../../../ui/base/icon-button/BricksIconButton.vue';
@@ -69,19 +72,10 @@ const showTags = computed<boolean>(() => props.fields?.tags === true);
 // #endregion
 
 // #region Methods
-/**
- * Clones the array of gallery items.
- */
-function cloneItems(source: IGalleryItem[]): IGalleryItem[] {
-    return source.map((item) => ({ ...item }));
-}
-
-/**
- * Emits the new value of the gallery.
- */
-function updateItems(value: IGalleryItem[]): void {
-    emit('update:modelValue', value);
-}
+const { removeItem, moveItem, updateField } = useEditableItemsList<IGalleryItem>({
+    items,
+    onUpdate: (value) => emit('update:modelValue', value),
+});
 
 /**
  * Opens the media gallery to add a new image.
@@ -94,86 +88,10 @@ function handleAddImage(): void {
 }
 
 /**
- * Updates the title of an item.
- */
-function handleTitleChange(index: number, value: string): void {
-    const next = cloneItems(items.value);
-    if (!next[index]) {
-        return;
-    }
-
-    next[index] = { ...next[index], title: value };
-    updateItems(next);
-}
-
-/**
- * Updates the caption of an item.
- */
-function handleCaptionChange(index: number, value: string): void {
-    const next = cloneItems(items.value);
-    if (!next[index]) {
-        return;
-    }
-
-    next[index] = { ...next[index], caption: value };
-    updateItems(next);
-}
-
-/**
  * Whether the item is a video, judged by its mimeType.
  */
 function isVideoItem(item: IGalleryItem): boolean {
     return Boolean(item.mimeType?.startsWith('video/'));
-}
-
-/**
- * Updates the tags of an item.
- */
-function handleTagsChange(index: number, value: string[]): void {
-    const next = cloneItems(items.value);
-    if (!next[index]) {
-        return;
-    }
-
-    next[index] = { ...next[index], tags: value };
-    updateItems(next);
-}
-
-/**
- * Removes an item from the gallery.
- */
-function handleRemoveItem(index: number): void {
-    const next = cloneItems(items.value);
-    next.splice(index, 1);
-    updateItems(next);
-}
-
-/**
- * Moves an item up.
- */
-function handleMoveUp(index: number): void {
-    if (index === 0) {
-        return;
-    }
-
-    const next = cloneItems(items.value);
-    const [item] = next.splice(index, 1);
-    next.splice(index - 1, 0, item);
-    updateItems(next);
-}
-
-/**
- * Moves an item down.
- */
-function handleMoveDown(index: number): void {
-    if (index >= items.value.length - 1) {
-        return;
-    }
-
-    const next = cloneItems(items.value);
-    const [item] = next.splice(index, 1);
-    next.splice(index + 1, 0, item);
-    updateItems(next);
 }
 
 /**
@@ -238,7 +156,7 @@ function handleReplaceImage(index: number): void {
                             t('bricks.properties.gallery.titleLabel', { number: index + 1 })
                         "
                         size="small"
-                        @update:value="handleTitleChange(index, $event as string)"
+                        @update:value="updateField(index, 'title', $event as string)"
                     />
 
                     <BricksInput
@@ -249,7 +167,7 @@ function handleReplaceImage(index: number): void {
                             t('bricks.properties.gallery.captionLabel', { number: index + 1 })
                         "
                         size="small"
-                        @update:value="handleCaptionChange(index, $event as string)"
+                        @update:value="updateField(index, 'caption', $event as string)"
                     />
 
                     <BricksTagsEditor
@@ -259,7 +177,7 @@ function handleReplaceImage(index: number): void {
                         :aria-label="
                             t('bricks.properties.gallery.tagsLabel', { number: index + 1 })
                         "
-                        @update:model-value="handleTagsChange(index, $event)"
+                        @update:model-value="updateField(index, 'tags', $event)"
                     />
 
                     <div :class="$style.actions">
@@ -276,7 +194,7 @@ function handleReplaceImage(index: number): void {
                             variant="ghost"
                             size="lg"
                             :muted="index === 0"
-                            @click="handleMoveUp(index)"
+                            @click="moveItem(index, -1)"
                         />
                         <BricksIconButton
                             icon="ta:outline-arrow-down"
@@ -291,14 +209,14 @@ function handleReplaceImage(index: number): void {
                             variant="ghost"
                             size="lg"
                             :muted="index === items.length - 1"
-                            @click="handleMoveDown(index)"
+                            @click="moveItem(index, 1)"
                         />
                         <BricksIconButton
                             icon="ta:outline-trash"
                             :label="t('bricks.properties.gallery.remove', { number: index + 1 })"
                             variant="ghost"
                             size="lg"
-                            @click="handleRemoveItem(index)"
+                            @click="removeItem(index)"
                         />
                     </div>
                 </div>

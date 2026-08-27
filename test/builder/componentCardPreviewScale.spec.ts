@@ -21,7 +21,7 @@ import { defineComponent, h, nextTick, type Component } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 
 // Types
-import type { IComponentCardPreview } from '../../src/runtime/modules/builder/shell/sidebar/components/types';
+import type { IComponentCardPreview } from '../../src/runtime/modules/builder/shell/sidebar/types/components';
 import type { IComponentLibraryItem } from '../../src/runtime/modules/common/types/brick';
 // #endregion
 

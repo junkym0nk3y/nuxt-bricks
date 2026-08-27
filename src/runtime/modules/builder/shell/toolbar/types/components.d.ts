@@ -45,6 +45,23 @@ export interface IToolbarEmits {
     logout: [];
 }
 
+export interface IToolbarVerticalNavProps {
+    isLibraryActive?: boolean;
+    isSchemaActive?: boolean;
+    isPublishSettingsActive?: boolean;
+    isPublishSettingsComplete?: boolean;
+    isDarkMode?: boolean;
+}
+
+export interface IToolbarVerticalNavEmits {
+    toggleLibrary: [];
+    toggleSchema: [];
+    openPublishSettings: [];
+    openDocs: [];
+    toggleDarkMode: [];
+    toggleLocale: [];
+}
+
 /**
  * Props of the page selector in the toolbar title.
  */

@@ -20,6 +20,7 @@
 // Types
 import type { TPublishFormErrors } from '../../../publish/types/dashboard';
 import type { TBricksPageDeviceSet } from '../../../../common/types/devices';
+import type { ISidebarPublishViewEmits } from '../types/components';
 
 // Vue
 import { computed, ref, watch } from 'vue';
@@ -56,10 +57,7 @@ import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishS
 // #endregion
 
 // #region Emits
-const emit = defineEmits<{
-    close: [];
-    openMediaGallery: [];
-}>();
+const emit = defineEmits<ISidebarPublishViewEmits>();
 // #endregion
 
 // #region Data

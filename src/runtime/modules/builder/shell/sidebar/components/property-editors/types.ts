@@ -1,5 +1,6 @@
 import type { IPropertyDefinition, TBrickPropValue } from '../../../../../common/types/brick';
 import type { IGalleryItem } from '../../../../../common/types/content';
+import type { IAccordionItem } from '../../../../../layouts-blocks/types/blockProps';
 import type { IBrickGalleryFieldsConfig } from '../../../../../common/types/index';
 
 interface ISelectOption {
@@ -111,6 +112,26 @@ export interface IPropertyImageGalleryEditorEmits {
             insertIndex?: number;
         },
     ];
+}
+
+export interface IPropertyMediaPickerProps {
+    modelValue?: string;
+    label?: string;
+    type?: 'image' | 'video';
+}
+
+export interface IPropertyMediaPickerEmits {
+    'update:modelValue': [value: string];
+    openGallery: [];
+}
+
+export interface IPropertyAccordionItemsEditorProps {
+    modelValue?: IAccordionItem[];
+    label?: string;
+}
+
+export interface IPropertyAccordionItemsEditorEmits {
+    'update:modelValue': [value: IAccordionItem[]];
 }
 
 /** Kind of a token of the JSON highlight layer; `plain` is text the lexer did not recognize */

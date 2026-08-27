@@ -27,28 +27,22 @@
 `src/*.ts` и композаблы рантайм-доменов, а SFC и `utils/` — нет (об этом сказано в
 самом правиле).
 
-## 1. Интерфейсы пропсов и эмитов объявлены внутри девяти SFC
+## 1. Интерфейсы пропсов и эмитов объявлены внутри четырёх SFC
 
-**Файлы:** `builder/shell/toolbar/components/BuilderShellToolbarVerticalNav.vue:31,39`,
-`sidebar/components/BuilderShellSidebarPropertiesView.vue:33`,
-`sidebar/components/TheBuilderShellSidebarPropertiesPanel.vue:18`,
-`sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:22,36`,
-`sidebar/components/BuilderShellSidebarSchemaTreeView.vue:30`,
-`sidebar/components/BuilderShellSidebarPublishView.vue:60`,
-`property-editors/BuilderShellSidebarPropertyMediaPicker.vue:19,33`,
-`property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:16,21`,
-`property-editors/BuilderShellSidebarPropertySpacingEditorSide.vue:14`
+**Файлы:** `builder/media/components/BuilderMediaImageResolverItem.vue:22,28`,
+`builder/media/components/TheBuilderMediaImageResolverModal.vue:29,34`,
+`render/components/RendererCloseButton.vue:23,27`,
+`text-editor/components/TheTextEditorModal.vue:33,39`
 
-В области такие файлы типов есть и наполовину используются (`sidebar/types/`,
-`sidebar/components/types.d.ts`, `toolbar/components/types.d.ts`).
+Что осталось от прохода по сайдбару: там контракты уже переехали в файлы типов, а
+эти четыре компонента лежат в других доменах и снимаются каждый в партии своего.
+Файлы типов в их доменах есть — `media/types/`, `render/types/`,
+`text-editor/components/types.d.ts`.
 
-Отдельно: `IEmits` в `BuilderShellSidebarPropertySpacingEditorSide.vue` нарушает и
-правило нейминга — имя не называет сущность.
-
-**Мимо счёта нашлись ещё места того же класса**, не входившие в исходный список:
-резолвер изображений медиатеки, `RendererCloseButton`, `TheTextEditorModal`,
-`BuilderShellSidebarPropertyEditors`. Их снимать попутно, в партии своего домена:
-без этого усилить сторожа честно не выйдет.
+**Пока эти четыре стоят, сторожа не усилить.** `test/module/typeLocations.spec.ts`
+проверяет `src/*.ts` и композаблы рантайм-доменов; расширить его на SFC можно
+только тогда, когда нарушений не останется — иначе набор красный либо обзаводится
+baseline-списком исключений, который потом чинят руками.
 
 ## 2. Инлайновые формы `defineProps`/`defineEmits` — домен публикации единственный такой
 
@@ -100,23 +94,7 @@
 
 `.claude/rules/vue-best-practices.md` требует типизировать возвращаемые значения.
 
-## 5. Четыре композабла сайдбара без явного типа возврата
-
-**Файлы:** `builder/shell/sidebar/composables/usePublishValidationSchema.ts:24`,
-`useSidebarMediaSelection.ts:25`, `useSidebarResponsiveScope.ts:22`,
-`useSidebarPropertiesPanel.ts:42`
-
-Половина композаблов области это делает через `types/composables.d.ts`
-(`IUseSpacingEditorReturn`, `IUseSidebarPublishFormReturn`, `IComponentCardDrag`,
-`IUsePropertyVariantsReturn`). У этих четырёх тип выводится, и
-`useSidebarPropertiesPanel` возвращает при этом двадцать четыре ключа, включая сам
-стор.
-
-**`ReturnType<typeof …>` тут не годится:** контракт останется спрятан в
-реализации, а у `useSidebarPropertiesPanel` с его двадцатью четырьмя ключами именно
-он и является предметом пункта. Поля перечисляются явно.
-
-## 6. У двух композаблов домена шаблонов нет объявленного типа возврата
+## 5. У двух композаблов домена шаблонов нет объявленного типа возврата
 
 **Файлы:** `builder/templates/composables/useTemplateSaveForm.ts:34`,
 `useTemplateRenameForm.ts:34`
@@ -131,20 +109,7 @@
 [П4](p4-duplication.md): общий тип возврата — то место, где дубль виден раньше
 всего.
 
-## 7. `IPublishFormInitialValues` не описывает два поля, которые composable отдаёт
-
-**Файлы:** `builder/shell/sidebar/types/composables.d.ts:67-72`,
-`sidebar/composables/useSidebarPublishForm.ts:40-47`
-
-Тип перечисляет четыре поля (`pagename`, `title`, `description`, `keywords`), а
-`initialValues` возвращает шесть — плюс `urlPrefix` и `subdomain`. Комментарий прямо
-над кодом объясняет, что без routing-полей yup видел бы `urlPrefix` пустым и
-проверка адреса не работала бы, то есть эти два поля не случайны.
-
-Присваивание проходит по ковариантности `ComputedRef`, так что компилятор молчит, а
-читатель типа получает неполный контракт.
-
-## 8. `IUsePublishTemplateSurfaceOptions` — чужой регион и единственное число
+## 6. `IUsePublishTemplateSurfaceOptions` — чужой регион и единственное число
 
 **Файл:** `builder/publish/types/composables.d.ts:383-388`
 
@@ -158,7 +123,7 @@
 
 # Стили
 
-## 9. Корневой CSS-класс не совпадает с именем компонента
+## 7. Корневой CSS-класс не совпадает с именем компонента
 
 **Файлы:** `src/runtime/modules/ui/base/button/BricksButton.vue` (`.button`),
 `base/tooltip/BricksTooltipHint.vue` (`.tooltipHint`)
@@ -167,7 +132,7 @@
 (PascalCase). Оба файла его нарушают. `BricksSearchInput` под правило не попадает —
 у него корень чужой компонент, а такие wrapper'ы правило прямо исключает.
 
-## 10. Форс светлой темы вне списка легализованных исключений
+## 8. Форс светлой темы вне списка легализованных исключений
 
 **Файлы:** `builder/canvas/editing/components/BuilderCanvasInlineEditingOverlay.vue:435-447`
 (`.fallbackEditorWrapper`),
@@ -208,7 +173,7 @@
   причиной, заодно убрав дублирующее объявление фона и задав явный тёмный цвет
   текста вместо `color: initial`.
 
-## 11. Два мелких отступления в стилях сайдбара
+## 9. Два мелких отступления в стилях сайдбара
 
 **Файлы:** `builder/shell/sidebar/components/BuilderShellSidebarNavigationEditor.vue:182`,
 `sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:208`
@@ -222,7 +187,7 @@
 (`assets/scss/shared/_variables.scss:50,176,233`), и запасное значение только
 маскирует, какой токен на самом деле в силе.
 
-## 12. Стили документации билдера лежат в глобальной таблице `default.scss`
+## 10. Стили документации билдера лежат в глобальной таблице `default.scss`
 
 **Файл:** `src/runtime/assets/scss/default.scss:214-336`
 
@@ -239,7 +204,7 @@
 
 # Размер файлов
 
-## 13. Два файла редактора у потолка `oxlint max-lines`, один его уже прошёл
+## 11. Два файла редактора у потолка `oxlint max-lines`, один его уже прошёл
 
 **Файлы:** `builder/app/composables/useBuilderSession.ts`,
 `builder/app/pages/[pagename].vue`
@@ -266,7 +231,7 @@ root.
 
 # Магические числа и нейминг
 
-## 14. `previewPagename` держит адрес, а не имя
+## 12. `previewPagename` держит адрес, а не имя
 
 **Файл:** `builder/app/composables/useBuilderPage.ts` (`handlePreview`)
 
@@ -283,14 +248,14 @@ House-style репозитория — американская орфограф
 Комментарии выправлены; ниже осталось то, что является кодом, а не комментарием, и
 потому правится отдельно.
 
-## 15. Идентификатор `normalised` в `ui`
+## 13. Идентификатор `normalised` в `ui`
 
 **Файл:** `src/runtime/modules/ui/inputs/composables/useBricksInput.ts:245-248`
 
 Локальная переменная `normalised` стоит при функции `normalizeIncomingValue`
 рядом. Переименование — правка кода.
 
-## 16. `cancelled` против `canceled` в сообщении ошибки
+## 14. `cancelled` против `canceled` в сообщении ошибки
 
 **Файл:** `persistence/server/utils/storageErrors.ts:148`
 
@@ -303,7 +268,7 @@ House-style репозитория — американская орфограф
 Сообщение задаётся через `super()` в классе-наследнике `Error` — это строковый
 литерал, а не комментарий.
 
-## 17. `towards` против `toward`
+## 15. `towards` против `toward`
 
 **Файл:** `src/runtime/modules/ui/base/badge/types.d.ts`
 
@@ -315,7 +280,7 @@ House-style — американское `toward` (пять вхождений �
 
 # Границы доменов
 
-## 18. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
+## 16. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
 
 **Файл:** `common/constants/templates.ts:27-32`
 (`TEMPLATE_PICKER_SEARCH_THRESHOLD`), потребитель —
@@ -334,7 +299,7 @@ House-style — американское `toward` (пять вхождений �
 шаблона — с того, на котором список начинает прокручиваться. Остаётся только место
 объявления константы.
 
-## 19. Стили документации в глобальной таблице
+## 17. Стили документации в глобальной таблице
 
 См. пункт «Стили документации билдера лежат в глобальной таблице `default.scss`»
 выше — это одновременно и нарушение границ домена: билдерский класс живёт в таблице,
@@ -342,7 +307,7 @@ House-style — американское `toward` (пять вхождений �
 
 ---
 
-## 20. Статья документации уходит в `v-html` мимо `sanitize`
+## 18. Статья документации уходит в `v-html` мимо `sanitize`
 
 **Файлы:** `builder/documentation/components/TheBuilderDocumentationModal.vue:126`,
 источник HTML — `builder/documentation/composables/useMarkdownRenderer.ts:35`

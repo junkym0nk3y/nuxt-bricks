@@ -22,7 +22,7 @@
 
 // #region Imports
 // Types
-import type { ISidebarComponentCardProps } from './types';
+import type { ISidebarComponentCardProps } from '../types/components';
 
 // Vue
 import { computed } from 'vue';

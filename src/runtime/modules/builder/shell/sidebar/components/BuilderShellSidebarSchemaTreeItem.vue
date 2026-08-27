@@ -3,6 +3,7 @@
 // Types
 import type { IBricksComponent } from '../../../../common/types/brick';
 import type { ISchemaTreeMoveRequest } from '../types/composables';
+import type { ISidebarSchemaTreeItemProps, ISidebarSchemaTreeItemEmits } from '../types/components';
 
 // Vue
 import { computed, toRef } from 'vue';
@@ -19,13 +20,6 @@ import { useSidebarSchemaTreeDrop } from '../composables/useSidebarSchemaTreeDro
 import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
 // #endregion
 
-// #region Interfaces
-interface ISidebarSchemaTreeItemProps {
-    component: IBricksComponent;
-    depth?: number;
-}
-// #endregion
-
 // #region Props
 const props = withDefaults(defineProps<ISidebarSchemaTreeItemProps>(), {
     depth: 0,
@@ -33,10 +27,7 @@ const props = withDefaults(defineProps<ISidebarSchemaTreeItemProps>(), {
 // #endregion
 
 // #region Emits
-const emit = defineEmits<{
-    select: [id: string];
-    move: [request: ISchemaTreeMoveRequest];
-}>();
+const emit = defineEmits<ISidebarSchemaTreeItemEmits>();
 // #endregion
 
 // #region Data

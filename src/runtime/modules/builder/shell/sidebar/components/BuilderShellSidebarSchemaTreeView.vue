@@ -3,6 +3,7 @@
 // Types
 import type { IBricksComponent } from '../../../../common/types/brick';
 import type { ISchemaTreeMoveRequest } from '../types/composables';
+import type { ISidebarSchemaTreeViewEmits } from '../types/components';
 
 // Vue
 import { computed, nextTick } from 'vue';
@@ -30,9 +31,7 @@ import BricksEmptyState from '../../../../ui/feedback/BricksEmptyState.vue';
 // #endregion
 
 // #region Emits
-const emit = defineEmits<{
-    close: [];
-}>();
+const emit = defineEmits<ISidebarSchemaTreeViewEmits>();
 // #endregion
 
 // #region Data

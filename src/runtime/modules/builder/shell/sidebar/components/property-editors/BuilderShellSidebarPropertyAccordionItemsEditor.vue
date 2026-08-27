@@ -2,25 +2,21 @@
 // #region Imports
 // Types
 import type { IAccordionItem } from '../../../../../layouts-blocks/types/blockProps';
+import type {
+    IPropertyAccordionItemsEditorProps,
+    IPropertyAccordionItemsEditorEmits,
+} from './types';
 
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { useEditableItemsList } from '../../composables/useEditableItemsList';
+
 // Components
 import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
 import TextEditorArea from '../../../../../text-editor/components/TextEditorArea.vue';
-// #endregion
-
-// #region Interfaces
-interface IPropertyAccordionItemsEditorProps {
-    modelValue?: IAccordionItem[];
-    label?: string;
-}
-
-interface IPropertyAccordionItemsEditorEmits {
-    'update:modelValue': [value: IAccordionItem[]];
-}
 // #endregion
 
 // #region Props
@@ -45,19 +41,10 @@ const displayLabel = computed<string>(() => props.label || t('bricks.properties.
 // #endregion
 
 // #region Methods
-/**
- * Clones the array of accordion items.
- */
-function cloneItems(source: IAccordionItem[]): IAccordionItem[] {
-    return source.map((item) => ({ ...item }));
-}
-
-/**
- * Emits the updated array of items.
- */
-function updateItems(value: IAccordionItem[]): void {
-    emit('update:modelValue', value);
-}
+const { updateItems, removeItem, moveItem, updateField } = useEditableItemsList<IAccordionItem>({
+    items,
+    onUpdate: (value) => emit('update:modelValue', value),
+});
 
 /**
  * Adds a new item to the end of the list, copying the data of the last one when the
@@ -75,77 +62,6 @@ function handleAddItem(): void {
           };
 
     updateItems([...items.value, newItem]);
-}
-
-/**
- * Removes the item at the index.
- *
- * @param index - Index of the item to remove.
- */
-function handleRemoveItem(index: number): void {
-    const next = cloneItems(items.value);
-    next.splice(index, 1);
-    updateItems(next);
-}
-
-/**
- * Updates the title field of an item.
- *
- * @param index - Index of the item.
- * @param value - New title value.
- */
-function handleTitleChange(index: number, value: string): void {
-    const next = cloneItems(items.value);
-    if (!next[index]) {
-        return;
-    }
-    next[index] = { ...next[index], title: value };
-    updateItems(next);
-}
-
-/**
- * Updates the content field of an item.
- *
- * @param index - Index of the item.
- * @param value - New content value (HTML).
- */
-function handleContentChange(index: number, value: string): void {
-    const next = cloneItems(items.value);
-    if (!next[index]) {
-        return;
-    }
-    next[index] = { ...next[index], content: value };
-    updateItems(next);
-}
-
-/**
- * Moves the item one position up.
- *
- * @param index - Index of the item.
- */
-function handleMoveUp(index: number): void {
-    if (index === 0) {
-        return;
-    }
-    const next = cloneItems(items.value);
-    const [item] = next.splice(index, 1);
-    next.splice(index - 1, 0, item);
-    updateItems(next);
-}
-
-/**
- * Moves the item one position down.
- *
- * @param index - Index of the item.
- */
-function handleMoveDown(index: number): void {
-    if (index >= items.value.length - 1) {
-        return;
-    }
-    const next = cloneItems(items.value);
-    const [item] = next.splice(index, 1);
-    next.splice(index + 1, 0, item);
-    updateItems(next);
 }
 // #endregion
 </script>
@@ -173,7 +89,7 @@ function handleMoveDown(index: number): void {
                                 :value="item.title"
                                 :placeholder="t('bricks.properties.accordion.titlePlaceholder')"
                                 :min-height="60"
-                                @update:value="handleTitleChange(index, $event)"
+                                @update:value="updateField(index, 'title', $event)"
                             />
                         </div>
 
@@ -186,7 +102,7 @@ function handleMoveDown(index: number): void {
                                 :value="item.content"
                                 :placeholder="t('bricks.properties.accordion.contentPlaceholder')"
                                 :min-height="100"
-                                @update:value="handleContentChange(index, $event)"
+                                @update:value="updateField(index, 'content', $event)"
                             />
                         </div>
 
@@ -195,7 +111,7 @@ function handleMoveDown(index: number): void {
                                 size="sm"
                                 variant="ghost"
                                 :disabled="index === 0"
-                                @click="handleMoveUp(index)"
+                                @click="moveItem(index, -1)"
                             >
                                 <BricksIcon icon="ta:outline-arrow-up" />
                             </BricksButton>
@@ -203,15 +119,11 @@ function handleMoveDown(index: number): void {
                                 size="sm"
                                 variant="ghost"
                                 :disabled="index === items.length - 1"
-                                @click="handleMoveDown(index)"
+                                @click="moveItem(index, 1)"
                             >
                                 <BricksIcon icon="ta:outline-arrow-down" />
                             </BricksButton>
-                            <BricksButton
-                                size="sm"
-                                variant="ghost"
-                                @click="handleRemoveItem(index)"
-                            >
+                            <BricksButton size="sm" variant="ghost" @click="removeItem(index)">
                                 <BricksIcon icon="ta:outline-trash" />
                             </BricksButton>
                         </div>

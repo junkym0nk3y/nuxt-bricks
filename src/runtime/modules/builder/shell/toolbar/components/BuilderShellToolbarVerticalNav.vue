@@ -15,6 +15,9 @@
  */
 
 // #region Imports
+// Types
+import type { IToolbarVerticalNavProps, IToolbarVerticalNavEmits } from '../types/components';
+
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -25,25 +28,6 @@ import { useBuilderPermissions } from '../../../core/composables/useBuilderPermi
 // Components
 import BricksTooltip from '../../../../ui/base/tooltip/BricksTooltip.vue';
 import BricksTooltipHint from '../../../../ui/base/tooltip/BricksTooltipHint.vue';
-// #endregion
-
-// #region Interfaces
-interface IToolbarVerticalNavProps {
-    isLibraryActive?: boolean;
-    isSchemaActive?: boolean;
-    isPublishSettingsActive?: boolean;
-    isPublishSettingsComplete?: boolean;
-    isDarkMode?: boolean;
-}
-
-interface IToolbarVerticalNavEmits {
-    toggleLibrary: [];
-    toggleSchema: [];
-    openPublishSettings: [];
-    openDocs: [];
-    toggleDarkMode: [];
-    toggleLocale: [];
-}
 // #endregion
 
 // #region Props

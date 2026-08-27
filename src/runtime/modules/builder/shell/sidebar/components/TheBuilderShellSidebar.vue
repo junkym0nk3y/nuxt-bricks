@@ -3,7 +3,7 @@
 // Types
 import type { TSidebarView } from '../../../../common/types/brick';
 import type { IMediaItem, TMediaGalleryContext } from '../../../../common/types/media';
-import type { ISidebarProps, ISidebarEmits } from './types';
+import type { ISidebarProps, ISidebarEmits } from '../types/components';
 
 // Vue
 import { computed, ref, watch } from 'vue';

@@ -3,6 +3,7 @@
 // Types
 import type { TBricksDeviceKey } from '../../../../common/types/brick';
 import type { IBricksTabItem } from '../../../../ui/base/tabs/types.d.ts';
+import type { ISidebarPropertiesViewEmits } from '../types/components';
 
 // Vue
 import { computed } from 'vue';
@@ -30,7 +31,7 @@ import { resolveDeviceIcon } from '../../../../common/utils/bricks/devices';
 // #endregion
 
 // #region Emits
-const emit = defineEmits<{ close: []; openMediaGallery: [] }>();
+const emit = defineEmits<ISidebarPropertiesViewEmits>();
 // #endregion
 
 // #region Data
@@ -62,7 +63,6 @@ const deviceScopeItems = computed<IBricksTabItem[]>(() => {
 });
 
 const {
-    store,
     componentEditors,
     componentVariants,
     selectedComponentName,
@@ -87,6 +87,8 @@ const {
     handleMediaSelect,
     handleSetLayoutDeviceScope,
     handleResetLayoutDeviceScopeOverrides,
+    handleDeleteSelectedComponent,
+    selectedComponentId,
 } = useSidebarPropertiesPanel({
     onOpenMediaGallery: () => emit('openMediaGallery'),
 });
@@ -114,16 +116,6 @@ function handleSelectDeviceScope(value: string): void {
     handleSetLayoutDeviceScope(device.key);
 }
 
-/**
- * Deletes the selected component.
- */
-function handleDelete(): void {
-    const selected = store.selectedComponentData;
-    if (selected) {
-        store.removeComponent(selected.id);
-    }
-}
-
 // #region Expose
 /**
  * Exposed for the parent component to call when media is picked in the gallery.
@@ -139,7 +131,7 @@ defineExpose({
         <div :class="$style.header">
             <div :class="$style.headerInfo">
                 <h2 :class="$style.title">
-                    {{ store?.selectedComponentData ? selectedComponentName : '' }}
+                    {{ selectedComponentName }}
                 </h2>
 
                 <BricksTooltip v-if="selectedComponentDescription">
@@ -185,7 +177,7 @@ defineExpose({
         <div :class="[$style.content, 'bricks-scrollbox']">
             <div v-if="hasPropertiesSection" :class="$style.section">
                 <BuilderShellSidebarPropertyEditors
-                    :key="store.selectedComponent?.id ?? ''"
+                    :key="selectedComponentId"
                     :device-scope="layoutDeviceScope"
                     :component-editors="componentEditors"
                     :component-variants="componentVariants"
@@ -205,7 +197,12 @@ defineExpose({
             </div>
 
             <div :class="$style.actions">
-                <BricksButton variant="danger" size="md" block @click="handleDelete">
+                <BricksButton
+                    variant="danger"
+                    size="md"
+                    block
+                    @click="handleDeleteSelectedComponent"
+                >
                     <BricksIcon :class="$style.buttonIcon" icon="ta:outline-circle-x" />
                     <span>{{ t('bricks.common.delete') }}</span>
                 </BricksButton>

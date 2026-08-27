@@ -2,6 +2,7 @@
 // #region Imports
 // Types
 import type { IMediaItem } from '../../../../common/types/media';
+import type { ISidebarPropertiesPanelEmits } from '../types/components';
 
 // Vue
 import { computed, ref } from 'vue';
@@ -15,9 +16,7 @@ import BuilderShellSidebarPropertiesView from './BuilderShellSidebarPropertiesVi
 // #endregion
 
 // #region Emits
-const emit = defineEmits<{
-    openMediaGallery: [];
-}>();
+const emit = defineEmits<ISidebarPropertiesPanelEmits>();
 // #endregion
 
 // #region Data

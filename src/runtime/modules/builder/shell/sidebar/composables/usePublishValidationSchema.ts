@@ -1,3 +1,6 @@
+// Types
+import type { IUsePublishValidationSchemaReturn } from '../types/composables';
+
 // Utils
 import { createPublishValidationSchema } from '../../../publish/utils/validationSchema';
 
@@ -21,7 +24,7 @@ import { usePublishStore } from '../../../publish/stores/publish';
  * another page, and a snapshot saying "a new page is being edited" would make an
  * existing page treat its own pagename as taken.
  */
-export function usePublishValidationSchema() {
+export function usePublishValidationSchema(): IUsePublishValidationSchemaReturn {
     const publishStore = usePublishStore();
     const { t } = useI18n();
     const { isPageAddressFree, isEditorAddressFree } = useBricksPageAddress();

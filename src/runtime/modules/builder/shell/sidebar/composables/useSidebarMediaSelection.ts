@@ -2,11 +2,11 @@
 import type { IMediaItem } from '../../../../common/types/media';
 import type { IGalleryItem } from '../../../../common/types/content';
 import type { IPropertyDefinition } from '../../../../common/types/brick';
+import type { TInlineGalleryPayload, TMediaContext } from '../types/sidebarProperties';
 import type {
-    TInlineGalleryPayload,
-    TMediaContext,
     IUseSidebarMediaSelectionOptions,
-} from '../types/sidebarProperties';
+    IUseSidebarMediaSelectionReturn,
+} from '../types/composables';
 
 // Vue
 import { ref } from 'vue';
@@ -22,7 +22,9 @@ import { readOwnKey } from '../../../../common/utils/safeRecord';
  * (an ordinary property or an image gallery) and the application of the picked item to
  * the property it belongs to.
  */
-export function useSidebarMediaSelection(options: IUseSidebarMediaSelectionOptions) {
+export function useSidebarMediaSelection(
+    options: IUseSidebarMediaSelectionOptions
+): IUseSidebarMediaSelectionReturn {
     const store = useComponentsStore();
     const currentMediaContext = ref<TMediaContext | null>(null);
 

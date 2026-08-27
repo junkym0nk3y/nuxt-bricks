@@ -35,7 +35,7 @@ import type {
     IToolbarPageSelectorProps,
     IToolbarPageSelectorEmits,
     IToolbarPageSelectorEmptyState,
-} from './types';
+} from '../types/components';
 
 // Utils
 import { toPageAddress } from '../../../../common/utils/bricks/pageAddress';

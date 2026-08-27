@@ -2,6 +2,7 @@
 // #region Imports
 // Types
 import type {
+    ISidebarPropertyEditorItem,
     ISidebarPropertyEditorsProps,
     TInlineGalleryPayload,
 } from '../types/sidebarProperties';
@@ -96,24 +97,19 @@ const orderedEditorItems = computed(() => {
     return [...ordered, ...rest];
 });
 
-type TEditorItem = {
-    type: TPropertyEditorType;
-    componentData: (typeof editorGroups.value)[number]['items'][number];
-};
-
 /**
  * Splits the properties into the ungrouped ones and the ones grouped by
  * `property.group`
  */
 const groupedEditorItems = computed(() => {
-    const items: TEditorItem[] = orderedEditorItems.value.length
+    const items: ISidebarPropertyEditorItem[] = orderedEditorItems.value.length
         ? orderedEditorItems.value
         : editorGroups.value.flatMap((group) =>
               group.items.map((componentData) => ({ type: group.type, componentData }))
           );
 
-    const ungrouped: TEditorItem[] = [];
-    const groups = new Map<string, TEditorItem[]>();
+    const ungrouped: ISidebarPropertyEditorItem[] = [];
+    const groups = new Map<string, ISidebarPropertyEditorItem[]>();
 
     for (const item of items) {
         const groupName = item.componentData.property.group;
@@ -196,7 +192,7 @@ function resolveGroupLabel(groupName: string): string {
  * Whether the group consists entirely of numeric spacing properties — such a group is
  * rendered by the composite box-model editor.
  */
-function isSpacingGroup(items: TEditorItem[]): boolean {
+function isSpacingGroup(items: ISidebarPropertyEditorItem[]): boolean {
     return (
         items.length > 0 &&
         items.every(
@@ -213,7 +209,7 @@ function isSpacingGroup(items: TEditorItem[]): boolean {
  * @param propertyName - Name of the property.
  * @returns Item of the flat list, or undefined.
  */
-function findNumericUngroupedItem(propertyName: string): TEditorItem | undefined {
+function findNumericUngroupedItem(propertyName: string): ISidebarPropertyEditorItem | undefined {
     return groupedEditorItems.value.ungrouped.find(
         (item) =>
             item.type === 'input' &&
@@ -401,24 +397,13 @@ watch(
                         :class="$style.groupToggle"
                         @click="toggleGroup(groupName)"
                     >
-                        <svg
+                        <BricksIcon
+                            icon="ta:outline-chevron-down"
                             :class="[
                                 $style.groupChevron,
                                 isGroupOpen(groupName) && $style.groupChevronOpen,
                             ]"
-                            width="12"
-                            height="12"
-                            viewBox="0 0 12 12"
-                            fill="none"
-                        >
-                            <path
-                                d="M3 4.5L6 7.5L9 4.5"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                        </svg>
+                        />
                         <span>{{ resolveGroupLabel(groupName) }}</span>
                     </button>
 
@@ -526,8 +511,8 @@ watch(
 }
 
 .groupChevron {
-    width: 1.2rem;
-    height: 1.2rem;
+    flex-shrink: 0;
+    font-size: 1.2rem;
     transform: rotate(-90deg);
     transition: transform var(--bricks-default-transition);
 }

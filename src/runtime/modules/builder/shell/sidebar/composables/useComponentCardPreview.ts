@@ -6,7 +6,7 @@
 
 // Types
 import { BASE_DEVICE_KEY } from '../../../../common/constants/devices';
-import type { IComponentCardPreview, ISidebarComponentCardProps } from '../components/types';
+import type { IComponentCardPreview, ISidebarComponentCardProps } from '../types/components';
 import type { IBrickExportModule } from '../../../../common/types/index';
 import type { IDragVisualSize, IBricksComponent } from '../../../../common/types/brick';
 import type { IBlockCanvasContext } from '../../../../layouts-blocks/types/registry';

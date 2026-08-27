@@ -14,7 +14,7 @@
 
 // #region Imports
 // Types
-import type { IToolbarProps, IToolbarEmits } from './types';
+import type { IToolbarProps, IToolbarEmits } from '../types/components';
 import type { IBrickUiCommonProp } from '../../../../ui/types/common';
 import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
 

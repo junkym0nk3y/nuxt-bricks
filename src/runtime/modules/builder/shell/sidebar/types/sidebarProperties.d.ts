@@ -37,15 +37,6 @@ export type TMediaContext =
           property: IPropertyDefinition;
       } & TInlineGalleryPayload);
 
-export interface IUseSidebarPropertiesPanelOptions {
-    onOpenMediaGallery: () => void;
-}
-
-export interface IUseSidebarMediaSelectionOptions {
-    /** Opens the media gallery modal (UI outside this domain) */
-    onOpenMediaGallery: () => void;
-}
-
 /** Shared property handlers passed down into the editors of the panel */
 export interface ISidebarPropertyHandlers {
     handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
@@ -79,6 +70,15 @@ export interface ISidebarPropertyEditorsProps extends ISidebarPropertyHandlers {
     propertyOrder?: readonly TPropertyEditorType[];
 }
 
+/**
+ * One row of the properties panel: the kind of editor it is drawn with and the variant
+ * that carries the value and the definition behind it.
+ */
+export interface ISidebarPropertyEditorItem {
+    type: TPropertyEditorType;
+    componentData: IComponentVariant;
+}
+
 export interface ISidebarPropertyEditorRowProps extends ISidebarPropertyHandlers {
     type: TPropertyEditorType;
     variant: IComponentVariant;
@@ -96,6 +96,14 @@ export interface ISidebarPropertySpacingEditorProps {
 
 export interface ISidebarPropertyGridSizeEditorProps extends IGridSizeVariants {
     handleChangeValues: (property: IPropertyDefinition, value: TBrickPropValue) => void;
+}
+
+export interface ISidebarPropertySpacingEditorSideEmits {
+    step: [direction: 1 | -1];
+    'start-edit': [];
+    'commit-edit': [];
+    'cancel-edit': [];
+    'update:editingValue': [value: string];
 }
 
 export interface ISidebarPropertySpacingEditorSideProps {

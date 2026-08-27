@@ -7,6 +7,9 @@
  */
 
 // #region Imports
+// Types
+import type { IPropertyMediaPickerProps, IPropertyMediaPickerEmits } from './types';
+
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -16,12 +19,6 @@ import BricksButton from '../../../../../ui/base/button/BricksButton.vue';
 // #endregion
 
 // #region Props
-interface IPropertyMediaPickerProps {
-    modelValue?: string;
-    label?: string;
-    type?: 'image' | 'video';
-}
-
 // The caption defaults to empty rather than to a word: `withDefaults` is compiled
 // into the props options, where the translator does not exist yet — so the fallback
 // is resolved by a computed below
@@ -33,11 +30,6 @@ const props = withDefaults(defineProps<IPropertyMediaPickerProps>(), {
 // #endregion
 
 // #region Emits
-interface IPropertyMediaPickerEmits {
-    'update:modelValue': [value: string];
-    openGallery: [];
-}
-
 const emit = defineEmits<IPropertyMediaPickerEmits>();
 // #endregion
 

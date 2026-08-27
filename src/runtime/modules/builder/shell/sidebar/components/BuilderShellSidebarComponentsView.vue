@@ -18,7 +18,7 @@
 // #region Imports
 // Types
 import type { IComponentLibraryItem } from '../../../../common/types/brick';
-import type { ISidebarComponentsViewProps, ISidebarComponentsViewEmits } from './types';
+import type { ISidebarComponentsViewProps, ISidebarComponentsViewEmits } from '../types/components';
 
 // Vue
 import { computed, ref } from 'vue';

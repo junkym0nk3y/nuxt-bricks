@@ -14,25 +14,7 @@
 
 # Дубли кода
 
-## 1. Редакторы аккордеона и галереи повторяют один и тот же список операций
-
-**Файлы:** `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:49-146`,
-`property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue:69-186`
-
-`cloneItems`, `updateItems`, `handleRemoveItem`, `handleMoveUp`, `handleMoveDown` и
-`handleTitleChange` написаны в двух файлах посимвольно одинаково, с точностью до
-типа элемента; различаются только `handleAddItem` против `handleAddImage` и набор
-полей.
-
-**Кандидат:** composable «редактируемый список объектов» на дженерике.
-
-**Чего общий composable знать не должен:** формы конкретного элемента и UI. Ему
-принадлежат только clone/update/remove/move/updateField. Входной массив не
-мутировать — поедут стабильные ключи и фокус.
-
----
-
-## 2. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
+## 1. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
 
 **Файлы:** `builder/users/utils/userFormatting.ts:26-47`, владелец —
 `common/utils/bricks/dates.ts:1-34`
@@ -52,7 +34,7 @@
 
 ---
 
-## 3. Задержка поиска втроена по трём доменам, а рационал — у копий
+## 2. Задержка поиска втроена по трём доменам, а рационал — у копий
 
 **Файлы:** `builder/users/composables/useUsersList.ts:14-15`,
 `builder/templates/composables/useTemplatesList.ts:14-15`,
@@ -72,7 +54,7 @@
 
 ---
 
-## 4. Список ролей продублирован в двух компонентах
+## 3. Список ролей продублирован в двух компонентах
 
 **Файлы:** `builder/users/components/BuilderUsersRolePill.vue:64-69`,
 `builder/users/components/TheBuilderUsersCreateModal.vue:71-72`, владелец набора —
@@ -88,7 +70,7 @@
 
 ---
 
-## 5. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
+## 4. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryCategoryTabs.vue`,
 владелец вида — `ui/base/tabs/BricksTabBarItem.vue` (вариант `underline`, размер `sm`)
@@ -137,7 +119,7 @@
 
 ---
 
-## 6. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
+## 5. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
 
 **Файлы:** `plugins/builder/veeValidateSetup.ts`,
 `plugins/builder/textEditorToolbarSetup.ts`,
@@ -160,7 +142,7 @@
 
 ---
 
-## 7. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
+## 6. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
 
 **Файлы:** `builder/media/components/TheBuilderMediaGalleryModal.vue:104-195`,
 `components/TheBuilderMediaSection.vue:106-152`
@@ -179,7 +161,7 @@
 
 ---
 
-## 8. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
+## 7. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryMetaPanel.vue:88-131`,
 `components/BuilderMediaSectionDetailsPanel.vue:90-171`
@@ -198,7 +180,7 @@ slug».
 
 ---
 
-## 9. Нативный `<select>` вместо кит-компонента в резолвере изображений
+## 8. Нативный `<select>` вместо кит-компонента в резолвере изображений
 
 **Файлы:** `builder/media/components/BuilderMediaImageResolverItem.vue:95-103,177-181`,
 `components/TheBuilderMediaImageResolverModal.vue:114-123,199-203`
@@ -216,7 +198,7 @@ slug».
 
 ---
 
-## 10. Формы сохранения и переименования шаблона — копия друг друга
+## 9. Формы сохранения и переименования шаблона — копия друг друга
 
 **Файлы:** `builder/templates/composables/useTemplateSaveForm.ts` (171 строка),
 `useTemplateRenameForm.ts` (146 строк)
@@ -241,7 +223,7 @@ slug».
 
 ---
 
-## 11. Мета-строка шаблона собирается дважды
+## 10. Мета-строка шаблона собирается дважды
 
 **Файлы:** `builder/templates/components/BuilderTemplatesCard.vue:70-75`
 (`metaLine`), `BuilderTemplatesPickerList.vue:84-89` (`buildMetaLine`)
@@ -260,7 +242,7 @@ slug».
 
 ---
 
-## 12. Исход `window.open` проверяет одна функция из трёх
+## 11. Исход `window.open` проверяет одна функция из трёх
 
 **Файлы:** `builder/publish/composables/usePublishPreview.ts`
 (`previewCurrentPage` против `previewPageVersion`), `usePublishPageActions.ts`
@@ -281,7 +263,7 @@ slug».
 
 ---
 
-## 13. `DARK_MODE_COOKIE` против литерала в редакторе
+## 12. `DARK_MODE_COOKIE` против литерала в редакторе
 
 **Файлы:** `builder/publish/composables/usePublishDashboardPreferences.ts`
 (константа), `builder/app/pages/[pagename].vue` (литерал `'bricks-dark-mode'`)
@@ -300,7 +282,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 14. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
+## 13. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
 
 **Файлы:** `persistence/server/http/httpMediaMethods.ts` (`getMediaByUrl`),
 `src/runtime/server/api/bricks/media/s3-proxy.post.ts:59`
@@ -318,7 +300,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 15. `IImageLocation` собирает семь полей, читается одно
+## 14. `IImageLocation` собирает семь полей, читается одно
 
 **Файлы:** `builder/media/types/schemaImageResolver.d.ts:22-30`, заполнение —
 `utils/schemaImageExtractor.ts` (`createLocation`), единственное чтение —
@@ -338,20 +320,7 @@ published-поверхность о ней не знает.
 
 # Упрощения
 
-## 16. Инлайновый SVG-шеврон вместо иконки кита
-
-**Файл:** `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:405-422`
-
-Восемнадцать строк разметки `<svg>` с `width="12" height="12"` в пикселях там, где
-во всех соседних местах области стоит
-`<BricksIcon icon="ta:outline-chevron-down" />` (сравнить с
-`BuilderShellToolbarPageSelector.vue:213-216`, где направление шеврона тоже меняется
-по состоянию). Поворот у инлайнового варианта сделан классом
-`.groupChevron`/`.groupChevronOpen`, что тоже воспроизводимо на иконке.
-
----
-
-## 17. `isPasswordActionVisible` — псевдоним `canChangePassword`
+## 15. `isPasswordActionVisible` — псевдоним `canChangePassword`
 
 **Файл:** `builder/users/components/BuilderUsersListRow.vue:114-125`
 
@@ -372,7 +341,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 18. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
+## 16. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
 
 **Файл:** `builder/app/composables/useBuilderPage.ts`
 
@@ -386,7 +355,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 19. Пустые делегаты в composition root
+## 17. Пустые делегаты в composition root
 
 **Файл:** `builder/app/pages/[pagename].vue`
 
@@ -401,7 +370,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 20. `previewCurrentPage`: два `Date.now()` и строка ради числа
+## 18. `previewCurrentPage`: два `Date.now()` и строка ради числа
 
 **Файл:** `builder/publish/composables/usePublishPreview.ts` (`previewCurrentPage`)
 
@@ -417,7 +386,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 21. `openGeneration` инкрементируется дважды подряд
+## 19. `openGeneration` инкрементируется дважды подряд
 
 **Файл:** `builder/auth/composables/useAuthAvatarCrop.ts:139-143`
 

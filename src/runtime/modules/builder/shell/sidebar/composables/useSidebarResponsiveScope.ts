@@ -1,5 +1,6 @@
 // Types
 import type { TBricksDeviceKey } from '../../../../common/types/brick';
+import type { IUseSidebarResponsiveScopeReturn } from '../types/composables';
 
 // Vue
 import { computed, ref, watch } from 'vue';
@@ -20,7 +21,7 @@ import { getBlockDefinition } from '../../../../layouts-blocks/registry';
  * props so the values can be previewed, and the sync of the scope with the canvas
  * viewport.
  */
-export function useSidebarResponsiveScope() {
+export function useSidebarResponsiveScope(): IUseSidebarResponsiveScopeReturn {
     const store = useComponentsStore();
     const canvasStore = useCanvasStore();
 

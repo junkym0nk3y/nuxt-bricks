@@ -53,6 +53,40 @@ const BricksIconStub = defineComponent({
     setup: (props) => () => h('i', { 'data-icon': props.icon }),
 });
 
+/**
+ * Stand-in for the text field of a card. The real one validates through
+ * vee-validate, whose rules are registered by an app plugin that does not exist
+ * here — an unregistered rule rejects out of the input and reaches nobody.
+ */
+const BricksInputStub = defineComponent({
+    name: 'BricksInput',
+    props: { value: { type: String, default: '' } },
+    emits: ['update:value'],
+    setup:
+        (props, { emit, attrs }) =>
+        () =>
+            h('input', {
+                ...attrs,
+                value: props.value,
+                onInput: (event: Event) =>
+                    emit('update:value', (event.target as HTMLInputElement).value),
+            }),
+});
+
+/** Stand-in for the tags editor: the write, without the tag input of its own */
+const BricksTagsEditorStub = defineComponent({
+    name: 'BricksTagsEditor',
+    props: { modelValue: { type: Array, default: () => [] } },
+    emits: ['update:modelValue'],
+    setup:
+        (props, { emit, attrs }) =>
+        () =>
+            h('button', {
+                ...attrs,
+                onClick: () => emit('update:modelValue', [...props.modelValue, 'added']),
+            }),
+});
+
 const GALLERY_ITEMS: IGalleryItem[] = [
     { id: 'first', url: '/media/first.png', title: 'First' },
     { id: 'second', url: '/media/second.png', title: 'Second' },
@@ -175,6 +209,46 @@ describe('sidebar gallery editor: the keyboard ways in', () => {
 
         expect(tagsInput).toBeDefined();
         expect(wrapper.find('[aria-label="bricks.common.removeTag:summer"]').exists()).toBe(true);
+    });
+
+    it('writes each field of a card into the field it belongs to', async () => {
+        // The three fields share one generic write that takes the name of the field
+        // as an argument. A swapped pair of names still type-checks — both are keys
+        // of the same item — so the mapping shows only in the value that comes out
+        const wrapper = mount(BuilderShellSidebarPropertyImageGalleryEditor, {
+            props: {
+                modelValue: [{ id: 'first', url: '/media/first.png', title: 'First' }],
+                fields: { caption: true, tags: true },
+            },
+            global: {
+                components: { BricksIcon: BricksIconStub },
+                stubs: { BricksInput: BricksInputStub, BricksTagsEditor: BricksTagsEditorStub },
+            },
+        });
+
+        await wrapper
+            .get('[aria-label="bricks.properties.gallery.titleLabel:1"]')
+            .setValue('Named');
+        await wrapper
+            .get('[aria-label="bricks.properties.gallery.captionLabel:1"]')
+            .setValue('Described');
+        await wrapper.get('[aria-label="bricks.properties.gallery.tagsLabel:1"]').trigger('click');
+
+        const updates = wrapper.emitted('update:modelValue') as IGalleryItem[][][];
+
+        expect(updates[0][0][0]).toEqual({ id: 'first', url: '/media/first.png', title: 'Named' });
+        expect(updates[1][0][0]).toEqual({
+            id: 'first',
+            url: '/media/first.png',
+            title: 'First',
+            caption: 'Described',
+        });
+        expect(updates[2][0][0]).toEqual({
+            id: 'first',
+            url: '/media/first.png',
+            title: 'First',
+            tags: ['added'],
+        });
     });
 
     it('reorders and removes an item from its own action', async () => {
