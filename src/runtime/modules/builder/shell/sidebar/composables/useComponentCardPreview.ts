@@ -1,7 +1,7 @@
 /**
  * Preview of a library component card: the brick component is loaded lazily and
- * scaled to contain inside the fixed preview area (a ResizeObserver plus watchers on
- * a change of the component, its props or the card mode).
+ * scaled to contain inside the preview area (a ResizeObserver plus a watcher over what
+ * is being measured — the loaded module, its props and the card mode).
  */
 
 // Types
@@ -29,7 +29,6 @@ import { useI18n } from 'vue-i18n';
 import { useBrickImports } from '../../../../common/composables/useBrickImports';
 
 // Utils
-import { convertRemToPx } from '../../../../common/utils/main';
 import { measureDragSize } from '../../../../common/utils/dragAndDrop';
 import {
     getBlockDefinition,
@@ -42,12 +41,6 @@ import { CANVAS_BLOCK_COMPONENTS } from '../../../../layouts-blocks/canvasBlockC
  * Ceiling of the scale-up applied to small components
  */
 const MAX_SCALE_UP = 3;
-
-/**
- * Fixed height of the preview, repeated from the CSS
- */
-const PREVIEW_HEIGHT_REM = 18;
-const LAYOUT_PREVIEW_HEIGHT_REM = 12;
 
 /**
  * Id of the hidden measure instance: it never reaches the schema and only serves the
@@ -67,6 +60,13 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
     /** Hidden instance of the layout block, there to measure its real size exactly */
     const measureWrapperRef = ref<HTMLElement | null>(null);
     const previewScale = ref(1);
+    /**
+     * The brick module has actually arrived. `ComponentPreview` cannot serve as that
+     * signal: `defineAsyncComponent` hands back its wrapper synchronously and the ref
+     * never changes again, so a watcher over it would never fire and a preview that
+     * loads slower than the first measurement would keep the scale of an empty card.
+     */
+    const isPreviewLoaded = ref(false);
     let resizeObserver: ResizeObserver | null = null;
     let previewUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -81,6 +81,7 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
                         `Missing default export for component: ${props.component.name}`
                     );
                 }
+                isPreviewLoaded.value = true;
                 return exported as Component;
             },
             onError: (error) => {
@@ -190,25 +191,18 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
                 return;
             }
 
-            // Size of the preview area
-            const previewWidth = wrapper.clientWidth || 200;
-            const previewHeightRem = props.isLayout
-                ? LAYOUT_PREVIEW_HEIGHT_REM
-                : PREVIEW_HEIGHT_REM;
-            const previewHeight = convertRemToPx(`${previewHeightRem}rem`);
+            // Size of the preview area, read from the DOM: the height of the thumbnail
+            // lives in the CSS, and a copy of it here would drift away silently — the
+            // preview would simply stop fitting
+            const previewWidth = wrapper.clientWidth;
+            const previewHeight = wrapper.clientHeight;
 
             // Measure the real size of the component: offsetWidth/offsetHeight give
-            // it without the transform of the parent
-            let contentWidth = actualComponent.offsetWidth;
-            let contentHeight = actualComponent.offsetHeight;
-
-            // Fall back to scrollWidth/scrollHeight when offset came back as 0
-            if (!contentWidth) {
-                contentWidth = actualComponent.scrollWidth || 100;
-            }
-            if (!contentHeight) {
-                contentHeight = actualComponent.scrollHeight || 100;
-            }
+            // it without the transform of the parent, scrollWidth/scrollHeight stand in
+            // when the element itself takes no box (an inline root, a wrapper of
+            // absolutely positioned children)
+            let contentWidth = actualComponent.offsetWidth || actualComponent.scrollWidth;
+            let contentHeight = actualComponent.offsetHeight || actualComponent.scrollHeight;
 
             // A full-width component — a section and its kind, stretched across the
             // whole width — takes 100% of the wrapper, so the wrapper is measured
@@ -218,8 +212,17 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
                 contentHeight = componentWrapper.scrollHeight;
             }
 
-            if (!contentWidth || !contentHeight) {
-                previewScale.value = 1;
+            // A measurement of zero is not a size to scale by: the card is hidden or the
+            // layout has not been computed yet. The last scale that did come from a real
+            // measurement is kept, and the next ResizeObserver callback (or the arrival
+            // of the brick module) measures again — writing 1 here would show a visible
+            // jump on a card that is about to come back
+            if (
+                previewWidth <= 0 ||
+                previewHeight <= 0 ||
+                contentWidth <= 0 ||
+                contentHeight <= 0
+            ) {
                 return;
             }
 
@@ -305,29 +308,16 @@ export function useComponentCardPreview(props: ISidebarComponentCardProps): ICom
         { flush: 'post' }
     );
 
-    // The async component has loaded: recompute the scale
-    watch(ComponentPreview, async () => {
-        await nextTick();
+    /**
+     * Everything that changes what is being measured: the arrival of the brick module,
+     * the props it is rendered with and the card mode, which is what creates or destroys
+     * the preview wrapper. One watcher rather than three — `updatePreviewScale` waits for
+     * the DOM itself and debounces, so simultaneous sources collapse into one
+     * measurement.
+     */
+    watch([isPreviewLoaded, () => props.component.defaultProps, () => props.isLayout], () => {
         updatePreviewScale();
     });
-
-    // The props of the component have changed: recompute the scale
-    watch(
-        () => props.component.defaultProps,
-        async () => {
-            await nextTick();
-            updatePreviewScale();
-        }
-    );
-
-    // `isLayout` has changed: recompute the scale
-    watch(
-        () => props.isLayout,
-        async () => {
-            await nextTick();
-            updatePreviewScale();
-        }
-    );
 
     return {
         ComponentPreview,

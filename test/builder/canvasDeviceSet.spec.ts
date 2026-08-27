@@ -16,6 +16,9 @@ vi.mock('nuxt/app', () => ({
 // Stores
 import { useCanvasStore } from '../../src/runtime/modules/builder/core/stores/canvas';
 
+// Constants
+import { VIEWPORT_SWITCH_SETTLE_MS } from '../../src/runtime/modules/builder/core/constants/canvas';
+
 /**
  * Собирает резолвнутый набор устройств.
  *
@@ -93,6 +96,33 @@ describe('canvas store: набор устройств страницы', () => {
 
         expect(canvasStore.hasManualZoom).toBe(true);
         expect(canvasStore.scale).toBe(0.75);
+    });
+
+    it('второе переключение не гасится таймером первого', () => {
+        // Признак перехода читают поверхности, которые ждут окончания движения листа
+        // (инлайн-редактор, скролл дерева схемы). Без учёта поколения таймер первого
+        // переключения снимал бы признак посреди второго, и ждущий уезжал бы на
+        // геометрию, которой ещё нет
+        vi.useFakeTimers();
+
+        try {
+            const canvasStore = useCanvasStore();
+            canvasStore.setDevices(THREE_DEVICES);
+
+            canvasStore.setViewport('tablet');
+            vi.advanceTimersByTime(VIEWPORT_SWITCH_SETTLE_MS - 100);
+            canvasStore.setViewport('mobile');
+
+            // Момент, когда истекает таймер первого переключения
+            vi.advanceTimersByTime(100);
+            expect(canvasStore.isViewportSwitching).toBe(true);
+
+            // Полный интервал после второго переключения
+            vi.advanceTimersByTime(VIEWPORT_SWITCH_SETTLE_MS - 100);
+            expect(canvasStore.isViewportSwitching).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('удаление активного устройства переводит канвас на базовое', () => {

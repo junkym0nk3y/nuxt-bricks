@@ -6,6 +6,7 @@ import type { ISchemaTreeMoveRequest } from '../types/composables';
 
 // Vue
 import { computed, nextTick } from 'vue';
+import { until } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 
 // Pinia
@@ -92,20 +93,19 @@ function handleMove({ sourceId, destination, targetIndex }: ISchemaTreeMoveReque
  * already is.
  *
  * @param component - Component whose visibility is checked.
- * @returns True when the viewport was switched.
  */
-function ensureViewportForComponent(component: IBricksComponent): boolean {
+function ensureViewportForComponent(component: IBricksComponent): void {
     const currentViewport = canvasStore.viewport;
     const visibility = component.deviceVisibility;
 
     // No per-device restrictions at all means it is visible everywhere
     if (!visibility) {
-        return false;
+        return;
     }
 
     const isVisibleOnCurrent = visibility[currentViewport] !== false;
     if (isVisibleOnCurrent) {
-        return false;
+        return;
     }
 
     // Priority: the base device first, then the rest from the widest to the
@@ -119,10 +119,7 @@ function ensureViewportForComponent(component: IBricksComponent): boolean {
     const firstAvailable = priority.find((device) => visibility[device.key] !== false);
     if (firstAvailable) {
         canvasStore.setViewport(firstAvailable.key);
-        return true;
     }
-
-    return false;
 }
 
 /**
@@ -139,7 +136,7 @@ async function handleSelectComponent(id: string): Promise<void> {
     }
 
     // 1. Switch the viewport when the component is invisible on the current one
-    const viewportSwitched = ensureViewportForComponent(component);
+    ensureViewportForComponent(component);
 
     // 2. Take the properties — through the same resolver a click on the canvas uses
     const { properties, description } = resolveComponentEditorMetadata(component);
@@ -148,22 +145,20 @@ async function handleSelectComponent(id: string): Promise<void> {
     componentsStore.selectComponent(id, properties, description);
 
     // 4. Scroll to the component on the canvas. In Figma mode the search is scoped to
-    // the active viewport. After a viewport switch the scroll waits out the move of
-    // the sheet first, otherwise it would aim at the old geometry
+    // the active viewport
     const scrollViewport =
         canvasStore.isFigmaMode && canvasStore.activeViewport
             ? canvasStore.activeViewport
             : undefined;
 
-    if (viewportSwitched) {
-        setTimeout(async () => {
-            await nextTick();
-            scrollToComponentOnCanvas(id, scrollViewport);
-        }, 450);
-    } else {
-        await nextTick();
-        scrollToComponentOnCanvas(id, scrollViewport);
-    }
+    // The scroll waits for the switch to actually be over — the flag the canvas store
+    // holds while the sheet moves — and not for a duration of its own: a timer picked to
+    // outlast the transition races it, and the sheet the scroll aims at is then still on
+    // the move. Waiting on the flag also covers a switch started elsewhere (the bottom
+    // bar), and resolves at once when nothing is switching
+    await until(() => canvasStore.isViewportSwitching).toBe(false);
+    await nextTick();
+    scrollToComponentOnCanvas(id, scrollViewport);
 }
 // #endregion
 </script>

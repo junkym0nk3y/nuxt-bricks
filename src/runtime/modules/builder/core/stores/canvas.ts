@@ -8,8 +8,8 @@ import type {
 import type { TBricksResolvedDeviceSet } from '../../../common/types/devices';
 import { BASE_DEVICE_KEY, DEFAULT_CANVAS_HEIGHT } from '../../../common/constants/devices';
 import { MIN_CANVAS_SCALE, MAX_CANVAS_SCALE } from '../constants/canvasScale';
-
-const CANVAS_HEIGHT_BUFFER = 400;
+import { VIEWPORT_SWITCH_SETTLE_MS } from '../constants/canvas';
+import { resolveContentDrivenCanvasHeight } from '../utils/canvasHeight';
 
 /** Resting state of a transient drag session: the single source of the defaults */
 const IDLE_DRAG_STATE: ICanvasDragState = {
@@ -58,6 +58,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         dragState: { ...IDLE_DRAG_STATE },
         _preFigmaWidth: null,
         _preFigmaHeight: null,
+        _viewportSwitchGeneration: 0,
     }),
 
     getters: {
@@ -180,6 +181,26 @@ export const useCanvasStore = defineStore('bricksCanvas', {
         },
 
         /**
+         * Opens the window during which the canvas counts as switching viewports, and
+         * closes it once the sheet has settled.
+         *
+         * The generation is what makes the flag trustworthy: two switches inside one
+         * window would otherwise have the timer of the first one clear the flag of the
+         * second, and every surface waiting for the switch (the inline editor, the
+         * scroll of the schema tree) would aim at geometry still on the move.
+         */
+        beginViewportSwitch() {
+            this.isViewportSwitching = true;
+            const generation = ++this._viewportSwitchGeneration;
+
+            setTimeout(() => {
+                if (this._viewportSwitchGeneration === generation) {
+                    this.isViewportSwitching = false;
+                }
+            }, VIEWPORT_SWITCH_SETTLE_MS);
+        },
+
+        /**
          * Switches the active viewport and the canvas width.
          * Leaving Figma mode on the same viewport restores the stored sizes.
          *
@@ -187,7 +208,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
          */
         setViewport(viewport: TBricksDeviceKey) {
             const wasInFigma = this.isFigmaMode;
-            this.isViewportSwitching = true;
+            this.beginViewportSwitch();
             this.isFigmaMode = false;
             this.activeViewport = null;
             this.hasManualZoom = false;
@@ -206,10 +227,6 @@ export const useCanvasStore = defineStore('bricksCanvas', {
                 this._preFigmaWidth = null;
                 this._preFigmaHeight = null;
             }
-
-            setTimeout(() => {
-                this.isViewportSwitching = false;
-            }, 400);
         },
 
         /**
@@ -217,7 +234,7 @@ export const useCanvasStore = defineStore('bricksCanvas', {
          * Entering stores the current sizes, leaving restores them.
          */
         toggleFigmaMode() {
-            this.isViewportSwitching = true;
+            this.beginViewportSwitch();
 
             if (!this.isFigmaMode) {
                 // Entering Figma mode: the current sizes are stored
@@ -236,10 +253,6 @@ export const useCanvasStore = defineStore('bricksCanvas', {
             }
 
             this.isFigmaMode = !this.isFigmaMode;
-
-            setTimeout(() => {
-                this.isViewportSwitching = false;
-            }, 400);
         },
 
         /**
@@ -294,21 +307,15 @@ export const useCanvasStore = defineStore('bricksCanvas', {
          * @param hasComponents - Whether the canvas holds any components.
          */
         syncCanvasHeightWithContent(contentHeight: number, hasComponents: boolean) {
-            const baseHeight = this.getViewportHeight(this.viewport);
-
-            if (!hasComponents) {
-                if (this.height !== baseHeight) {
-                    this.height = baseHeight;
-                }
-                return;
-            }
-
-            const baselineWithBuffer = baseHeight + CANVAS_HEIGHT_BUFFER;
-            const targetHeight = Math.max(
-                baselineWithBuffer,
-                Math.ceil(contentHeight + CANVAS_HEIGHT_BUFFER)
+            const targetHeight = resolveContentDrivenCanvasHeight(
+                this.getViewportHeight(this.viewport),
+                contentHeight,
+                hasComponents
             );
 
+            // A write of the same height is not free here: `height` feeds the geometry
+            // guard that silences the flow transitions, so a sub-pixel jitter of the
+            // measurement would keep waking it up
             if (Math.abs(this.height - targetHeight) > 1) {
                 this.height = targetHeight;
             }

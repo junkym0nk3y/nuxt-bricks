@@ -1,12 +1,7 @@
 <script setup lang="ts">
-// #region Interfaces
-/**
- * Props of the BuilderCanvasConditionalContainer component
- */
-interface ICanvasConditionalContainerProps {
-    /** Whether the content has to be wrapped in div.bricks-container */
-    useContainer: boolean;
-}
+// #region Imports
+// Types
+import type { ICanvasConditionalContainerProps } from '../../types/components';
 // #endregion
 
 // #region Props

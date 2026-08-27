@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // #region Imports
 // Types
+import type { ICanvasItemLayoutProps } from '../../types/components';
 import type { IBricksComponent } from '../../../../common/types/brick';
-import type { TLayoutProps } from '../../../../layouts-blocks/types/blockProps';
 import type { IBlockCanvasContext } from '../../../../layouts-blocks/types/registry';
 
 // Utils
@@ -16,26 +16,6 @@ import { useI18n } from 'vue-i18n';
 import { CANVAS_BLOCK_COMPONENTS } from '../../../../layouts-blocks/canvasBlockComponents';
 import BuilderCanvasItem from './BuilderCanvasItem.vue';
 import BuilderCanvasConditionalContainer from '../../viewport/components/BuilderCanvasConditionalContainer.vue';
-// #endregion
-
-// #region Interfaces
-/**
- * Props of the BuilderCanvasItemLayout component
- */
-interface ICanvasItemLayoutProps {
-    /** Component instance to render */
-    component: IBricksComponent;
-    /** Lower-cased name of the block, as the registry knows it (grid, flex, section, …) */
-    layoutName: string;
-    /** Props specific to the layout component */
-    layoutProps: TLayoutProps;
-    /** Resolved props to pass into the component (internal ones excluded) */
-    componentBoundProps: Record<string, unknown>;
-    /** Whether the component has to be wrapped in a container */
-    needsContainerWrapper: boolean;
-    /** Child components for layout containers */
-    childComponents: IBricksComponent[];
-}
 // #endregion
 
 // #region Props

@@ -219,3 +219,42 @@ export function measureComponentDepth(
 
     return depth;
 }
+
+/**
+ * Signature of the tree the height of the canvas sheet depends on: who lies where and
+ * in what order.
+ *
+ * It is built as a string on purpose — a watcher compares its source by value, and a map
+ * or a set rebuilt on every read would fire on every unrelated change. Reading it also
+ * subscribes a watcher to every link of the graph, which is the point: a move into a
+ * layout changes only `parent` and the `children` of the two sides, leaving the flat list
+ * with the same reference, the same length and the same order.
+ *
+ * The grid placement of a child is part of it: a block dragged into another cell of the
+ * same Grid keeps its position in `children`, while the row it leaves may collapse.
+ *
+ * What it deliberately does NOT cover: the props of a component. Text that got shorter
+ * changes no link, and the height that follows from it is left to the ResizeObserver —
+ * which sees growth, and misses a shrink held back by `minHeight`.
+ *
+ * @param components - Flat list of the schema components.
+ * @returns The signature string.
+ */
+export function buildComponentTreeSignature(components: readonly IBricksComponent[]): string {
+    return components
+        .map((component) => {
+            const slots = (component.slots ?? [])
+                .map((slot) => `${slot.name}=${slot.children.join(',')}`)
+                .join(';');
+
+            return [
+                component.id,
+                component.parent ?? '',
+                (component.children ?? []).join(','),
+                slots,
+                component.gridColumn ?? '',
+                component.gridRow ?? '',
+            ].join(':');
+        })
+        .join('|');
+}

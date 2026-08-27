@@ -6,7 +6,7 @@ import type { TBricksDeviceKey } from '../../../../common/types/brick';
 import type { TDropFlowEntry } from '../../../core/types/drag';
 
 // Vue
-import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { computed, ref, inject, provide, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -18,6 +18,7 @@ import { useBricksConfig } from '../../../../common/composables/useBricksConfig'
 import { useCanvasDrops } from '../composables/useCanvasDrops';
 import { useCanvasDropGuard } from '../composables/useCanvasDropGuard';
 import { useCanvasFlowGuard } from '../composables/useCanvasFlowGuard';
+import { useCanvasComponentTreeWatch } from '../composables/useCanvasComponentTreeWatch';
 
 // Constants
 import { DEFAULT_CANVAS_HEIGHT } from '../../../../common/constants/devices';
@@ -26,6 +27,10 @@ import { CANVAS_VIEWPORT_KEY } from '../../../../common/constants/injectionKeys'
 // Utils
 import { convertPxToRem } from '../../../../common/utils/main';
 import { buildDropFlowEntries, getDragPlaceholderVars } from '../../../core/utils/dragVisuals';
+import {
+    measureCanvasContentHeight,
+    resolveContentDrivenCanvasHeight,
+} from '../../../core/utils/canvasHeight';
 
 // Components
 import BuilderCanvasItem from '../../item/components/BuilderCanvasItem.vue';
@@ -65,8 +70,6 @@ useCanvasDropGuard(() => props.viewport);
 
 const canvasRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
-
-const CANVAS_HEIGHT_BUFFER = 400;
 
 const {
     rootDropIndex,
@@ -137,7 +140,11 @@ const viewportLabel = computed<string>(
 
 // #region Methods
 /**
- * Syncs the height of the viewport with the actual content.
+ * Syncs the height of the sheet with the actual content.
+ *
+ * The height of a sheet is local and not the one of the store: Figma mode draws every
+ * viewport at once, and each of them measures its own content. The policy itself is
+ * shared with the normal canvas.
  */
 function updateViewportHeight(): void {
     const container = containerRef.value;
@@ -145,22 +152,10 @@ function updateViewportHeight(): void {
         return;
     }
 
-    const baseHeight = canvasStore.getViewportHeight(props.viewport);
-
-    if (!componentsStore.hasComponents) {
-        viewportHeight.value = baseHeight;
-        return;
-    }
-
-    const previousMinHeight = container.style.minHeight;
-    container.style.minHeight = '';
-    const contentHeight = container.scrollHeight;
-    container.style.minHeight = previousMinHeight;
-
-    const baselineWithBuffer = baseHeight + CANVAS_HEIGHT_BUFFER;
-    viewportHeight.value = Math.max(
-        baselineWithBuffer,
-        Math.ceil(contentHeight + CANVAS_HEIGHT_BUFFER)
+    viewportHeight.value = resolveContentDrivenCanvasHeight(
+        canvasStore.getViewportHeight(props.viewport),
+        measureCanvasContentHeight(container),
+        componentsStore.hasComponents
     );
 }
 
@@ -178,16 +173,9 @@ function handleCanvasClick(event: MouseEvent): void {
 // #endregion
 
 // #region Lifecycle
-/**
- * Recomputes the height of the sheet when the set of components changes. Why two sources
- * are watched, and why the ResizeObserver alone is not enough, is spelled out in
- * `useCanvasContainerMetrics` — the same pair of watchers serves the normal canvas.
- */
-watch([() => componentsStore.components, () => componentsStore.components.length], () => {
-    nextTick(() => {
-        updateViewportHeight();
-    });
-});
+// Recomputes the height of the sheet when the component tree changes — the same watcher
+// serves the normal canvas
+useCanvasComponentTreeWatch(updateViewportHeight);
 
 onMounted(async () => {
     await nextTick();

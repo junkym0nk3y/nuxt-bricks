@@ -14,29 +14,7 @@
 
 # Дубли кода
 
-## 1. Замер высоты по контенту и пара watch-ей продублированы кодом
-
-**Файлы:** `builder/canvas/viewport/composables/useCanvasContainerMetrics.ts:26-37`,
-`:65-69` и `viewport/components/BuilderCanvasViewport.vue:135-158`, `:187-191`
-
-Приём «снять `minHeight`, прочитать `scrollHeight`, вернуть `minHeight`» написан
-дважды, и дважды написана пара watch-ей на состав компонентов; в компоненте вдобавок
-свой `ResizeObserver` с собственным `onMounted`/`onBeforeUnmount`. Различие между
-копиями одно: composable кладёт результат в стор
-(`syncCanvasHeightWithContent`), а компонент — в локальный `viewportHeight` с
-буфером `CANVAS_HEIGHT_BUFFER`.
-
-**Кандидат:** общий composable с параметром «куда писать результат». Дубль рационала
-в комментариях — прямое следствие дубля кода.
-
-**Один универсальный composable измерения делать не надо:** у обычного канваса и
-у листов Figma-режима разные высотные политики и разный жизненный цикл
-наблюдателей. Общей стоит делать чистую DOM-операцию измерения, а watcher — только
-если он окупится после этого.
-
----
-
-## 2. Редакторы аккордеона и галереи повторяют один и тот же список операций
+## 1. Редакторы аккордеона и галереи повторяют один и тот же список операций
 
 **Файлы:** `builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyAccordionItemsEditor.vue:49-146`,
 `property-editors/BuilderShellSidebarPropertyImageGalleryEditor.vue:69-186`
@@ -54,34 +32,7 @@
 
 ---
 
-## 3. Три watcher-а превью карточки с одинаковым телом
-
-**Файл:** `builder/shell/sidebar/composables/useComponentCardPreview.ts:295-316`
-
-Три подряд идущих `watch` — на загрузку async-компонента, на
-`props.component.defaultProps` и на `props.isLayout` — содержат буквально одно и то
-же: `await nextTick(); updatePreviewScale();`. Сводится к одному `watch` по массиву
-источников.
-
----
-
-## 4. Высота превью продублирована из CSS константами
-
-**Файлы:** `builder/shell/sidebar/composables/useComponentCardPreview.ts:45-49`,
-`sidebar/components/BuilderShellSidebarComponentCard.vue:285`
-
-`PREVIEW_HEIGHT_REM = 18` и `LAYOUT_PREVIEW_HEIGHT_REM = 12` объявлены в композабле
-с честной припиской «из CSS»; в самом CSS высота миниатюры задана как
-`height: 18rem`. Расчёт масштаба и вёрстка разъедутся молча — превью просто
-перестанет вписываться.
-
-**Третью общую константу не заводить:** высоту брать из `clientHeight` обёртки
-превью, тогда обе JS-константы уходят. Ветка layout-высоты при этом мёртвая —
-layout-карточка до измерения не доходит.
-
----
-
-## 5. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
+## 2. `formatUserDate` — вторая копия `formatPageDate`, запрещённая шапкой владельца
 
 **Файлы:** `builder/users/utils/userFormatting.ts:26-47`, владелец —
 `common/utils/bricks/dates.ts:1-34`
@@ -101,7 +52,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 6. Задержка поиска втроена по трём доменам, а рационал — у копий
+## 3. Задержка поиска втроена по трём доменам, а рационал — у копий
 
 **Файлы:** `builder/users/composables/useUsersList.ts:14-15`,
 `builder/templates/composables/useTemplatesList.ts:14-15`,
@@ -121,7 +72,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 7. Список ролей продублирован в двух компонентах
+## 4. Список ролей продублирован в двух компонентах
 
 **Файлы:** `builder/users/components/BuilderUsersRolePill.vue:64-69`,
 `builder/users/components/TheBuilderUsersCreateModal.vue:71-72`, владелец набора —
@@ -137,7 +88,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 8. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
+## 5. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryCategoryTabs.vue`,
 владелец вида — `ui/base/tabs/BricksTabBarItem.vue` (вариант `underline`, размер `sm`)
@@ -186,7 +137,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 9. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
+## 6. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
 
 **Файлы:** `plugins/builder/veeValidateSetup.ts`,
 `plugins/builder/textEditorToolbarSetup.ts`,
@@ -209,7 +160,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 10. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
+## 7. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
 
 **Файлы:** `builder/media/components/TheBuilderMediaGalleryModal.vue:104-195`,
 `components/TheBuilderMediaSection.vue:106-152`
@@ -228,7 +179,7 @@ layout-карточка до измерения не доходит.
 
 ---
 
-## 11. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
+## 8. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryMetaPanel.vue:88-131`,
 `components/BuilderMediaSectionDetailsPanel.vue:90-171`
@@ -247,7 +198,7 @@ slug».
 
 ---
 
-## 12. Нативный `<select>` вместо кит-компонента в резолвере изображений
+## 9. Нативный `<select>` вместо кит-компонента в резолвере изображений
 
 **Файлы:** `builder/media/components/BuilderMediaImageResolverItem.vue:95-103,177-181`,
 `components/TheBuilderMediaImageResolverModal.vue:114-123,199-203`
@@ -265,7 +216,7 @@ slug».
 
 ---
 
-## 13. Формы сохранения и переименования шаблона — копия друг друга
+## 10. Формы сохранения и переименования шаблона — копия друг друга
 
 **Файлы:** `builder/templates/composables/useTemplateSaveForm.ts` (171 строка),
 `useTemplateRenameForm.ts` (146 строк)
@@ -290,7 +241,7 @@ slug».
 
 ---
 
-## 14. Мета-строка шаблона собирается дважды
+## 11. Мета-строка шаблона собирается дважды
 
 **Файлы:** `builder/templates/components/BuilderTemplatesCard.vue:70-75`
 (`metaLine`), `BuilderTemplatesPickerList.vue:84-89` (`buildMetaLine`)
@@ -309,7 +260,7 @@ slug».
 
 ---
 
-## 15. Исход `window.open` проверяет одна функция из трёх
+## 12. Исход `window.open` проверяет одна функция из трёх
 
 **Файлы:** `builder/publish/composables/usePublishPreview.ts`
 (`previewCurrentPage` против `previewPageVersion`), `usePublishPageActions.ts`
@@ -330,7 +281,7 @@ slug».
 
 ---
 
-## 16. `DARK_MODE_COOKIE` против литерала в редакторе
+## 13. `DARK_MODE_COOKIE` против литерала в редакторе
 
 **Файлы:** `builder/publish/composables/usePublishDashboardPreferences.ts`
 (константа), `builder/app/pages/[pagename].vue` (литерал `'bricks-dark-mode'`)
@@ -349,7 +300,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 17. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
+## 14. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
 
 **Файлы:** `persistence/server/http/httpMediaMethods.ts` (`getMediaByUrl`),
 `src/runtime/server/api/bricks/media/s3-proxy.post.ts:59`
@@ -367,7 +318,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 18. `IImageLocation` собирает семь полей, читается одно
+## 15. `IImageLocation` собирает семь полей, читается одно
 
 **Файлы:** `builder/media/types/schemaImageResolver.d.ts:22-30`, заполнение —
 `utils/schemaImageExtractor.ts` (`createLocation`), единственное чтение —
@@ -387,7 +338,7 @@ published-поверхность о ней не знает.
 
 # Упрощения
 
-## 19. Инлайновый SVG-шеврон вместо иконки кита
+## 16. Инлайновый SVG-шеврон вместо иконки кита
 
 **Файл:** `builder/shell/sidebar/components/BuilderShellSidebarPropertyEditors.vue:405-422`
 
@@ -400,7 +351,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 20. `isPasswordActionVisible` — псевдоним `canChangePassword`
+## 17. `isPasswordActionVisible` — псевдоним `canChangePassword`
 
 **Файл:** `builder/users/components/BuilderUsersListRow.vue:114-125`
 
@@ -421,7 +372,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 21. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
+## 18. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
 
 **Файл:** `builder/app/composables/useBuilderPage.ts`
 
@@ -435,7 +386,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 22. Пустые делегаты в composition root
+## 19. Пустые делегаты в composition root
 
 **Файл:** `builder/app/pages/[pagename].vue`
 
@@ -450,7 +401,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 23. `previewCurrentPage`: два `Date.now()` и строка ради числа
+## 20. `previewCurrentPage`: два `Date.now()` и строка ради числа
 
 **Файл:** `builder/publish/composables/usePublishPreview.ts` (`previewCurrentPage`)
 
@@ -466,7 +417,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 24. `openGeneration` инкрементируется дважды подряд
+## 21. `openGeneration` инкрементируется дважды подряд
 
 **Файл:** `builder/auth/composables/useAuthAvatarCrop.ts:139-143`
 

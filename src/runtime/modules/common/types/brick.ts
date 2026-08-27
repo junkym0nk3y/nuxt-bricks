@@ -157,6 +157,8 @@ export interface ICanvasState {
     /** Canvas width and height before entering Figma mode (to restore them on exit) */
     _preFigmaWidth: number | null;
     _preFigmaHeight: number | null;
+    /** Counter of viewport switches: the timer of an outdated switch must not clear the flag */
+    _viewportSwitchGeneration: number;
 }
 
 // Property editor types

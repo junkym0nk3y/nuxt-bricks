@@ -6,6 +6,7 @@ import type {
 import { cloneBricksComponent } from '../../../common/utils/bricks/components';
 import { normalizeDeviceVisibility } from '../../../common/utils/bricks/deviceVisibility';
 import { normalizeBrickPath } from '../../../common/utils/bricks/paths';
+import { MAX_HISTORY_ENTRIES } from '../constants/history';
 
 /**
  * Caps the size of the history and the position of the index.
@@ -18,7 +19,7 @@ import { normalizeBrickPath } from '../../../common/utils/bricks/paths';
 export function clampHistory(
     history: IBricksSchema[],
     historyIndex: number,
-    limit: number = 50
+    limit: number = MAX_HISTORY_ENTRIES
 ): { history: IBricksSchema[]; historyIndex: number } {
     const result = [...history];
     let index = historyIndex;

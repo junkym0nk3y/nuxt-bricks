@@ -8,7 +8,7 @@ import type { TDropFlowEntry } from '../../../core/types/drag';
 import { ref, computed, inject, provide, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 // VueUse
-import { useDebounceFn } from '@vueuse/core';
+import { until, useDebounceFn } from '@vueuse/core';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
@@ -263,8 +263,12 @@ function handleCanvasClick(event: MouseEvent): void {
 /**
  * Scrolls to the selected component after a viewport switch.
  * A component hidden on the new viewport (deviceVisibility) is deselected instead.
+ *
+ * The wait is over the state the canvas store holds while the sheet moves, not over a
+ * duration: a timer picked to outlast the move races it, and the numbers on the two ends
+ * of the same wait drift apart on their own.
  */
-function scrollToSelectedAfterViewportSwitch(): void {
+async function scrollToSelectedAfterViewportSwitch(): Promise<void> {
     const selected = componentsStore.selectedComponent;
     if (!selected) {
         return;
@@ -281,10 +285,9 @@ function scrollToSelectedAfterViewportSwitch(): void {
         return;
     }
 
-    // Wait for the components to render on the new viewport before scrolling
-    setTimeout(() => {
-        scrollToComponentOnCanvas(selected.id);
-    }, 350);
+    await until(() => canvasStore.isViewportSwitching).toBe(false);
+    await nextTick();
+    scrollToComponentOnCanvas(selected.id);
 }
 
 /**

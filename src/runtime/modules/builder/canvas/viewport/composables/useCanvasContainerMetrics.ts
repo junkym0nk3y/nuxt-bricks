@@ -8,6 +8,12 @@ import { watch, nextTick, onBeforeUnmount } from 'vue';
 import { useCanvasStore } from '../../../core/stores/canvas';
 import { useComponentsStore } from '../../../core/stores/components';
 
+// Composables
+import { useCanvasComponentTreeWatch } from './useCanvasComponentTreeWatch';
+
+// Utils
+import { measureCanvasContentHeight } from '../../../core/utils/canvasHeight';
+
 /**
  * Keeps the canvas height in sync with its content: recomputes the container metrics
  * when the set of components, the viewport or Figma mode changes, and reattaches its
@@ -29,11 +35,10 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
             return;
         }
 
-        const previousMinHeight = container.style.minHeight;
-        container.style.minHeight = '';
-        const contentHeight = container.scrollHeight;
-        container.style.minHeight = previousMinHeight;
-        canvasStore.syncCanvasHeightWithContent(contentHeight, componentsStore.hasComponents);
+        canvasStore.syncCanvasHeightWithContent(
+            measureCanvasContentHeight(container),
+            componentsStore.hasComponents
+        );
     }
 
     /**
@@ -50,23 +55,9 @@ export function useCanvasContainerMetrics(options: ICanvasContainerMetricsOption
         }
     }
 
-    /**
-     * Recomputes the canvas height when the set of components changes.
-     *
-     * Two sources cover every case:
-     * - `components` (the reference) catches a full replacement of the array
-     *   (loadSchema, undo/redo)
-     * - `components.length` catches mutations (push in addComponent, splice in
-     *   moveComponentToRoot)
-     *
-     * The ResizeObserver stays silent when the content shrinks (minHeight keeps the
-     * container from collapsing), so add/remove/import need an explicit recompute.
-     */
-    watch([() => componentsStore.components, () => componentsStore.components.length], () => {
-        nextTick(() => {
-            updateContainerMetrics();
-        });
-    });
+    // Recomputes the height when the component tree changes — what counts as a change,
+    // and why the ResizeObserver is not enough, is in the composable itself
+    useCanvasComponentTreeWatch(updateContainerMetrics);
 
     /**
      * Recomputes the canvas height after a viewport switch.
