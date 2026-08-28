@@ -3,41 +3,45 @@
  * @description One row of the image resolver: a preview, where the picture comes from
  * in the schema, and the choice of what to do with it.
  *
- * The picker is a native `<select>` rather than the kit's `BricksSelect`, and the three
- * `--bricks-*` overrides in the style section pin it to the light palette, so in the
- * dark theme the control stays white. Neither is a recorded decision — no reason for
- * either was ever written down.
+ * The picker names the picture it belongs to: a row of selects each called "Action"
+ * gives a screen reader nothing to tell them apart, and the rows differ only by which
+ * image they hold. The name is the address and not the name of the component, though
+ * the row shows the latter first: several pictures of one schema usually sit in blocks
+ * of the same kind, so "Action for the image BlockMedia" repeats itself word for word
+ * down the list, while the address is the key the row is built on and is unique by
+ * construction. The name takes the WHOLE address while the row shows the shortened
+ * one: the shortening keeps the ends and drops the middle, so two addresses that
+ * differ only in the middle collapse into one and the same name.
+ *
+ * The width of the picker is set from here rather than left to the field: the kit's
+ * select is `width: 100%`, and in this row that would eat the preview and the address.
  */
 
 // #region Imports
 // Types
-import type { IExtractedImageUrl, TImageResolveAction } from '../types/schemaImageResolver';
+import type { IBrickUiCommonProp } from '../../../ui/types/common';
+import type { TBrickDemoValues } from '../../../common/types/index';
+import type { IMediaImageResolverItemProps, IMediaImageResolverItemEmits } from '../types/media';
+
+// Utils
+import { IMAGE_RESOLVE_ACTIONS, isImageResolveAction } from '../utils/imageResolveAction';
 
 // Vue
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-// #endregion
 
-// #region Interfaces
-interface IImageResolverItemProps {
-    image: IExtractedImageUrl;
-    action: TImageResolveAction;
-    disabled?: boolean;
-}
-
-interface IImageResolverItemEmits {
-    'update:action': [url: string, action: TImageResolveAction];
-}
+// Components
+import BricksSelect from '../../../ui/inputs/BricksSelect.vue';
 // #endregion
 
 // #region Props
-const props = withDefaults(defineProps<IImageResolverItemProps>(), {
+const props = withDefaults(defineProps<IMediaImageResolverItemProps>(), {
     disabled: false,
 });
 // #endregion
 
 // #region Emits
-const emit = defineEmits<IImageResolverItemEmits>();
+const emit = defineEmits<IMediaImageResolverItemEmits>();
 // #endregion
 
 // #region Data
@@ -58,17 +62,29 @@ const componentName = computed<string>(() => {
     const loc = props.image.locations[0];
     return loc ? loc.componentName : '';
 });
+
+/** Both options are always available, so the facets repeat the whole list */
+const actionOptions = computed<IBrickUiCommonProp[]>(() => [
+    { label: t('bricks.media.resolver.keep'), value: 'keep' },
+    { label: t('bricks.media.resolver.placeholder'), value: 'placeholder' },
+]);
+const actionFacets = computed<TBrickDemoValues[]>(() => [...IMAGE_RESOLVE_ACTIONS]);
 // #endregion
 
 // #region Methods
 /**
- * Handles a change of the action of an image.
+ * Handles a change of the action of an image. What the select reports is checked
+ * rather than cast: the kit types its value widely, and an unknown action would have
+ * reached the schema as an image quietly left alone.
  *
- * @param event - The select event.
+ * @param value - The value reported by the select.
  */
-function handleActionChange(event: Event): void {
-    const target = event.target as HTMLSelectElement;
-    emit('update:action', props.image.url, target.value as TImageResolveAction);
+function handleActionChange(value: TBrickDemoValues | null): void {
+    if (!isImageResolveAction(value)) {
+        return;
+    }
+
+    emit('update:action', props.image.url, value);
 }
 
 /**
@@ -102,15 +118,14 @@ function handleImgError(): void {
         </div>
 
         <div :class="$style.actionWrapper">
-            <select
+            <BricksSelect
                 :value="props.action"
-                :class="$style.actionSelect"
+                :specs="actionOptions"
+                :facets="actionFacets"
                 :disabled="props.disabled"
-                @change="handleActionChange"
-            >
-                <option value="keep">{{ t('bricks.media.resolver.keep') }}</option>
-                <option value="placeholder">{{ t('bricks.media.resolver.placeholder') }}</option>
-            </select>
+                :aria-label="t('bricks.media.resolver.itemAction', { name: props.image.url })"
+                @update:value="handleActionChange"
+            />
         </div>
     </div>
 </template>
@@ -182,24 +197,6 @@ function handleImgError(): void {
 
 .actionWrapper {
     flex-shrink: 0;
-}
-
-.actionSelect {
-    --bricks-base-0: #fff;
-    --bricks-base-200: #e5e7eb;
-    --bricks-base-900: #111827;
-
-    padding: 0.4rem 0.8rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    font-size: 1.2rem;
-    color: var(--bricks-base-900);
-    cursor: pointer;
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+    width: 14rem;
 }
 </style>

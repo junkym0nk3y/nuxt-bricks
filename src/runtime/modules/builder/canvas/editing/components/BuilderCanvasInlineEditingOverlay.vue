@@ -435,6 +435,9 @@ function handleRequestImage(): void {
 
 .fallbackEditorWrapper {
     --bricks-base-0: #fff;
+    --bricks-base-200: #e5e7eb;
+    --bricks-base-900: #111827;
+    --bricks-primary: #2563eb;
 
     overflow-y: auto;
     max-height: 20rem;
@@ -442,10 +445,9 @@ function handleRequestImage(): void {
     border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-0);
-    background-color: var(--bricks-base-0);
     font-size: 1.4rem;
     line-height: 1.5;
-    color: initial;
+    color: var(--bricks-base-900);
 
     :global(.ProseMirror) {
         min-height: 4rem;

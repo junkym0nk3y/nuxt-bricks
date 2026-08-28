@@ -22,6 +22,29 @@
  * element stands between the group and the button and gets in the way of reading
  * them as one whole.
  *
+ * Every tab stands in a wrapper of its own, whether or not anything goes next to
+ * it. The wrapper exists for the `item-action` slot — a consumer action (a delete
+ * button and the like) that cannot live inside `ToggleGroupItem`: a button within
+ * a button is not allowed, and a second group item would change the selection on
+ * a click. It is rendered unconditionally so that the bar keeps one DOM and one
+ * CSS branch; `display: contents` will not do in its place, because a box of its
+ * own is exactly what carries the underline, the width and `flex: 1`. The extra
+ * level costs reka nothing: it collects group items across the whole subtree by
+ * `data-reka-collection-item`, so the roving tabindex and the arrow keys still
+ * see only the toggles, while the action stays an ordinary Tab stop.
+ *
+ * The underline of `_underline` therefore lives on the wrapper rather than on the
+ * tab: on a tab with an action it would otherwise break off under the caption. The
+ * wrapper reads the selected state from `modelValue` instead of asking the DOM —
+ * the bar already knows the answer, and a computed class is checkable by a test
+ * where `:has` is not.
+ *
+ * The track line under `_underline` is not the bar's to draw: a bar of tabs does
+ * not know how wide its track is. Its only consumer stands in a row shared with a
+ * create button and a managing toggle, and the baseline belongs to that whole row —
+ * a line of the bar's own would have doubled it under the tabs and stopped short of
+ * everything else. A row that wants a line draws it on itself.
+ *
  * Style notes that the markup no longer says out loud: `_wrap` wraps lines
  * instead of overflowing the container, because the bar has no width of its own
  * and tabs do not wrap by words (`white-space: nowrap`); the bar radius equals
@@ -39,6 +62,7 @@ import type {
     IBricksTabBarProps,
     IBricksTabBarEmits,
     IBricksTabBarItemProps,
+    IBricksTabBarSlots,
     IBricksTabItem,
 } from './types.d.ts';
 
@@ -68,6 +92,8 @@ const props = withDefaults(defineProps<IBricksTabBarProps>(), {
 
 // #region Emits
 const emit = defineEmits<IBricksTabBarEmits>();
+
+defineSlots<IBricksTabBarSlots>();
 // #endregion
 
 // #region Data
@@ -93,12 +119,29 @@ const classList = computed(() => ({
 function getItemProps(item: IBricksTabItem): IBricksTabBarItemProps {
     return {
         item,
+        hasAction: Boolean(item.hasAction),
         variant: props.variant,
         size: props.size,
         tone: props.tone,
         radius: props.radius,
         iconOnly: props.iconOnly,
         block: props.block,
+    };
+}
+
+/**
+ * Assembles the classes of the wrapper of an element: the variant is needed there
+ * because the underline is drawn by the wrapper, and the selected state because
+ * the underline shows only under the chosen tab.
+ *
+ * @param item - Tab description.
+ */
+function getItemClassList(item: IBricksTabItem): Record<string, boolean> {
+    return {
+        [$style[`_${props.variant}`]]: true,
+        [$style._selected]: item.value === props.modelValue,
+        [$style._hasAction]: Boolean(item.hasAction),
+        [$style._block]: props.block,
     };
 }
 
@@ -136,13 +179,13 @@ function handleValueChange(value: unknown): void {
         :aria-label="props.groupLabel"
         @update:model-value="handleValueChange"
     >
-        <template v-for="item in props.items" :key="item.value">
-            <BricksTooltip
-                v-if="item.tooltip"
-                top
-                role="presentation"
-                :class="[$style.tooltip, props.block && $style._block]"
-            >
+        <div
+            v-for="item in props.items"
+            :key="item.value"
+            role="presentation"
+            :class="[$style.item, getItemClassList(item)]"
+        >
+            <BricksTooltip v-if="item.tooltip" top role="presentation" :class="$style.tooltip">
                 <template #activator>
                     <BricksTabBarItem v-bind="getItemProps(item)" />
                 </template>
@@ -153,7 +196,9 @@ function handleValueChange(value: unknown): void {
             </BricksTooltip>
 
             <BricksTabBarItem v-else v-bind="getItemProps(item)" />
-        </template>
+
+            <slot name="item-action" :item="item" />
+        </div>
     </ToggleGroupRoot>
 </template>
 
@@ -192,15 +237,48 @@ function handleValueChange(value: unknown): void {
 
     &._underline {
         gap: 0.8rem;
-        border-bottom: 1px solid var(--bricks-base-200);
+    }
+}
+
+.item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    &._block {
+        flex: 1;
+        min-width: 0;
+
+        .tooltip {
+            flex: 1;
+        }
+    }
+
+    &._hasAction {
+        padding-right: 0.8rem;
+    }
+
+    &._underline {
+        &:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0.2rem;
+            background: var(--bricks-primary);
+            transform: scaleX(0);
+            transform-origin: left center;
+            transition: transform var(--bricks-default-transition);
+        }
+
+        &._selected:after {
+            transform: scaleX(1);
+        }
     }
 }
 
 .tooltip {
     display: inline-flex;
-
-    &._block {
-        flex: 1;
-    }
 }
 </style>

@@ -27,19 +27,18 @@
 `src/*.ts` и композаблы рантайм-доменов, а SFC и `utils/` — нет (об этом сказано в
 самом правиле).
 
-## 1. Интерфейсы пропсов и эмитов объявлены внутри четырёх SFC
+## 1. Интерфейсы пропсов и эмитов объявлены внутри двух SFC
 
-**Файлы:** `builder/media/components/BuilderMediaImageResolverItem.vue:22,28`,
-`builder/media/components/TheBuilderMediaImageResolverModal.vue:29,34`,
-`render/components/RendererCloseButton.vue:23,27`,
+**Файлы:** `render/components/RendererCloseButton.vue:23,27`,
 `text-editor/components/TheTextEditorModal.vue:33,39`
 
 Что осталось от прохода по сайдбару: там контракты уже переехали в файлы типов, а
-эти четыре компонента лежат в других доменах и снимаются каждый в партии своего.
-Файлы типов в их доменах есть — `media/types/`, `render/types/`,
-`text-editor/components/types.d.ts`.
+эти компоненты лежат в других доменах и снимаются каждый в партии своего. Файлы
+типов в их доменах есть — `render/types/`, `text-editor/components/types.d.ts`.
+Два медиа-компонента резолвера отсюда уже сняты: их контракты уехали в
+`media/types/media.d.ts`, к остальным контрактам компонентов домена.
 
-**Пока эти четыре стоят, сторожа не усилить.** `test/module/typeLocations.spec.ts`
+**Пока эти два стоят, сторожа не усилить.** `test/module/typeLocations.spec.ts`
 проверяет `src/*.ts` и композаблы рантайм-доменов; расширить его на SFC можно
 только тогда, когда нарушений не останется — иначе набор красный либо обзаводится
 baseline-списком исключений, который потом чинят руками.
@@ -123,71 +122,7 @@ baseline-списком исключений, который потом чиня
 
 # Стили
 
-## 7. Корневой CSS-класс не совпадает с именем компонента
-
-**Файлы:** `src/runtime/modules/ui/base/button/BricksButton.vue` (`.button`),
-`base/tooltip/BricksTooltipHint.vue` (`.tooltipHint`)
-
-`.claude/rules/naming.md` требует корневой класс, совпадающий с именем компонента
-(PascalCase). Оба файла его нарушают. `BricksSearchInput` под правило не попадает —
-у него корень чужой компонент, а такие wrapper'ы правило прямо исключает.
-
-## 8. Форс светлой темы вне списка легализованных исключений
-
-**Файлы:** `builder/canvas/editing/components/BuilderCanvasInlineEditingOverlay.vue:435-447`
-(`.fallbackEditorWrapper`),
-`builder/shell/sidebar/components/property-editors/BuilderShellSidebarPropertyMediaPicker.vue:139-140`,
-`builder/media/components/BuilderMediaImageResolverItem.vue:177-181`,
-`components/TheBuilderMediaImageResolverModal.vue:199-203`
-
-`.claude/rules/styles.md` перечисляет узлы с осознанным hex-переопределением
-(`--bricks-base-0: #fff` и т. п.) **поимённо**: `TextEditorArea` (`.editor`,
-`.fallbackArea`) и `TheTextEditorModal` (`.editor`). Здесь ещё четыре таких узла, и в
-списке их нет.
-
-Пин при этом работает — проверено в живом DOM: при `bricks-dark` на body фон превью
-медиа-пикера остаётся `rgb(249, 250, 251)`, тогда как тулбар уходит в
-`rgb(40, 38, 42)`. У медиа-пикера переопределений два, у каждого селекта резолвера —
-три.
-
-Причина переопределения нигде не записана: комментарии говорят «фиксируем светлую
-тему», то есть что, а не зачем.
-
-**Решать владельцу:** либо дополнить список правила этими узлами с причиной, либо
-снять форс. Пока не решено, правило `styles.md` описывает не то, что в коде.
-
-Рядом в `.fallbackEditorWrapper` две мелочи того же блока: `background` и
-`background-color` заданы одним и тем же значением подряд (второе объявление
-лишнее), а `color: initial` вместо переменной темы читается как случайный сброс —
-при том, что фон здесь намеренно белый и текст обязан быть тёмным.
-
-Селекты резолвера — ещё и дубль кита, см. «Нативный `<select>` вместо
-кит-компонента» в [П4](p4-duplication.md).
-
-**У четырёх узлов решения РАЗНЫЕ, одним махом не закрываются:**
-
-- два `<select>` резолвера — форс исчезает сам вместе с переходом на `BricksSelect`;
-- медиа-пикер — это хром интерфейса, а не редактируемый контент: должен наследовать
-  тему, форс снять;
-- `.fallbackEditorWrapper` — оставить светлым и легализовать в `styles.md` с
-  причиной, заодно убрав дублирующее объявление фона и задав явный тёмный цвет
-  текста вместо `color: initial`.
-
-## 9. Два мелких отступления в стилях сайдбара
-
-**Файлы:** `builder/shell/sidebar/components/BuilderShellSidebarNavigationEditor.vue:182`,
-`sidebar/components/BuilderShellSidebarSchemaTreeItem.vue:208`
-
-`border-radius: 1rem` у счётчика навигации — пилюля числом, тогда как правило
-требует `var(--bricks-border-radius-pill)`.
-
-У выделенной строки дерева
-`background-color: var(--bricks-primary-100, var(--bricks-base-200))` — fallback
-никогда не срабатывает: `--bricks-primary-100` объявлена во всех трёх темах
-(`assets/scss/shared/_variables.scss:50,176,233`), и запасное значение только
-маскирует, какой токен на самом деле в силе.
-
-## 10. Стили документации билдера лежат в глобальной таблице `default.scss`
+## 7. Стили документации билдера лежат в глобальной таблице `default.scss`
 
 **Файл:** `src/runtime/assets/scss/default.scss:214-336`
 
@@ -204,7 +139,7 @@ baseline-списком исключений, который потом чиня
 
 # Размер файлов
 
-## 11. Два файла редактора у потолка `oxlint max-lines`, один его уже прошёл
+## 8. Два файла редактора у потолка `oxlint max-lines`, один его уже прошёл
 
 **Файлы:** `builder/app/composables/useBuilderSession.ts`,
 `builder/app/pages/[pagename].vue`
@@ -231,7 +166,7 @@ root.
 
 # Магические числа и нейминг
 
-## 12. `previewPagename` держит адрес, а не имя
+## 9. `previewPagename` держит адрес, а не имя
 
 **Файл:** `builder/app/composables/useBuilderPage.ts` (`handlePreview`)
 
@@ -248,14 +183,7 @@ House-style репозитория — американская орфограф
 Комментарии выправлены; ниже осталось то, что является кодом, а не комментарием, и
 потому правится отдельно.
 
-## 13. Идентификатор `normalised` в `ui`
-
-**Файл:** `src/runtime/modules/ui/inputs/composables/useBricksInput.ts:245-248`
-
-Локальная переменная `normalised` стоит при функции `normalizeIncomingValue`
-рядом. Переименование — правка кода.
-
-## 14. `cancelled` против `canceled` в сообщении ошибки
+## 10. `cancelled` против `canceled` в сообщении ошибки
 
 **Файл:** `persistence/server/utils/storageErrors.ts:148`
 
@@ -268,19 +196,11 @@ House-style репозитория — американская орфограф
 Сообщение задаётся через `super()` в классе-наследнике `Error` — это строковый
 литерал, а не комментарий.
 
-## 15. `towards` против `toward`
-
-**Файл:** `src/runtime/modules/ui/base/badge/types.d.ts`
-
-House-style — американское `toward` (пять вхождений в `ui`, `persistence`,
-`builder/canvas`, `builder/users`); единственное британское `towards` осталось
-здесь.
-
 ---
 
 # Границы доменов
 
-## 16. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
+## 11. Порог поиска пикера лежит в `common`, хотя нужен одному builder-компоненту
 
 **Файл:** `common/constants/templates.ts:27-32`
 (`TEMPLATE_PICKER_SEARCH_THRESHOLD`), потребитель —
@@ -299,7 +219,7 @@ House-style — американское `toward` (пять вхождений �
 шаблона — с того, на котором список начинает прокручиваться. Остаётся только место
 объявления константы.
 
-## 17. Стили документации в глобальной таблице
+## 12. Стили документации в глобальной таблице
 
 См. пункт «Стили документации билдера лежат в глобальной таблице `default.scss`»
 выше — это одновременно и нарушение границ домена: билдерский класс живёт в таблице,
@@ -307,7 +227,7 @@ House-style — американское `toward` (пять вхождений �
 
 ---
 
-## 18. Статья документации уходит в `v-html` мимо `sanitize`
+## 13. Статья документации уходит в `v-html` мимо `sanitize`
 
 **Файлы:** `builder/documentation/components/TheBuilderDocumentationModal.vue:126`,
 источник HTML — `builder/documentation/composables/useMarkdownRenderer.ts:35`

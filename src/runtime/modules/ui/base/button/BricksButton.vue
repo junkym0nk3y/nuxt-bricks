@@ -24,14 +24,14 @@
  */
 
 // #region Imports
+// Types
+import type { IBricksButtonProps, IBricksButtonEmits } from './types.d.ts';
+
 // Vue
 import { computed, useCssModule } from 'vue';
 
 // Reka UI
 import { Primitive } from 'reka-ui';
-
-// Types
-import type { IBricksButtonProps, IBricksButtonEmits } from './types.d.ts';
 // #endregion
 
 // #region Props
@@ -82,7 +82,7 @@ function onClick(event: MouseEvent): void {
 <template>
     <Primitive
         as="button"
-        :class="[$style.button, classList]"
+        :class="[$style.BricksButton, classList]"
         :disabled="props.disabled"
         :type="props.type"
         @click="onClick"
@@ -94,7 +94,7 @@ function onClick(event: MouseEvent): void {
 </template>
 
 <style module lang="scss">
-.button {
+.BricksButton {
     display: inline-flex;
     align-items: center;
     justify-content: center;

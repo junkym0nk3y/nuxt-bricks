@@ -526,6 +526,7 @@
             "resolver": {
                 "title": "New images found",
                 "globalAction": "Action for all:",
+                "itemAction": "Action for the image {name}",
                 "keep": "Keep",
                 "placeholder": "Placeholder",
                 "skip": "Skip",

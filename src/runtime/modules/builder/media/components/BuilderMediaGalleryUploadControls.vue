@@ -23,7 +23,7 @@
  * `3.6rem`, exactly the height of the search field. The `md` buttons of the kit come to
  * 39 (1rem of padding + a 1.2 × 1.4rem line + the border) and `BricksInput` comes to 36,
  * and in one row that difference read as a button gone askew. The `height` rather than
- * the paddings: the kit declares those on `.button._md`, two classes, which outweighs
+ * the paddings: the kit declares those on `.BricksButton._md`, two classes, which outweighs
  * the single class of the caller — whereas `height` it does not declare at all, so
  * there is nothing to outweigh.
  */

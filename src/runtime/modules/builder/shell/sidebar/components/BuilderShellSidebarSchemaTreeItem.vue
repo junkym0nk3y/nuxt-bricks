@@ -196,7 +196,7 @@ function handleSelect(): void {
     }
 
     &._selected {
-        background-color: var(--bricks-primary-100, var(--bricks-base-200));
+        background-color: var(--bricks-primary-100);
     }
 
     &._hidden {

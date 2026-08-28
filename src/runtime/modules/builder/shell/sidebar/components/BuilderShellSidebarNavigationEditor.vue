@@ -179,7 +179,7 @@ function handleMoveDown(index: number): void {
     min-width: 2rem;
     height: 2rem;
     padding: 0 0.6rem;
-    border-radius: 1rem;
+    border-radius: var(--bricks-border-radius-pill);
     background-color: var(--bricks-base-100);
     font-size: 1.2rem;
     font-weight: 600;

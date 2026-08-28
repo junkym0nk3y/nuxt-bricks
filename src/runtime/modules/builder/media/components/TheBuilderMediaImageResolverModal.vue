@@ -4,14 +4,22 @@
  * pictures the media library does not hold: one action for all of them at the top, a
  * row per picture below.
  *
- * The action picker here is the same native `<select>` with the same light-palette
- * override as in `BuilderMediaImageResolverItem`, and with as little of a recorded
- * reason.
+ * The caption of the overall picker is a `span` and not a `label`: it never named the
+ * control — there was neither a `for` nor a control nested inside it — and after the
+ * move to the kit select there is nothing for a `for` to point at, because the trigger
+ * carries no `id` of its own. The name of the control comes from the same phrase
+ * through `aria-label`, so a screen reader hears it once rather than twice.
  */
 
 // #region Imports
 // Types
-import type { IImageResolverState, TImageResolveAction } from '../types/schemaImageResolver';
+import type { IBrickUiCommonProp } from '../../../ui/types/common';
+import type { TBrickDemoValues } from '../../../common/types/index';
+import type { TImageResolveAction } from '../types/schemaImageResolver';
+import type { IMediaImageResolverModalProps, IMediaImageResolverModalEmits } from '../types/media';
+
+// Utils
+import { IMAGE_RESOLVE_ACTIONS, isImageResolveAction } from '../utils/imageResolveAction';
 
 // Vue
 import { computed } from 'vue';
@@ -22,30 +30,16 @@ import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
 import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
 import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
+import BricksSelect from '../../../ui/inputs/BricksSelect.vue';
 import BuilderMediaImageResolverItem from './BuilderMediaImageResolverItem.vue';
 // #endregion
 
-// #region Interfaces
-interface ITheImageResolverModalProps {
-    isOpen: boolean;
-    state: IImageResolverState;
-}
-
-interface ITheImageResolverModalEmits {
-    confirm: [];
-    cancel: [];
-    skip: [];
-    setImageAction: [url: string, action: TImageResolveAction];
-    setGlobalAction: [action: TImageResolveAction];
-}
-// #endregion
-
 // #region Props
-const props = defineProps<ITheImageResolverModalProps>();
+const props = withDefaults(defineProps<IMediaImageResolverModalProps>(), {});
 // #endregion
 
 // #region Emits
-const emit = defineEmits<ITheImageResolverModalEmits>();
+const emit = defineEmits<IMediaImageResolverModalEmits>();
 // #endregion
 
 // #region Data
@@ -54,6 +48,13 @@ const { t } = useI18n();
 
 // #region Computed
 const imageCount = computed<number>(() => props.state.newImages.length);
+
+/** Both options are always available, so the facets repeat the whole list */
+const actionOptions = computed<IBrickUiCommonProp[]>(() => [
+    { label: t('bricks.media.resolver.keep'), value: 'keep' },
+    { label: t('bricks.media.resolver.placeholder'), value: 'placeholder' },
+]);
+const actionFacets = computed<TBrickDemoValues[]>(() => [...IMAGE_RESOLVE_ACTIONS]);
 // #endregion
 
 // #region Methods
@@ -89,13 +90,18 @@ function handleImageAction(url: string, action: TImageResolveAction): void {
 }
 
 /**
- * Updates the action that goes for every image.
+ * Updates the action that goes for every image. What the select reports is checked
+ * rather than cast: the kit types its value widely, and an unknown action would have
+ * reached the schema as an image quietly left alone.
  *
- * @param event - The select event.
+ * @param value - The value reported by the select.
  */
-function handleGlobalActionChange(event: Event): void {
-    const target = event.target as HTMLSelectElement;
-    emit('setGlobalAction', target.value as TImageResolveAction);
+function handleGlobalActionChange(value: TBrickDemoValues | null): void {
+    if (!isImageResolveAction(value)) {
+        return;
+    }
+
+    emit('setGlobalAction', value);
 }
 // #endregion
 </script>
@@ -118,19 +124,18 @@ function handleGlobalActionChange(event: Event): void {
             </BricksModalHeader>
 
             <div :class="$style.globalAction">
-                <label :class="$style.globalLabel">{{
+                <span :class="$style.globalLabel">{{
                     t('bricks.media.resolver.globalAction')
-                }}</label>
-                <select
-                    :value="props.state.globalAction"
-                    :class="$style.globalSelect"
-                    @change="handleGlobalActionChange"
-                >
-                    <option value="keep">{{ t('bricks.media.resolver.keep') }}</option>
-                    <option value="placeholder">
-                        {{ t('bricks.media.resolver.placeholder') }}
-                    </option>
-                </select>
+                }}</span>
+                <div :class="$style.globalControl">
+                    <BricksSelect
+                        :value="props.state.globalAction"
+                        :specs="actionOptions"
+                        :facets="actionFacets"
+                        :aria-label="t('bricks.media.resolver.globalAction')"
+                        @update:value="handleGlobalActionChange"
+                    />
+                </div>
             </div>
 
             <div :class="[$style.content, 'bricks-scrollbox']">
@@ -182,7 +187,7 @@ function handleGlobalActionChange(event: Event): void {
     min-width: 2.4rem;
     height: 2.4rem;
     padding: 0 0.6rem;
-    border-radius: 1.2rem;
+    border-radius: var(--bricks-border-radius-pill);
     background: var(--bricks-primary-100);
     font-size: 1.2rem;
     font-weight: 600;
@@ -193,6 +198,7 @@ function handleGlobalActionChange(event: Event): void {
     display: flex;
     align-items: center;
     flex-shrink: 0;
+    flex-wrap: wrap;
     padding: 1.2rem 2rem;
     border-bottom: 1px solid var(--bricks-base-200);
     background: var(--bricks-base-50);
@@ -206,18 +212,8 @@ function handleGlobalActionChange(event: Event): void {
     color: var(--bricks-base-700);
 }
 
-.globalSelect {
-    --bricks-base-0: #fff;
-    --bricks-base-200: #e5e7eb;
-    --bricks-base-900: #111827;
-
-    padding: 0.6rem 1rem;
-    border-radius: var(--bricks-border-radius-sm);
-    border: 1px solid var(--bricks-base-200);
-    background: var(--bricks-base-0);
-    font-size: 1.4rem;
-    color: var(--bricks-base-900);
-    cursor: pointer;
+.globalControl {
+    width: 18rem;
 }
 
 .content {

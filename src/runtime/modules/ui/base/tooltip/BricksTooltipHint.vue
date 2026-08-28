@@ -18,13 +18,13 @@ const props = withDefaults(defineProps<IBricksTooltipHintProps>(), {
 </script>
 
 <template>
-    <div :class="$style.tooltipHint">
+    <div :class="$style.BricksTooltipHint">
         {{ props.text }}
     </div>
 </template>
 
 <style module lang="scss">
-.tooltipHint {
+.BricksTooltipHint {
     max-width: 24rem;
     padding: 0.8rem 1.2rem;
     border-radius: var(--bricks-border-radius-sm);

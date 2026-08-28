@@ -27,6 +27,16 @@ export interface IBricksTabItem {
     icon?: string;
     count?: number;
     disabled?: boolean;
+    /**
+     * Tells the bar that the consumer draws an action of its own next to this tab
+     * through the `item-action` slot, so the tab has to make room for it: the caption
+     * gives up its right padding and the trailing gap moves to the wrapper. A per-item
+     * flag rather than a check of the slot, because an action usually appears on some
+     * of the tabs only — and on the same tab it comes and goes (a managing mode, a
+     * right to delete), while the slot outlet itself stays mounted so the consumer can
+     * animate what it puts inside.
+     */
+    hasAction?: boolean;
     /** Hover hint; the accessible name comes from `label`, not from here */
     tooltip?: string;
 }
@@ -68,8 +78,21 @@ export interface IBricksTabBarEmits {
     'update:modelValue': [value: string];
 }
 
+export interface IBricksTabBarSlots {
+    /**
+     * An action of the consumer standing next to the tab — a delete button and the
+     * like. It is rendered as a neighbor of the toggle rather than inside it: a button
+     * within a button is not allowed, and a second `ToggleGroupItem` would change the
+     * selection on a click. The kit owns the place and the spacing of the action, the
+     * consumer owns what goes into it.
+     */
+    'item-action': (props: { item: IBricksTabItem }) => unknown;
+}
+
 export interface IBricksTabBarItemProps {
     item: IBricksTabItem;
+    /** Trims the right padding of the caption when an action stands next to the tab */
+    hasAction: boolean;
     variant: TBricksTabBarVariant;
     size: TBricksTabBarSize;
     tone: TBricksTabBarTone;

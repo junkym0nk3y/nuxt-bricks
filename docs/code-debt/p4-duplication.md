@@ -70,56 +70,7 @@
 
 ---
 
-## 4. Категорийные табы медиатеки — копия `BricksTabBarItem`, потому что киту не хватает слота действия
-
-**Файлы:** `builder/media/components/BuilderMediaGalleryCategoryTabs.vue`,
-владелец вида — `ui/base/tabs/BricksTabBarItem.vue` (вариант `underline`, размер `sm`)
-
-Копия значение за значением: бокс `3.2rem`, паддинг `0 1.2rem`, кегль `1.2rem`/500,
-`line-height` 1.2, подпись `base-500`, ховер `base-900`, активное состояние `primary` и
-та же полоса `0.2rem` через `scaleX` с `transform-origin: left center`. Это не похожие
-блоки — блок `:after` совпадает построчно.
-
-**Копия уже расходилась:** гэп между подписью и счётчиком был `0.4rem` против `0.8rem`
-у кита, счётчик — `base-400` против `base-500`. Оба значения приведены к киту, но
-защиты от следующего расхождения нет — она появится только когда останется одна
-реализация.
-
-**Почему нельзя просто взять компонент кита.** Мешает крестик удаления категории:
-вложить кнопку внутрь `ToggleGroupItem` нельзя (кнопка внутри кнопки), а положить её
-отдельным item нельзя потому, что любой item группы меняет фильтр — клик по крестику
-переключал бы категорию. Поэтому в медиатеке каждый таб обёрнут своим `div.tab`,
-который несёт подчёркивание (иначе у таба с крестиком полоса обрывалась бы под
-подписью) и читает выбранное состояние через `:has(.label[data-state='on'])`.
-
-**Чинить:** научить дорожку кита слоту действия у элемента — обёртка вокруг
-`BricksTabBarItem` внутри `ToggleGroupRoot`, подчёркивание переезжает на обёртку, слот
-вида `#item-action="{ item }"` рендерится рядом с элементом. После этого
-`BuilderMediaGalleryCategoryTabs` собирается на `BricksTabBar`, и от него остаётся
-только передача крестика в слот.
-
-**Радиус поражения.** Обёртка меняет структуру прямых детей `ToggleGroupRoot`, а на ней
-держится геометрия варианта `segmented`: пилюля сидит внутри дорожки с паддингом, гэпы
-`0.2rem` у `ghost` и `0.8rem` у `outline`/`underline`, режим `block` растягивает
-элементы через `flex: 1`. Мест вызова пять — `TheBuilderAuthProfileModal`,
-`BuilderShellSidebarPropertiesView`, `BuilderCanvasBottomBar`,
-`BuilderPublishPagesList`, `BuilderUsersList`, — и в двух из них дорожка иконочная
-(`icon-only`), где ширина элемента фиксирована.
-
-Сложность средняя: правка в ките с проверкой всех пяти дорожек в обеих темах плюс
-`test/ui/bricksTabBar.spec.ts`. **Различающий тест** — таб с действием: полоса
-активного состояния обязана идти под подписью **и** под действием, а клик по действию
-не должен менять выбранный таб.
-
-Побочно закрывается расхождение макета с кодом: в Figma эти табы уже стоят инстансами
-сета `Tab` (Underline/SM), то есть макет описывает кит, а код — копию.
-
-**Удаление категории внутрь кита не переносить:** киту принадлежит слот действия,
-медиатеке — то, что в него кладётся.
-
----
-
-## 5. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
+## 4. Приведение `$i18n as Composer` повторяется в пяти файлах рантайма
 
 **Файлы:** `plugins/builder/veeValidateSetup.ts`,
 `plugins/builder/textEditorToolbarSetup.ts`,
@@ -142,7 +93,7 @@
 
 ---
 
-## 6. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
+## 5. Модалка галереи и раздел дашборда дублируют фильтрацию и счётчики
 
 **Файлы:** `builder/media/components/TheBuilderMediaGalleryModal.vue:104-195`,
 `components/TheBuilderMediaSection.vue:106-152`
@@ -161,7 +112,7 @@
 
 ---
 
-## 7. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
+## 6. Мета-панель модалки и панель деталей раздела дублируют работу с категорией
 
 **Файлы:** `builder/media/components/BuilderMediaGalleryMetaPanel.vue:88-131`,
 `components/BuilderMediaSectionDetailsPanel.vue:90-171`
@@ -180,25 +131,7 @@ slug».
 
 ---
 
-## 8. Нативный `<select>` вместо кит-компонента в резолвере изображений
-
-**Файлы:** `builder/media/components/BuilderMediaImageResolverItem.vue:95-103,177-181`,
-`components/TheBuilderMediaImageResolverModal.vue:114-123,199-203`
-
-Обе поверхности резолвера изображений собраны на нативном `<select>`, хотя в ките
-есть `BricksSelect` — и он же используется соседями по домену
-(`BuilderMediaGalleryMetaPanel`, `BuilderMediaSectionDetailsPanel`) ровно для того же
-выбора из двух-трёх значений. Из-за этого у каждого селекта свои `padding`,
-`border`, `font-size` и свой `:disabled`, которых у кита не пришлось бы писать
-вовсе.
-
-Второе следствие — блок форса светлой темы у каждого из двух селектов; он же
-отдельным пунктом в [П5](p5-conventions.md), «Форс светлой темы вне списка
-легализованных исключений».
-
----
-
-## 9. Формы сохранения и переименования шаблона — копия друг друга
+## 7. Формы сохранения и переименования шаблона — копия друг друга
 
 **Файлы:** `builder/templates/composables/useTemplateSaveForm.ts` (171 строка),
 `useTemplateRenameForm.ts` (146 строк)
@@ -223,7 +156,7 @@ slug».
 
 ---
 
-## 10. Мета-строка шаблона собирается дважды
+## 8. Мета-строка шаблона собирается дважды
 
 **Файлы:** `builder/templates/components/BuilderTemplatesCard.vue:70-75`
 (`metaLine`), `BuilderTemplatesPickerList.vue:84-89` (`buildMetaLine`)
@@ -242,7 +175,7 @@ slug».
 
 ---
 
-## 11. Исход `window.open` проверяет одна функция из трёх
+## 9. Исход `window.open` проверяет одна функция из трёх
 
 **Файлы:** `builder/publish/composables/usePublishPreview.ts`
 (`previewCurrentPage` против `previewPageVersion`), `usePublishPageActions.ts`
@@ -263,7 +196,7 @@ slug».
 
 ---
 
-## 12. `DARK_MODE_COOKIE` против литерала в редакторе
+## 10. `DARK_MODE_COOKIE` против литерала в редакторе
 
 **Файлы:** `builder/publish/composables/usePublishDashboardPreferences.ts`
 (константа), `builder/app/pages/[pagename].vue` (литерал `'bricks-dark-mode'`)
@@ -282,7 +215,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 13. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
+## 11. `getMediaByUrl` в HTTP-адаптере — O(N) на горячем пути прокси
 
 **Файлы:** `persistence/server/http/httpMediaMethods.ts` (`getMediaByUrl`),
 `src/runtime/server/api/bricks/media/s3-proxy.post.ts:59`
@@ -300,11 +233,11 @@ published-поверхность о ней не знает.
 
 ---
 
-## 14. `IImageLocation` собирает семь полей, читается одно
+## 12. `IImageLocation` собирает семь полей, читается одно
 
 **Файлы:** `builder/media/types/schemaImageResolver.d.ts:22-30`, заполнение —
 `utils/schemaImageExtractor.ts` (`createLocation`), единственное чтение —
-`components/BuilderMediaImageResolverItem.vue:48`
+`components/BuilderMediaImageResolverItem.vue:60`
 
 `createLocation` кладёт в каждое местоположение `componentIndex`, `componentId`,
 `componentName`, `propName`, `sourceType` и, для массивов,
@@ -320,7 +253,7 @@ published-поверхность о ней не знает.
 
 # Упрощения
 
-## 15. `isPasswordActionVisible` — псевдоним `canChangePassword`
+## 13. `isPasswordActionVisible` — псевдоним `canChangePassword`
 
 **Файл:** `builder/users/components/BuilderUsersListRow.vue:114-125`
 
@@ -341,7 +274,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 16. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
+## 14. `ensurePublishSettingsVisible` — обёртка с неиспользуемым параметром
 
 **Файл:** `builder/app/composables/useBuilderPage.ts`
 
@@ -355,7 +288,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 17. Пустые делегаты в composition root
+## 15. Пустые делегаты в composition root
 
 **Файл:** `builder/app/pages/[pagename].vue`
 
@@ -370,7 +303,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 18. `previewCurrentPage`: два `Date.now()` и строка ради числа
+## 16. `previewCurrentPage`: два `Date.now()` и строка ради числа
 
 **Файл:** `builder/publish/composables/usePublishPreview.ts` (`previewCurrentPage`)
 
@@ -386,7 +319,7 @@ published-поверхность о ней не знает.
 
 ---
 
-## 19. `openGeneration` инкрементируется дважды подряд
+## 17. `openGeneration` инкрементируется дважды подряд
 
 **Файл:** `builder/auth/composables/useAuthAvatarCrop.ts:139-143`
 

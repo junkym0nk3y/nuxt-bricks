@@ -3,7 +3,15 @@
  * @description Media picker of a property: a preview of the picked image or video, the
  * buttons that open the gallery and clear the choice, and the address of the file.
  *
- * The preview area pins the light theme with hex values of its own.
+ * Under the media itself the preview lays a checkerboard rather than a flat ground.
+ * The picker holds nothing but a URL — it knows neither the MIME type nor whether the
+ * picture has an alpha channel — and the library accepts transparent PNG, WebP and
+ * sanitized SVG alike. Any single ground therefore hides a class of files: the light
+ * one the picker used to pin lost white logos, and a dark one following the theme
+ * would lose black ones instead. The squares are built from the static white and the
+ * dark surface, the two tones that do not turn over with the theme, so the same file
+ * reads the same way in both. Everything around the media — the frame and the empty
+ * state — follows the theme like the rest of the sidebar chrome.
  */
 
 // #region Imports
@@ -69,10 +77,10 @@ function handleRemove(): void {
     <div :class="$style.BuilderShellSidebarPropertyMediaPicker">
         <label :class="$style.label">{{ resolvedLabel }}</label>
 
-        <div :class="$style.preview">
+        <div :class="[$style.preview, { [$style._checkered]: hasMedia }]">
             <img
                 v-if="hasMedia && mediaType === 'image'"
-                :src="modelValue"
+                :src="props.modelValue"
                 :class="$style.previewImage"
                 :alt="t('bricks.properties.mediaPicker.previewAlt')"
                 loading="lazy"
@@ -81,7 +89,7 @@ function handleRemove(): void {
 
             <video
                 v-else-if="hasMedia && mediaType === 'video'"
-                :src="modelValue"
+                :src="props.modelValue"
                 :class="$style.previewImage"
                 muted
                 playsinline
@@ -116,7 +124,7 @@ function handleRemove(): void {
         </div>
 
         <div v-if="hasMedia" :class="$style.urlDisplay">
-            <span :class="$style.url">{{ modelValue }}</span>
+            <span :class="$style.url">{{ props.modelValue }}</span>
         </div>
     </div>
 </template>
@@ -135,15 +143,43 @@ function handleRemove(): void {
 }
 
 .preview {
-    --bricks-base-50: #f9fafb;
-    --bricks-base-300: #d1d5db;
-
     overflow: hidden;
     width: 100%;
     height: 16rem;
     border-radius: var(--bricks-border-radius-xs);
     border: 1px solid var(--bricks-base-300);
     background: var(--bricks-base-50);
+
+    &._checkered {
+        background-color: var(--bricks-static-white);
+        background-image:
+            linear-gradient(
+                45deg,
+                color-mix(in srgb, var(--bricks-dark-surface) 12%, transparent) 25%,
+                transparent 25%
+            ),
+            linear-gradient(
+                -45deg,
+                color-mix(in srgb, var(--bricks-dark-surface) 12%, transparent) 25%,
+                transparent 25%
+            ),
+            linear-gradient(
+                45deg,
+                transparent 75%,
+                color-mix(in srgb, var(--bricks-dark-surface) 12%, transparent) 75%
+            ),
+            linear-gradient(
+                -45deg,
+                transparent 75%,
+                color-mix(in srgb, var(--bricks-dark-surface) 12%, transparent) 75%
+            );
+        background-position:
+            0 0,
+            0 0.8rem,
+            0.8rem -0.8rem,
+            -0.8rem 0;
+        background-size: 1.6rem 1.6rem;
+    }
 }
 
 .previewImage {

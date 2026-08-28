@@ -242,10 +242,10 @@ export function useBricksInput(
     watch(
         () => props.value,
         (newValue) => {
-            const normalised = normalizeIncomingValue(newValue);
-            if (normalised !== innerValue.value) {
-                innerValue.value = normalised;
-                runValidation(normalised);
+            const normalized = normalizeIncomingValue(newValue);
+            if (normalized !== innerValue.value) {
+                innerValue.value = normalized;
+                runValidation(normalized);
             }
         }
     );

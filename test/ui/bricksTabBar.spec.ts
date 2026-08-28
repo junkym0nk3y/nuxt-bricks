@@ -57,12 +57,18 @@ function mountTabBar(overrides: Partial<IBricksTabBarProps> = {}): VueWrapper {
 }
 
 /**
- * Отдаёт кнопки группы в порядке разметки.
+ * Отдаёт кнопки-переключатели группы в порядке разметки.
+ *
+ * Отбор идёт по атрибуту коллекции reka, а не по тегу: рядом с переключателем
+ * может стоять кнопка действия потребителя, и `querySelectorAll('button')` после
+ * этого перестаёт отличать одно от другого.
  *
  * @param wrapper - Смонтированный таб-бар.
  */
 function buttons(wrapper: VueWrapper): HTMLButtonElement[] {
-    return [...wrapper.element.querySelectorAll('button')] as HTMLButtonElement[];
+    return [
+        ...wrapper.element.querySelectorAll('[data-reka-collection-item]'),
+    ] as HTMLButtonElement[];
 }
 
 /**
@@ -206,5 +212,112 @@ describe('BricksTabBar: содержимое кнопки', () => {
         expect(wrapperEl.getAttribute('role')).toBe('presentation');
         expect(buttons(wrapper)).toHaveLength(1);
         expect(buttons(wrapper)[0]!.textContent).toContain('Все');
+    });
+});
+
+describe('BricksTabBar: слот действия у элемента', () => {
+    /**
+     * Монтирует бар с кнопкой действия у второго таба.
+     *
+     * @param overrides - Пропсы, переопределяющие дефолты.
+     */
+    function mountWithAction(overrides: Partial<IBricksTabBarProps> = {}): VueWrapper {
+        return mount(BricksTabBar, {
+            attachTo: document.body,
+            props: {
+                modelValue: 'published',
+                items: [
+                    ITEMS[0]!,
+                    { ...ITEMS[1]!, hasAction: true },
+                    ITEMS[2]!,
+                ] as IBricksTabItem[],
+                groupLabel: 'Фильтр страниц',
+                variant: 'underline',
+                ...overrides,
+            },
+            slots: {
+                'item-action': (slotProps: { item: IBricksTabItem }) =>
+                    slotProps.item.hasAction
+                        ? h('button', { type: 'button', 'data-action': slotProps.item.value })
+                        : null,
+            },
+            global: { components: { BricksIcon: BricksIconStub } },
+        });
+    }
+
+    it('в слот приезжает тот элемент, рядом с которым он нарисован', () => {
+        const wrapper = mountWithAction();
+        const actions = [...wrapper.element.querySelectorAll('[data-action]')];
+
+        expect(actions).toHaveLength(1);
+        expect(actions[0]!.getAttribute('data-action')).toBe('published');
+    });
+
+    it('переключатель и действие стоят в одной обёртке', () => {
+        const wrapper = mountWithAction();
+        const action = wrapper.element.querySelector('[data-action]')!;
+        const toggle = buttons(wrapper).find((button) =>
+            button.textContent?.includes('Опубликованные')
+        )!;
+
+        expect(action.parentElement).toBe(toggle.parentElement);
+    });
+
+    it('действие не числится элементом группы: стрелки его не обходят', () => {
+        const wrapper = mountWithAction();
+        const action = wrapper.element.querySelector('[data-action]')!;
+
+        expect(action.hasAttribute('data-reka-collection-item')).toBe(false);
+        expect(buttons(wrapper)).toHaveLength(3);
+    });
+
+    it('действие остаётся обычной точкой табуляции', () => {
+        const wrapper = mountWithAction();
+        const action = wrapper.element.querySelector('[data-action]')!;
+
+        expect(action.getAttribute('tabindex')).toBeNull();
+    });
+
+    it('нажатие на действие не меняет выбранный таб', async () => {
+        const wrapper = mountWithAction();
+        const action = wrapper.element.querySelector('[data-action]') as HTMLButtonElement;
+
+        action.click();
+        await nextTick();
+
+        expect(emitted(wrapper)).toEqual([]);
+    });
+
+    it('подчёркивание рисует обёртка, а не сам переключатель', () => {
+        const wrapper = mountWithAction();
+        const toggle = buttons(wrapper).find((button) =>
+            button.textContent?.includes('Опубликованные')
+        )!;
+
+        expect(toggle.parentElement!.className).toContain('_selected_');
+        expect(toggle.className).not.toContain('_selected_');
+    });
+
+    it('обёртка с тултипом та же самая: действие остаётся соседом переключателя', () => {
+        const wrapper = mountWithAction({
+            items: [
+                ITEMS[0]!,
+                { ...ITEMS[1]!, hasAction: true, tooltip: 'Подсказка' },
+                ITEMS[2]!,
+            ] as IBricksTabItem[],
+        });
+        const action = wrapper.element.querySelector('[data-action]')!;
+        const toggle = buttons(wrapper).find((button) =>
+            button.textContent?.includes('Опубликованные')
+        )!;
+
+        expect(action.parentElement!.contains(toggle)).toBe(true);
+    });
+
+    it('в режиме block растягиваются обёртки, а не только переключатели', () => {
+        const wrapper = mountWithAction({ block: true });
+        const toggle = buttons(wrapper)[0]!;
+
+        expect(toggle.parentElement!.className).toContain('_block_');
     });
 });

@@ -15,6 +15,10 @@
  * looks crookedly inscribed); and `ghost` follows the buttons next to it
  * (`BricksButton variant="ghost"`) — neither the row nor an inactive tab has a
  * background, and a backing appears only under hover and selection.
+ *
+ * The underline of `_underline` is not drawn here but by the wrapper in
+ * `BricksTabBar`: on a tab with an action next to it a bar of the tab's own width
+ * would break off halfway, under the caption but not under the action.
  */
 
 /**
@@ -52,6 +56,7 @@ const classList = computed(() => ({
     [$style[`_radius${props.radius === 'sm' ? 'Sm' : 'Xs'}`]]: Boolean(props.radius),
     [$style._iconOnly]: props.iconOnly,
     [$style._block]: props.block,
+    [$style._hasAction]: props.hasAction,
 }));
 
 /**
@@ -233,7 +238,6 @@ const ariaLabel = computed<string | undefined>(() =>
     }
 
     &._underline {
-        position: relative;
         border-radius: 0;
 
         &._sm {
@@ -244,19 +248,6 @@ const ariaLabel = computed<string | undefined>(() =>
             min-height: 4rem;
         }
 
-        &:after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 0.2rem;
-            background: var(--bricks-primary);
-            transform: scaleX(0);
-            transform-origin: left center;
-            transition: transform var(--bricks-default-transition);
-        }
-
         &:not([data-state='on'], :disabled):hover {
             color: var(--bricks-base-900);
         }
@@ -264,10 +255,14 @@ const ariaLabel = computed<string | undefined>(() =>
         &[data-state='on'] {
             color: var(--bricks-primary);
 
-            &:after {
-                transform: scaleX(1);
+            .count {
+                color: var(--bricks-primary);
             }
         }
+    }
+
+    &._hasAction {
+        padding-right: 0.2rem;
     }
 }
 

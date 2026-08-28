@@ -25,7 +25,7 @@ export type TBricksBadgeTone = 'primary' | 'neutral' | 'muted' | 'accent' | 'qui
  *
  * The `rounded` radius is `0.4rem` as a number rather than a token: the radius
  * scale has no such value (the nearest, `--bricks-border-radius-xs`, is
- * `0.6rem`), and pulling the scale towards a single badge would mean changing
+ * `0.6rem`), and pulling the scale toward a single badge would mean changing
  * its look for the sake of purity.
  */
 export type TBricksBadgeShape = 'rounded' | 'pill';

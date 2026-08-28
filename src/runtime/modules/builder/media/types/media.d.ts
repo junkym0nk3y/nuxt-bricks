@@ -13,6 +13,11 @@ import type {
     IMediaUpdateMetaRequest,
     TMediaGalleryContext,
 } from '../../../common/types/media';
+import type {
+    IExtractedImageUrl,
+    IImageResolverState,
+    TImageResolveAction,
+} from './schemaImageResolver';
 
 export interface IMediaGalleryProps {
     visible: boolean;
@@ -391,4 +396,35 @@ export interface IMediaCategoryActions {
     handleCloseCategoryDelete: () => void;
     handleConfirmCategoryDelete: () => Promise<void>;
     resetCategoryActions: () => void;
+}
+
+/**
+ * One row of the image resolver: a preview, where the picture sits in the schema and
+ * the choice of what to do with it.
+ */
+export interface IMediaImageResolverItemProps {
+    image: IExtractedImageUrl;
+    action: TImageResolveAction;
+    disabled?: boolean;
+}
+
+export interface IMediaImageResolverItemEmits {
+    'update:action': [url: string, action: TImageResolveAction];
+}
+
+/**
+ * The modal of the image resolver: one action for every picture at the top, a row per
+ * picture below.
+ */
+export interface IMediaImageResolverModalProps {
+    isOpen: boolean;
+    state: IImageResolverState;
+}
+
+export interface IMediaImageResolverModalEmits {
+    confirm: [];
+    cancel: [];
+    skip: [];
+    setImageAction: [url: string, action: TImageResolveAction];
+    setGlobalAction: [action: TImageResolveAction];
 }
