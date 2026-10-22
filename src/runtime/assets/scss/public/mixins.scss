@@ -1,0 +1,17 @@
+////
+/// Public entry point of the package SCSS API.
+///
+/// The consumer pulls it in either through the `#bricks-scss` alias (written by the
+/// module, which substitutes the resolved `bricks.devices` option) or directly:
+///
+/// ```scss
+/// @use 'nuxt-bricks/scss/mixins' as bricks with (
+///     $devices: (mobile: 375, tablet: 900, desktop: 1600)
+/// );
+/// ```
+///
+/// How this folder reaches `dist` — and why it is copied rather than compiled — is
+/// in `build.config.ts`.
+////
+
+@forward 'devices';

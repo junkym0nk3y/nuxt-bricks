@@ -1,0 +1,31 @@
+# Nuxt
+.output
+.env
+.nuxt
+playground/.nuxt
+playground/.output
+
+# Build
+dist
+
+# Node
+node_modules
+*.log*
+
+# System
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+.idea
+
+/.playwright-mcp
+/playwright-report
+/test-results
+/.claude
+/.mcp.json
+/.superpowers
+/.codex/config.toml
+/.agents/skills/verify/SKILL.md

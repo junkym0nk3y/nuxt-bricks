@@ -1,0 +1,1355 @@
+{
+    "bricks": {
+        "common": {
+            "cancel": "Отмена",
+            "close": "Закрыть",
+            "delete": "Удалить",
+            "loading": "Загрузка…",
+            "notFound": "Ничего не найдено",
+            "unknownError": "Неизвестная ошибка",
+            "readTimeout": "Сервер не ответил вовремя — попробуйте снова",
+            "writeTimeout": "Сервер не подтвердил операцию вовремя: она могла завершиться. Обновите данные перед повторной попыткой",
+            "statementTimeout": "Запрос превысил серверный лимит времени и был остановлен. Повторите попытку",
+            "confirm": "Подтвердить",
+            "increase": "Увеличить",
+            "decrease": "Уменьшить",
+            "clear": "Очистить",
+            "showPassword": "Показать пароль",
+            "hidePassword": "Скрыть пароль",
+            "tagsLimit": "Лимит {max} символов исчерпан",
+            "save": "Сохранить",
+            "removeTag": "Удалить тег {tag}",
+            "loaderPhrases": [
+                "Раскладываем кубики по слотам…",
+                "Прогреваем glob-кэш Vite…",
+                "Уговариваем TipTap не терять фокус…",
+                "Гидратируем черновики…",
+                "Считаем rem-компенсацию…",
+                "Красим пиксели в var(--bricks-primary)…",
+                "Собираем манифест бриков…",
+                "Договариваемся с painter’s algorithm…",
+                "Выравниваем всё по сетке 0.2rem…",
+                "Будим Pinia-сторы…",
+                "Ждём, когда обновится Usage Limit в Claude…"
+            ]
+        },
+        "toolbar": {
+            "grid": "Сетка",
+            "undo": "Шаг назад (Ctrl+Z)",
+            "redo": "Шаг вперёд (Ctrl+Shift+Z)",
+            "media": "Загружаемый контент",
+            "preview": "Посмотреть превью",
+            "save": "Сохранить",
+            "saveDraft": "Сохранить изменения",
+            "saveCopy": "Сохранить как копию",
+            "dashboardLink": "Все страницы (в новой вкладке)",
+            "pageSelector": {
+                "ariaLabel": "{title}, выбрать страницу",
+                "search": "Поиск страниц...",
+                "loading": "Загрузка списка страниц",
+                "draft": "Черновик",
+                "noResultsTitle": "Ничего не найдено",
+                "noResultsDescription": "Проверьте запрос или создайте страницу",
+                "emptyTitle": "Сохранённых страниц пока нет",
+                "emptyDescription": "Сохраните текущую или создайте новую",
+                "allPages": "Все страницы",
+                "createPage": "Создать страницу",
+                "replaced": "Страница /{pagename} заменена в другом месте. Перезагрузите редактор, чтобы открыть новую версию, — несохранённые правки текущей после этого не восстановятся.",
+                "created": "Страница /{pagename} создана"
+            },
+            "saveTemplate": "Сохранить как шаблон"
+        },
+        "nav": {
+            "library": "Компоненты",
+            "schema": "Схема",
+            "settings": "Настройки",
+            "docs": "Документация",
+            "themeLight": "Светлая тема",
+            "themeDark": "Тёмная тема",
+            "language": "Язык интерфейса"
+        },
+        "auth": {
+            "login": {
+                "title": "Вход в билдер",
+                "username": "Логин",
+                "usernamePlaceholder": "Введите логин",
+                "password": "Пароль",
+                "passwordPlaceholder": "Введите пароль",
+                "submit": "Войти"
+            },
+            "validation": {
+                "usernameRequired": "Введите логин",
+                "passwordRequired": "Введите пароль"
+            },
+            "errors": {
+                "invalidCredentials": "Неверный логин или пароль",
+                "tooManyAttempts": "Слишком много попыток входа. Попробуйте позже",
+                "loginFailed": "Не удалось войти. Попробуйте ещё раз",
+                "notConfigured": "Авторизация не настроена. Обратитесь к администратору",
+                "sessionCheckFailed": "Не удалось проверить сессию. Проверьте соединение и попробуйте войти"
+            },
+            "logout": "Выйти",
+            "logoutFailed": "Не удалось выйти. Попробуйте ещё раз",
+            "roles": {
+                "admin": "Администратор",
+                "editor": "Редактор",
+                "viewer": "Наблюдатель"
+            },
+            "defaultPassword": {
+                "title": "Пароль по умолчанию.",
+                "description": "Вход выполнен паролем из миграции — он одинаков во всех установках nuxt-bricks. Смените его на свой.",
+                "action": "Сменить пароль"
+            },
+            "profile": {
+                "title": "Профиль",
+                "open": "Профиль",
+                "menuLabel": "Профиль: {name}",
+                "tabsLabel": "Разделы профиля",
+                "tabs": {
+                    "profile": "Профиль",
+                    "password": "Пароль"
+                },
+                "displayName": "Отображаемое имя",
+                "displayNamePlaceholder": "Как вас показывать",
+                "displayNameHint": "Показывается в углу, в меню профиля и в списке пользователей.",
+                "usernameHint": "Логин не меняется: по нему вход и по нему учётка видна в списке.",
+                "role": "Роль",
+                "roleHint": "— себе не меняется",
+                "currentPassword": "Текущий пароль",
+                "newPassword": "Новый пароль",
+                "changePassword": "Сменить",
+                "passwordHint": "Минимум {min} символов. Смена пароля завершит все сессии, включая текущую — потребуется войти заново.",
+                "photo": {
+                    "upload": "Загрузить фото",
+                    "replace": "Заменить фото",
+                    "hint": "PNG, JPEG или WebP до {max} МБ. Кадрируется в квадрат и пересохраняется в WebP 256×256 — оригинал не хранится.",
+                    "emptyHint": "Пока фото нет, везде показывается первая буква имени. PNG, JPEG или WebP до {max} МБ.",
+                    "fileInputLabel": "Выберите изображение для фото профиля"
+                },
+                "crop": {
+                    "title": "Фото профиля",
+                    "zoom": "Масштаб",
+                    "hint": "Перетащите фото, чтобы выбрать область. Кадрируется по кругу, но хранится квадратом: круг рисует интерфейс, а не файл.",
+                    "submit": "Сохранить фото",
+                    "frameLabel": "Область фото: перетаскивайте мышью или двигайте стрелками"
+                },
+                "toasts": {
+                    "saved": "Профиль сохранён",
+                    "photoSaved": "Фото обновлено",
+                    "photoRemoved": "Фото удалено"
+                },
+                "validation": {
+                    "displayNameTooLong": "Имя не длиннее {max} символов",
+                    "displayNameInvalid": "Имя не должно содержать управляющие символы",
+                    "currentPasswordRequired": "Введите текущий пароль",
+                    "newPasswordRequired": "Введите новый пароль",
+                    "passwordTooShort": "Пароль не короче {min} символов",
+                    "passwordTooLong": "Пароль не длиннее {max} символов",
+                    "passwordIsDefault": "Этот пароль стоит по умолчанию во всех установках — выберите другой."
+                },
+                "errors": {
+                    "invalidCurrentPassword": "Текущий пароль неверный",
+                    "passwordChangeDisabled": "Смена пароля отключена настройками установки",
+                    "passwordRejected": "Пароль не принят. Проверьте длину и попробуйте снова",
+                    "passwordFailed": "Не удалось сменить пароль. Попробуйте ещё раз",
+                    "tooManyAttempts": "Слишком много попыток. Попробуйте позже",
+                    "tooManyUploads": "Слишком много загрузок. Попробуйте через минуту",
+                    "serverBusy": "Сервер занят обработкой изображений. Попробуйте через минуту",
+                    "avatarTooLarge": "Файл больше {max} МБ",
+                    "avatarRejected": "Не удалось обработать изображение. Выберите другой файл",
+                    "avatarTimeout": "Сервер не подтвердил загрузку вовремя: фото могло сохраниться. Обновите страницу",
+                    "avatarFailed": "Не удалось сохранить фото. Попробуйте ещё раз",
+                    "avatarRemoveTimeout": "Сервер не подтвердил снятие вовремя: фото могло удалиться. Обновите страницу",
+                    "avatarRemoveFailed": "Не удалось снять фото. Попробуйте ещё раз",
+                    "photoTooSmall": "Снимок слишком мелкий: сторона выбранной области меньше {min} пикселей",
+                    "photoUnreadable": "Не удалось прочитать файл. Выберите другое изображение",
+                    "displayNameRejected": "Имя не принято сервером. Проверьте длину и содержимое",
+                    "saveTimeout": "Сервер не подтвердил сохранение вовремя. Обновите страницу перед повторной попыткой",
+                    "saveFailed": "Не удалось сохранить профиль. Попробуйте ещё раз"
+                }
+            }
+        },
+        "library": {
+            "title": "Добавить компонент",
+            "searchPlaceholder": "Поиск компонентов...",
+            "favoritesToggle": "Только избранные",
+            "emptyHint": "Попробуйте изменить поисковый запрос",
+            "noComponents": "Нет доступных компонентов",
+            "noComponentsHint": "Добавьте файл *.brick.ts рядом с компонентом в components/",
+            "loadFailed": "Не удалось загрузить библиотеку компонентов",
+            "retry": "Повторить",
+            "categories": {
+                "layout": "Layout",
+                "other": "Другое",
+                "content": "Контент"
+            },
+            "skippedBricks": "Не удалось загрузить компонентов: {count}",
+            "skippedBricksDevHint": "Есть в манифесте, но отсутствуют в сборке — перезапустите dev-сервер"
+        },
+        "properties": {
+            "title": "Свойства",
+            "device": "Устройство",
+            "reset": "Сбросить",
+            "display": "Отображение",
+            "showComponent": "Отображать компонент",
+            "showOn": "Показывать на:",
+            "fullWidth": "Отображать на всю страницу",
+            "switchOn": "Вкл",
+            "modalDisabled": "Отключено",
+            "select": "Выбрать",
+            "add": "Добавить",
+            "gridSize": {
+                "label": "Размер сетки",
+                "overflow": "Сетка показывает первые {cols} × {rows} — точное значение остаётся в полях"
+            },
+            "spacing": {
+                "content": "Контент",
+                "block": "Блок",
+                "increase": "Увеличить {side}",
+                "decrease": "Уменьшить {side}",
+                "mirrored": "{side} (зеркально)",
+                "sides": {
+                    "top": "отступ сверху",
+                    "bottom": "отступ снизу",
+                    "left": "отступ слева",
+                    "right": "отступ справа"
+                }
+            },
+            "inline": {
+                "text": "Текст",
+                "lineBreak": "Перенос",
+                "media": "Медиа",
+                "textPlaceholder": "Введите текст",
+                "newText": "Новый текст",
+                "lineBreakHint": "Текст после этого сегмента будет начинаться с новой строки.",
+                "replaceMedia": "Заменить медиа",
+                "width": "Ширина",
+                "height": "Высота",
+                "svgColor": "Цвет SVG",
+                "empty": "Добавьте текст или медиа, чтобы собрать сложный заголовок"
+            },
+            "gallery": {
+                "label": "Галерея изображений",
+                "tagPlaceholder": "Добавить тег...",
+                "empty": "Нажмите, чтобы добавить изображение",
+                "replaceImage": "Заменить изображение {number}",
+                "moveUp": "Переместить изображение {number} выше",
+                "moveDown": "Переместить изображение {number} ниже",
+                "remove": "Удалить изображение {number}",
+                "titlePlaceholder": "Заголовок",
+                "captionPlaceholder": "Подпись",
+                "moveUpBlocked": "Изображение {number} уже первое",
+                "moveDownBlocked": "Изображение {number} уже последнее",
+                "tagsLabel": "Теги изображения {number}",
+                "titleLabel": "Заголовок изображения {number}",
+                "captionLabel": "Подпись изображения {number}"
+            },
+            "accordion": {
+                "label": "Элементы аккордеона",
+                "itemTitle": "Заголовок",
+                "itemContent": "Содержимое",
+                "titlePlaceholder": "Введите заголовок...",
+                "contentPlaceholder": "Введите текст...",
+                "empty": "Нажмите, чтобы добавить элемент",
+                "copySuffix": "(копия)",
+                "defaultTitle": "Вопрос {n}",
+                "defaultContent": "Ответ"
+            },
+            "json": {
+                "invalid": "Некорректный JSON",
+                "notObject": "Ожидается объект или массив",
+                "format": "Форматировать",
+                "label": "JSON"
+            },
+            "htmlId": "HTML ID",
+            "valuePlaceholder": "Введите {label}",
+            "mediaPicker": {
+                "label": "Медиа",
+                "previewAlt": "Превью"
+            },
+            "deviceScopeLockedHint": "На вкладке устройства меняются только адаптивные свойства. Остальные одинаковы для всех устройств — переключитесь на базовое, чтобы изменить их."
+        },
+        "publish": {
+            "settingsTitle": "Настройки страницы",
+            "settingsTitleEdit": "Настройки публикации",
+            "urlPrefixHint": "Опционально. Страница будет доступна по /prefix/pagename",
+            "subdomain": "Субдомен",
+            "subdomainHint": "Опционально. Страница будет доступна только на этом поддомене",
+            "domainStub": "домен",
+            "titlePlaceholder": "Заголовок страницы",
+            "backgroundColor": "Цвет фона",
+            "exportJson": "Экспорт JSON",
+            "importJson": "Импорт JSON",
+            "jsonFileInputLabel": "Выберите JSON-файл со схемой страницы",
+            "socialImageSelect": "Выбрать из медиабиблиотеки",
+            "socialImageClear": "Очистить",
+            "fillRequired": "Заполните обязательные поля *",
+            "publishFailed": "Не удалось опубликовать страницу. Попробуйте ещё раз.",
+            "copyFailedRetry": "Не удалось сохранить копию. Попробуйте ещё раз.",
+            "previewCreateFailed": "Не удалось создать превью. Попробуйте ещё раз.",
+            "previewFallback": "Превью",
+            "dashboard": {
+                "title": "Билдер",
+                "createPage": "Создать страницу",
+                "refresh": "Обновить список",
+                "nav": {
+                    "pages": "Страницы",
+                    "templates": "Шаблоны",
+                    "users": "Пользователи",
+                    "media": "Медиатека"
+                },
+                "search": {
+                    "pages": "Поиск страниц...",
+                    "templates": "Поиск шаблонов...",
+                    "users": "Поиск по имени...",
+                    "media": "Поиск по имени или alt..."
+                },
+                "filters": {
+                    "all": "Все",
+                    "published": "Опубликованные",
+                    "drafts": "Черновики"
+                },
+                "row": {
+                    "updated": "Обновлена {date}",
+                    "draft": "Черновик",
+                    "statusPublished": "Опубликована",
+                    "statusDraft": "Черновик",
+                    "edit": "Редактировать",
+                    "preview": "Превью",
+                    "duplicate": "Дублировать",
+                    "delete": "Удалить",
+                    "thumbnailPreview": "Открыть превью страницы",
+                    "saveAsTemplate": "Сохранить как шаблон"
+                },
+                "empty": {
+                    "title": "Пока нет ни одной страницы",
+                    "description": "Создайте первую страницу — она появится в этом списке",
+                    "cta": "Создать первую страницу",
+                    "noResultsTitle": "Ничего не найдено",
+                    "noResultsDescription": "Попробуйте изменить поисковый запрос или фильтр"
+                },
+                "toasts": {
+                    "duplicated": "Копия страницы создана",
+                    "duplicateFailed": "Не удалось создать копию страницы",
+                    "loadFailed": "Не удалось загрузить опубликованные страницы",
+                    "deleteFailed": "Не удалось удалить страницу"
+                },
+                "details": {
+                    "created": "создана {date}",
+                    "published": "Опубликована",
+                    "copyUrl": "Скопировать URL",
+                    "ogImage": "OG-изображение",
+                    "selectFromMedia": "Выбрать из Media",
+                    "routing": "Маршрутизация: urlPrefix, subdomain",
+                    "versions": {
+                        "title": "Версии",
+                        "empty": "Сохранённых версий пока нет",
+                        "current": "Текущая",
+                        "noThumbnail": "Без снимка",
+                        "restore": "Восстановить",
+                        "preview": "Превью",
+                        "restoreConfirm": {
+                            "title": "Восстановить версию?",
+                            "description": "Страница вернётся к версии от {date}. Текущее состояние сохранится в истории версий."
+                        },
+                        "toasts": {
+                            "restored": "Версия восстановлена",
+                            "restoreFailed": "Не удалось восстановить версию",
+                            "loadFailed": "Не удалось загрузить версии страницы",
+                            "previewFailed": "Не удалось открыть превью версии"
+                        }
+                    },
+                    "schema": {
+                        "title": "Схема",
+                        "replaceHint": "Импорт заменит содержимое страницы",
+                        "exporting": "Готовим файл…",
+                        "importing": "Применяем схему…",
+                        "exportFailed": "Не удалось собрать файл схемы",
+                        "importFailed": "Не удалось применить схему",
+                        "busy": "Дождитесь окончания текущего импорта",
+                        "replaceConfirm": {
+                            "title": "Заменить содержимое страницы?",
+                            "description": "Схема страницы «{title}» будет заменена файлом {filename}. Прежнее состояние останется в истории версий.",
+                            "confirm": "Импортировать"
+                        }
+                    },
+                    "save": "Сохранить изменения",
+                    "cancel": "Отменить",
+                    "openInEditor": "Открыть в редакторе",
+                    "toasts": {
+                        "saved": "Изменения сохранены",
+                        "saveFailed": "Не удалось сохранить изменения",
+                        "urlCopied": "URL скопирован",
+                        "copyFailed": "Не удалось скопировать URL",
+                        "statusFailed": "Не удалось изменить статус публикации"
+                    }
+                },
+                "createModal": {
+                    "title": "Новая страница",
+                    "titleLabel": "Название страницы",
+                    "descriptionPlaceholder": "Кратко о странице — попадёт в meta description",
+                    "urlHint": "Будет доступна по адресу {url}",
+                    "startWith": "Начать с",
+                    "blankTitle": "Пустая страница",
+                    "blankDescription": "Чистый холст без блоков",
+                    "templateTitle": "Из шаблона",
+                    "templateDescription": "Копия сохранённого шаблона",
+                    "fileTitle": "Из JSON-файла",
+                    "fileDescription": "Загрузить готовую схему",
+                    "fileBlocks": "Блоков: {count}",
+                    "advanced": "Дополнительно: urlPrefix, subdomain, keywords",
+                    "submit": "Создать и открыть в редакторе",
+                    "createFailed": "Не удалось создать страницу"
+                },
+                "deleteConfirm": {
+                    "title": "Удалить страницу?",
+                    "generic": "Вы уверены, что хотите удалить эту страницу?",
+                    "named": "Вы уверены, что хотите удалить страницу «{title}» ({path})?"
+                },
+                "filtersLabel": "Фильтр страниц"
+            },
+            "toasts": {
+                "unsavedChanges": "Есть несохранённые изменения",
+                "loadPageFailed": "Не удалось загрузить страницу",
+                "savePageFailed": "Не удалось сохранить страницу",
+                "revisionConflict": "Страница была изменена в другом месте. Данные обновлены — повторное сохранение перезапишет чужие изменения",
+                "pageUpdated": "Страница обновлена",
+                "draftUpdated": "Изменения сохранены как черновик",
+                "pagePublished": "Страница опубликована",
+                "draftSaved": "Черновик сохранён",
+                "copySaved": "Копия страницы сохранена",
+                "copyFailed": "Не удалось сохранить копию страницы",
+                "previewFailed": "Не удалось открыть превью",
+                "schemaImported": "Схема импортирована",
+                "forPage": "Страница «{page}»: {message}"
+            },
+            "draft": {
+                "pendingTitle": "Есть несохранённые изменения",
+                "pendingAction": "Восстановить",
+                "restoreTitle": "Восстановить несохранённые изменения?",
+                "restoreDescription": "Мы нашли изменения, которые не были сохранены. Восстановить их или удалить черновик?",
+                "restoreDescriptionDated": "Черновик от {date} отличается от сохранённой версии страницы. Восстановить изменения или удалить черновик?",
+                "restoreConfirm": "Восстановить изменения",
+                "restoreDiscard": "Удалить черновик",
+                "storageUnavailable": "Черновики недоступны: браузер запретил локальное хранилище. Сохраняйте изменения вручную"
+            },
+            "session": {
+                "errorTitle": "Страница не загрузилась",
+                "errorDescription": "Редактор не смог открыть сессию, поэтому изменения сохранить не получится. Повторите попытку или вернитесь к списку страниц.",
+                "errorRetry": "Повторить",
+                "errorOpenPages": "Мои страницы",
+                "saveBlocked": "Страница ещё не загрузилась — сохранение отключено",
+                "previewBlocked": "Страница ещё не загрузилась — предпросмотр отключён",
+                "errorTimeout": "Страница не отвечает — загрузка прервана"
+            },
+            "navigation": {
+                "title": "Навигация",
+                "text": "Текст",
+                "textPlaceholder": "О нас",
+                "link": "Ссылка",
+                "moveUp": "Переместить вверх",
+                "moveDown": "Переместить вниз",
+                "addItem": "Добавить пункт"
+            },
+            "validation": {
+                "pagenameRequired": "Необходимо указать pagename",
+                "pagenameMin": "Минимум 3 символа",
+                "pagenameMax": "Максимум 80 символов",
+                "pagenameFormat": "Допустимы только строчные буквы, цифры и дефис",
+                "addressTaken": "Этот адрес страницы уже занят",
+                "pagenameEditorTaken": "Адрес редактора этой страницы занят маршрутом билдера",
+                "pagenameAddressTaken": "Адрес страницы занят другим маршрутом приложения",
+                "titleRequired": "Заголовок обязателен",
+                "titleMin": "Минимум 3 символа",
+                "titleMax": "Максимум 120 символов",
+                "descriptionRequired": "Описание обязательно",
+                "descriptionMin": "Минимум 10 символов",
+                "descriptionMax": "Максимум 500 символов",
+                "keywordsMax": "Максимум 255 символов",
+                "socialImageUrl": "Некорректный URL",
+                "layoutRequired": "Layout обязателен",
+                "urlPrefixFormat": "Допустимы строчные буквы, цифры, дефис и /",
+                "urlPrefixMax": "Максимум 100 символов",
+                "urlPrefixAddressTaken": "С этим префиксом адрес страницы занят другим маршрутом",
+                "subdomainFormat": "Допустимы только строчные буквы, цифры и дефис",
+                "subdomainMax": "Максимум 63 символа",
+                "codeMax": "Максимум 20000 символов"
+            },
+            "seo": {
+                "sectionLabel": "SEO и Meta",
+                "titleLabel": "Заголовок (title) *",
+                "pagenameLabel": "Адрес (pagename) *",
+                "descriptionLabel": "Описание (description) *",
+                "descriptionPlaceholder": "Краткое описание страницы для поисковой выдачи",
+                "keywordsLabel": "Ключевые слова (keywords)",
+                "keywordsPlaceholder": "промо, лендинг, маркетинг",
+                "noindexLabel": "Скрыть от поисковиков (noindex)",
+                "noindexHint": "Страница остаётся доступной по ссылке, но поисковые системы не будут её индексировать."
+            },
+            "code": {
+                "sectionLabel": "Код страницы",
+                "hint": "HTML вставляется в опубликованную страницу как есть и выполняется у посетителей. Вставляйте только код из доверенных источников — счётчики, пиксели, виджеты. На холсте редактора код не выполняется.",
+                "headLabel": "Код в конце head",
+                "bodyEndLabel": "Код в конце body"
+            },
+            "layout": "Раскладка",
+            "urlPrefix": "Префикс URL",
+            "socialImage": "Изображение OG/Twitter",
+            "preview": {
+                "mode": "Режим превью",
+                "close": "Закрыть превью",
+                "loading": "Загружаем страницу…",
+                "component": "Компонент",
+                "componentUnavailable": "{name} недоступен",
+                "componentMissing": "Компонент не найден в библиотеке. Обновите bricks или схему."
+            }
+        },
+        "media": {
+            "galleryTitle": "Управление медиа-контентом",
+            "select": "Выбрать",
+            "cancel": "Отменить",
+            "emptyFiltered": "Нет файлов, подходящих под фильтр",
+            "emptyNoUploads": "Нет загруженных изображений",
+            "loadFailed": "Не удалось загрузить медиа",
+            "loadFailedCheckDb": "Не удалось загрузить медиа. Проверьте подключение к базе.",
+            "listResponseInvalid": "Сервер вернул список медиа в неизвестном формате",
+            "deleteFailed": "Не удалось удалить медиа",
+            "uploadFailed": "Не удалось загрузить файл",
+            "uploadFailedForFile": "«{name}»: {message}",
+            "updateMetaFailed": "Не удалось сохранить название и описание",
+            "updateCategoryFailed": "Не удалось изменить категорию",
+            "deleteImageTitle": "Удалить изображение?",
+            "deleteImageDescription": "Это действие нельзя отменить. Изображение будет удалено безвозвратно.",
+            "fullscreen": "Полноэкранный просмотр",
+            "categoryLabel": "Категория",
+            "searchPlaceholder": "Поиск по имени или alt",
+            "nameLabel": "Имя",
+            "filenamePlaceholder": "Имя файла",
+            "altPlaceholder": "Описание изображения",
+            "sizeHint": "изображения до {image} МБ, видео до {video} МБ",
+            "fileTypeImage": "Изображение",
+            "fileTypeVideo": "Видео",
+            "fileTooLarge": "{type} «{name}» превышает лимит {max} МБ",
+            "fileTypeUnsupported": "«{name}»: поддерживаются только изображения и видео",
+            "categories": {
+                "all": "Все"
+            },
+            "resolver": {
+                "title": "Найдены новые изображения",
+                "globalAction": "Действие для всех:",
+                "itemAction": "Действие для изображения {name}",
+                "keep": "Оставить",
+                "placeholder": "Заглушка",
+                "skip": "Пропустить",
+                "apply": "Применить",
+                "importedWithoutComparison": "Схема импортирована без проверки медиатеки: она недоступна, изображения оставлены как есть"
+            },
+            "categoryFilterLabel": "Фильтр по категории",
+            "emptyNoUploadsHint": "Перетащите файлы в окно или нажмите «Загрузить»",
+            "emptyNoUploadsSectionHint": "Перетащите файлы в эту область или нажмите «Загрузить»",
+            "resetFilter": "Сбросить фильтр",
+            "selectFileHint": "Выберите файл, чтобы изменить его свойства",
+            "librarySummary": "файлов в медиатеке: {count} · {size}",
+            "altUnusedForVideo": "у видео alt не используется",
+            "categoryLoadFailed": "Не удалось загрузить категории",
+            "categoryListResponseInvalid": "Сервер вернул список категорий в неизвестном формате",
+            "categoryCreate": "Создать категорию",
+            "categoryCreateConfirm": "Создать",
+            "categoryCreateFailed": "Не удалось создать категорию",
+            "categoryNamePlaceholder": "Название категории",
+            "categoryDuplicate": "Категория «{name}» уже есть",
+            "categoryUnknown": "Такой категории больше нет — обновите список и выберите заново",
+            "categoryDelete": "Удалить категорию «{name}»",
+            "categoryDeleteTitle": "Удалить категорию «{name}»?",
+            "categoryDeleteDescription": "Категория будет удалена, файлов без категории станет больше на {count}. Сами файлы останутся в медиатеке.",
+            "categoryDeleteFailed": "Не удалось удалить категорию",
+            "categoryManage": "Управление категориями",
+            "categoryManageDone": "Готово",
+            "upload": {
+                "optionsTitle": "Параметры оптимизации",
+                "formatLabel": "Формат",
+                "formatOriginal": "Оригинал",
+                "qualityLabel": "Качество",
+                "maxWidthLabel": "Макс. ширина",
+                "skipOptimization": "Загружать без оптимизации",
+                "skipOptimizationHint": "Файл сохраняется как есть. Превью и mock всё равно генерируются — без них блоку Media нечем показывать постепенную загрузку.",
+                "variantsHint": "Превью и mock для постепенной загрузки генерируются всегда — режим выбирается у блока Media, а не здесь.",
+                "paramsSummary": "{format} · q{quality} · до {maxWidth}px",
+                "progress": "Загружаю {current} из {total} · {name}",
+                "dropNow": "Отпустите — к загрузке: {count}",
+                "progressShort": "Загружаю {current} из {total}"
+            },
+            "summary": {
+                "vector": "вектор",
+                "video": "видео",
+                "dimensionsUnknown": "размеры неизвестны"
+            },
+            "librarySummaryShort": "файлов: {count} · {size}",
+            "dropAnywhereHint": "файлы можно перетащить прямо в окно",
+            "dropSectionHint": "файлы можно перетащить в эту область",
+            "uploadFiles": "Загрузить",
+            "tileUpload": "Загрузить файлы",
+            "tileUploadHint": "или перетащите сюда",
+            "noCategory": "Без категории",
+            "details": {
+                "about": "О файле",
+                "size": "Размер",
+                "dimensions": "Разрешение",
+                "format": "Формат",
+                "uploadedAt": "Загружен",
+                "uploadedOn": "загружен {date}",
+                "url": "URL",
+                "copyUrl": "Копировать URL",
+                "urlCopied": "URL файла скопирован",
+                "copyFailed": "Не удалось скопировать URL"
+            },
+            "fullscreenFor": "Полноэкранный просмотр файла {filename}",
+            "fileInputLabel": "Выберите файлы для загрузки"
+        },
+        "schema": {
+            "title": "Схема страницы",
+            "empty": "Нет компонентов",
+            "emptyHint": "Добавьте компоненты на канвас из библиотеки",
+            "importErrorFileType": "Выберите файл формата .json",
+            "importErrorInvalid": "Невалидная схема: отсутствует массив components",
+            "importErrorStructure": "Файл схемы не прошёл проверку структуры: {detail}",
+            "importErrorDevices": "Набор устройств в файле не прошёл проверку: {detail}",
+            "importErrorParse": "Ошибка парсинга JSON-файла",
+            "importErrorRead": "Ошибка чтения файла",
+            "importedWithOrphanDevices": "Схема импортирована. Переопределения для устройств вне набора страницы сохранены, но не применяются: {keys}",
+            "moveRefused": {
+                "descendant": "Нельзя переместить блок внутрь его собственного содержимого",
+                "depthLimit": "Слишком глубокая вложенность: блок сюда не поместится",
+                "gridCapacity": "В сетке нет свободных ячеек",
+                "slotCapacity": "Слот уже занят другим блоком",
+                "targetNotContainer": "Этот блок не может содержать другие",
+                "invalidGraph": "Структура страницы повреждена — перезагрузите редактор",
+                "fallback": "Переместить блок сюда нельзя"
+            }
+        },
+        "canvas": {
+            "areaLabel": "Канвас страницы",
+            "emptyTitle": "Добавьте новые компоненты",
+            "emptyDescription": "Откройте библиотеку компонентов и с помощью drag & drop - добавляйте структуру будущей страницы",
+            "favorite": "В избранное",
+            "previewExit": "Выйти из предпросмотра",
+            "previewEnter": "Интерактивный предпросмотр",
+            "edit": "Редактировать",
+            "copy": "Копировать",
+            "paste": "Вставить",
+            "duplicate": "Дублировать",
+            "enable": "Включить",
+            "disable": "Отключить",
+            "deviceVisibility": "Видимость на устройствах",
+            "moveUp": "Переместить вверх",
+            "moveDown": "Переместить вниз",
+            "toastCopied": "Компонент скопирован в буфер обмена",
+            "toastPasted": "Копия компонента добавлена на канвас",
+            "toastDeleted": "Компонент удалён",
+            "toastFavoriteAdded": "Компонент добавлен в избранное",
+            "toastDisabled": "Отображение компонента отключено",
+            "zoomIn": "Приблизить",
+            "zoomOut": "Отдалить",
+            "zoomReset": "Сбросить масштаб",
+            "viewportLabel": "Режим просмотра канваса",
+            "componentDisabled": "Отключен"
+        },
+        "textEditor": {
+            "editorTitle": "Редактор текста",
+            "render": "Рендер",
+            "code": "Код",
+            "expand": "Развернуть",
+            "htmlPlaceholder": "Введите HTML-код…",
+            "aspectLocked": "Пропорции сохраняются",
+            "aspectFree": "Свободное изменение",
+            "alignBaseline": "По базовой линии",
+            "alignMiddle": "По центру",
+            "alignTop": "По верху",
+            "alignBottom": "По низу",
+            "floatLeft": "Обтекание слева",
+            "floatRight": "Обтекание справа",
+            "floatNone": "Без обтекания",
+            "size": "Размер",
+            "inlineEditor": "Инлайн редактор",
+            "done": "Готово",
+            "escToExit": "Esc — выйти",
+            "value": "Значение",
+            "auto": "Авто",
+            "normal": "Обычный",
+            "fontSizePlaceholder": "напр. 2.2 (rem)",
+            "fontWeightPlaceholder": "напр. 450",
+            "lineHeightPlaceholder": "напр. 1.35, 120% или 2rem",
+            "letterSpacingPlaceholder": "напр. 0.15rem или 5%",
+            "linkModal": {
+                "title": "Ссылка",
+                "url": "Адрес",
+                "urlPlaceholder": "example.com",
+                "newTab": "Открывать в новой вкладке",
+                "hint": "Без протокола адрес дополняется https://. Разрешены http(s), mailto, tel, якорь (#) и путь от корня сайта (/).",
+                "invalidUrl": "Недопустимый адрес ссылки",
+                "apply": "Применить",
+                "remove": "Убрать ссылку"
+            },
+            "toolbar": {
+                "bold": "Жирный",
+                "italic": "Курсив",
+                "underline": "Подчёркивание",
+                "link": "Ссылка",
+                "fontFamily": "Семейство шрифта",
+                "fontSize": "Размер шрифта",
+                "fontWeight": "Толщина шрифта",
+                "lineHeight": "Межстрочный интервал",
+                "letterSpacing": "Межбуквенный интервал",
+                "textColor": "Цвет текста",
+                "alignLeft": "По левому краю",
+                "alignCenter": "По центру",
+                "alignRight": "По правому краю",
+                "alignJustify": "По ширине",
+                "bulletList": "Маркированный список",
+                "numberedList": "Нумерованный список",
+                "insertImage": "Вставить изображение",
+                "darkBackground": "Тёмный фон",
+                "divider": "Разделитель"
+            },
+            "loadFailedFallback": "Не удалось загрузить редактор. Используется простой textarea."
+        },
+        "docs": {
+            "title": "Документация",
+            "articleNotFound": "Статья не найдена.",
+            "comingSoonTitle": "Скоро",
+            "comingSoonDescription": "Документация на английском готовится. Пока её нет, переключите интерфейс на русский, чтобы прочитать текущую."
+        },
+        "validation": {
+            "required": "Обязательное поле",
+            "invalidValue": "Некорректное значение",
+            "invalidFormat": "Некорректный формат",
+            "stringMin": "Минимум {min} символов",
+            "stringMax": "Максимум {max} символов",
+            "fieldFallback": "Поле",
+            "fieldRequired": "{field} обязательно для заполнения",
+            "fieldNumeric": "{field} должно содержать только цифры",
+            "fieldDecimal": "{field} должно быть числом",
+            "fieldMax": "{field} не может превышать {max} символов",
+            "fieldMin": "{field} не может быть меньше {min}",
+            "fieldSlug": "{field} должно содержать только строчные буквы, цифры и дефисы",
+            "fieldInvalid": "{field} заполнено некорректно",
+            "invalidHex": "Неверный HEX"
+        },
+        "blocks": {
+            "grid": {
+                "description": "Сетка для размещения компонентов по колонкам и строкам.",
+                "props": {
+                    "columns": {
+                        "label": "Колонки",
+                        "description": "Количество колонок в сетке (1-12)"
+                    },
+                    "rows": {
+                        "label": "Строки",
+                        "description": "Количество строк в сетке"
+                    },
+                    "gap": {
+                        "label": "Отступ",
+                        "description": "Расстояние между элементами в пикселях"
+                    },
+                    "variant": {
+                        "label": "Вариант Bento",
+                        "description": "Предустановленные варианты расположения элементов",
+                        "options": {
+                            "default": "По умолчанию",
+                            "leadLeft": "Ведущий слева",
+                            "leadRight": "Ведущий справа"
+                        }
+                    },
+                    "rowHeight": {
+                        "label": "Высота строки",
+                        "description": "Режим высоты строк грида",
+                        "options": {
+                            "auto": "Авто (по контенту)",
+                            "fr1": "Равные строки (1fr)",
+                            "minContent": "Минимум контента",
+                            "maxContent": "Максимум контента"
+                        }
+                    },
+                    "minRowHeight": {
+                        "label": "Мин. высота строки (rem)",
+                        "description": "Минимальная высота строки в rem (0 = без ограничения)"
+                    },
+                    "paddingX": {
+                        "label": "Padding горизонтальный",
+                        "description": "Горизонтальный внутренний отступ контейнера в rem"
+                    },
+                    "paddingY": {
+                        "label": "Padding вертикальный",
+                        "description": "Вертикальный внутренний отступ контейнера в rem"
+                    }
+                },
+                "groups": {
+                    "spacing": "Отступы"
+                }
+            },
+            "flex": {
+                "description": "Flex-контейнер для горизонтальной или вертикальной раскладки элементов.",
+                "props": {
+                    "direction": {
+                        "label": "Направление",
+                        "description": "Направление расположения элементов",
+                        "options": {
+                            "row": "Горизонтально",
+                            "column": "Вертикально"
+                        }
+                    },
+                    "justify": {
+                        "label": "По главной оси",
+                        "description": "Для row: по горизонтали; для column: по вертикали",
+                        "options": {
+                            "start": "В начале",
+                            "center": "По центру",
+                            "end": "В конце",
+                            "spaceBetween": "Равномерно",
+                            "spaceAround": "С отступами"
+                        }
+                    },
+                    "align": {
+                        "label": "По поперечной оси",
+                        "description": "Для row: по вертикали; для column: по горизонтали",
+                        "options": {
+                            "stretch": "Растянуть",
+                            "start": "В начале",
+                            "center": "По центру",
+                            "end": "В конце",
+                            "baseline": "По базовой линии"
+                        }
+                    },
+                    "gap": {
+                        "label": "Отступ",
+                        "description": "Расстояние между элементами в пикселях"
+                    },
+                    "wrap": {
+                        "label": "Перенос строк",
+                        "description": "Переносить элементы на новую строку при нехватке места"
+                    },
+                    "paddingX": {
+                        "label": "Padding горизонтальный",
+                        "description": "Горизонтальный внутренний отступ контейнера в rem"
+                    },
+                    "paddingY": {
+                        "label": "Padding вертикальный",
+                        "description": "Вертикальный внутренний отступ контейнера в rem"
+                    }
+                },
+                "groups": {
+                    "spacing": "Отступы"
+                }
+            },
+            "section": {
+                "description": "Секция-обёртка с настраиваемым фоном (цвет, изображение) и padding.",
+                "props": {
+                    "backgroundColor": {
+                        "label": "Цвет фона",
+                        "description": "CSS color или CSS variable (например, var(--bricks-base-900))"
+                    },
+                    "backgroundImage": {
+                        "label": "Фоновое изображение",
+                        "description": "URL фонового изображения"
+                    },
+                    "paddingTop": {
+                        "label": "Padding сверху"
+                    },
+                    "paddingBottom": {
+                        "label": "Padding снизу"
+                    },
+                    "paddingX": {
+                        "label": "Padding горизонтальный"
+                    },
+                    "maxWidth": {
+                        "label": "Макс. ширина контента",
+                        "description": "Макс. ширина контента по центру (0 = без ограничения)"
+                    },
+                    "borderRadius": {
+                        "label": "Скругление углов (rem)"
+                    },
+                    "minHeight": {
+                        "label": "Мин. высота (rem)",
+                        "description": "Минимальная высота секции (0 = по контенту)"
+                    }
+                },
+                "groups": {
+                    "background": "Фон",
+                    "spacing": "Отступы"
+                }
+            },
+            "space": {
+                "description": "Отступ (spacer) между блоками по вертикали или горизонтали.",
+                "props": {
+                    "size": {
+                        "label": "Размер (rem)",
+                        "description": "Величина отступа в rem"
+                    },
+                    "direction": {
+                        "label": "Направление",
+                        "description": "В каком направлении применяется отступ",
+                        "options": {
+                            "vertical": "Вертикально",
+                            "horizontal": "Горизонтально",
+                            "both": "Оба направления"
+                        }
+                    },
+                    "showDivider": {
+                        "label": "Показать разделитель",
+                        "description": "Отображать линию-разделитель"
+                    },
+                    "dividerColor": {
+                        "label": "Цвет разделителя",
+                        "description": "Пустое значение = var(--bricks-base-200)"
+                    },
+                    "dividerWidth": {
+                        "label": "Толщина разделителя (px)"
+                    },
+                    "dividerStyle": {
+                        "label": "Стиль разделителя",
+                        "options": {
+                            "solid": "Сплошная",
+                            "dashed": "Пунктирная",
+                            "dotted": "Точечная"
+                        }
+                    },
+                    "dividerMarginX": {
+                        "label": "Отступы разделителя по бокам (rem)",
+                        "description": "Горизонтальные отступы разделителя от краёв в rem"
+                    }
+                },
+                "groups": {
+                    "divider": "Разделитель"
+                }
+            },
+            "media": {
+                "description": "Медиа-блок (изображение или видео) с настройками отображения.",
+                "props": {
+                    "type": {
+                        "label": "Тип медиа",
+                        "options": {
+                            "image": "Изображение",
+                            "video": "Видео"
+                        }
+                    },
+                    "src": {
+                        "label": "Источник"
+                    },
+                    "alt": {
+                        "label": "Alt текст"
+                    },
+                    "objectFit": {
+                        "label": "Заполнение",
+                        "options": {
+                            "contain": "Вписать",
+                            "cover": "Заполнить",
+                            "fill": "Растянуть",
+                            "none": "Без масштаба",
+                            "scaleDown": "Уменьшить"
+                        }
+                    },
+                    "width": {
+                        "label": "Ширина",
+                        "description": "Ширина (rem, %, auto)"
+                    },
+                    "height": {
+                        "label": "Высота",
+                        "description": "Высота (rem, %, auto)"
+                    },
+                    "borderRadius": {
+                        "label": "Скругление углов",
+                        "description": "Скругление углов (rem)"
+                    },
+                    "loadMode": {
+                        "label": "Постепенная загрузка",
+                        "description": "Чем показывать место картинки, пока она грузится",
+                        "options": {
+                            "config": "Как в настройках модуля",
+                            "off": "Выключено",
+                            "twoStep": "Два этапа: превью → полное",
+                            "threeStep": "Три этапа: mock → превью → полное"
+                        }
+                    },
+                    "eagerLoad": {
+                        "label": "Первый экран — грузить сразу",
+                        "description": "Снимает lazy и ставит fetchpriority=\"high\": на первом экране постепенная загрузка портит LCP"
+                    }
+                },
+                "groups": {
+                    "sizes": "Размеры",
+                    "loading": "Загрузка"
+                }
+            },
+            "slider": {
+                "description": "Слайдер-контейнер (swiper) для прокрутки дочерних элементов.",
+                "props": {
+                    "slidesPerView": {
+                        "label": "Слайдов в ряд"
+                    },
+                    "spaceBetween": {
+                        "label": "Отступ между слайдами (px)"
+                    },
+                    "loop": {
+                        "label": "Зациклить слайды"
+                    },
+                    "autoplay": {
+                        "label": "Автопрокрутка"
+                    },
+                    "autoplayDelay": {
+                        "label": "Задержка автопрокрутки (мс)"
+                    },
+                    "showNavigation": {
+                        "label": "Показывать навигацию"
+                    },
+                    "showPagination": {
+                        "label": "Показывать пагинацию"
+                    },
+                    "captions": {
+                        "label": "Caption-табы (JSON)",
+                        "description": "Массив объектов [text, subtitle?] для текстовых табов навигации"
+                    },
+                    "captionPosition": {
+                        "label": "Позиция caption-табов",
+                        "options": {
+                            "top": "Сверху",
+                            "bottom": "Снизу"
+                        }
+                    },
+                    "showCaptionNavigation": {
+                        "label": "Кликабельные caption-табы",
+                        "description": "Клик по табу переключает слайд"
+                    }
+                }
+            },
+            "svg": {
+                "description": "SVG-блок с настройкой цвета и размера.",
+                "props": {
+                    "src": {
+                        "label": "SVG изображение",
+                        "description": "Выберите SVG из медиа-галереи"
+                    },
+                    "color": {
+                        "label": "Цвет",
+                        "description": "Применяется к fill/stroke SVG (пустое = оригинальные цвета)"
+                    },
+                    "width": {
+                        "label": "Ширина",
+                        "description": "rem или CSS value (например, 4.8rem, 100%, auto)"
+                    },
+                    "height": {
+                        "label": "Высота",
+                        "description": "rem или CSS value"
+                    },
+                    "alignment": {
+                        "label": "Выравнивание",
+                        "options": {
+                            "left": "Слева",
+                            "center": "По центру",
+                            "right": "Справа"
+                        }
+                    },
+                    "marginTop": {
+                        "label": "Отступ сверху"
+                    },
+                    "marginBottom": {
+                        "label": "Отступ снизу"
+                    }
+                },
+                "groups": {
+                    "spacing": "Отступы"
+                },
+                "emptyLabel": "Выберите SVG из медиа"
+            },
+            "text": {
+                "description": "Текстовый блок с HTML-контентом.",
+                "props": {
+                    "fontSize": {
+                        "label": "Размер шрифта"
+                    },
+                    "content": {
+                        "label": "Контент"
+                    },
+                    "marginTop": {
+                        "label": "Отступ сверху"
+                    },
+                    "marginBottom": {
+                        "label": "Отступ снизу"
+                    }
+                },
+                "groups": {
+                    "spacing": "Отступы"
+                },
+                "defaultContent": "Введите текст"
+            },
+            "accordion": {
+                "description": "Аккордеон — список раскрывающихся элементов с заголовком и контентом.",
+                "props": {
+                    "items": {
+                        "label": "Элементы",
+                        "description": "Список элементов аккордеона (массив объектов title/content)"
+                    },
+                    "allowMultiple": {
+                        "label": "Открывать несколько",
+                        "description": "Разрешить одновременное открытие нескольких элементов"
+                    },
+                    "initialOpenIndex": {
+                        "label": "Открыт по умолчанию (индекс)",
+                        "description": "Индекс элемента, открытого при загрузке (-1 = все закрыты)"
+                    },
+                    "gap": {
+                        "label": "Отступ между элементами (rem)",
+                        "description": "Отступ между элементами (0 = единый блок, >0 = карточный режим)"
+                    },
+                    "borderRadius": {
+                        "label": "Скругление углов (rem)",
+                        "description": "Радиус скругления углов аккордеона или карточек"
+                    },
+                    "accentColor": {
+                        "label": "Акцентный цвет",
+                        "description": "Акцентный цвет для hover, бордеров и фона"
+                    },
+                    "animationDuration": {
+                        "label": "Скорость анимации (ms)",
+                        "description": "Длительность анимации раскрытия/закрытия в миллисекундах"
+                    }
+                },
+                "emptyLabel": "Добавьте элементы через панель свойств"
+            }
+        },
+        "devices": {
+            "title": "Устройства страницы",
+            "ownTitle": "Свои устройства для этой страницы",
+            "ownHintOn": "Свой набор — {count} устройства. У проекта свой; на другие страницы этот набор не влияет.",
+            "ownHintOff": "Страница берёт набор проекта — {count} устройства. Включите, чтобы задать свой набор только для этой страницы.",
+            "add": "Добавить устройство",
+            "addCounter": "{current} из {max}",
+            "addMaxReached": "{max} из {max} — максимум",
+            "remove": "Удалить «{label}»",
+            "locked": "Крайние устройства удалить нельзя",
+            "iconPicker": "Иконка устройства",
+            "rangesTitle": "Диапазоны ширины окна",
+            "rangesHint": "Порог = ширина устройства. Самое узкое всегда от 0, самое широкое — без верхней границы. Рамкой отмечено устройство, открытое на канвасе.",
+            "rangeFrom": "от {min}",
+            "settingsGroup": "Устройства",
+            "settingsAction": "Настроить устройства",
+            "settingsInherited": "Как в проекте · {count}",
+            "settingsCustom": "Свой набор · {count}",
+            "columns": {
+                "device": "Устройство",
+                "width": "Ширина, px",
+                "aside": "Отступ, rem",
+                "maxWidth": "Max, rem",
+                "minWidth": "Min, rem"
+            },
+            "errors": {
+                "labelRequired": "Название обязательно — по нему строится ключ устройства в схеме",
+                "widthMin": "Меньше {min} не бывает: под таким окном не рассчитан ни один блок",
+                "widthTaken": "Такая ширина уже есть у «{label}»",
+                "widthBetween": "Ширина промежуточного устройства должна быть между {min} («{minLabel}») и {max} («{maxLabel}»)",
+                "widthMax": "Больше {max} не бывает: это уже не экран",
+                "edgeOrder": "Мобильный должен остаться самым узким, а десктоп — самым широким"
+            },
+            "removeConfirm": {
+                "title": "Удалить «{label}»?",
+                "description": "Переопределения свойств для этого устройства будут удалены со всех блоков страницы: сейчас их {count}. Диапазон {range} перейдёт устройству «{label}»."
+            },
+            "revertConfirm": {
+                "title": "Вернуть набор проекта?",
+                "description": "Свой набор страницы будет удалён. Блоки сохранят переопределения только для устройств, которые есть и в наборе проекта; остальные пропадут."
+            },
+            "orphanKeys": "В схеме есть переопределения для устройств вне набора — они сохранятся, но применяться не будут: {keys}"
+        },
+        "users": {
+            "createUser": "Пользователь",
+            "filtersLabel": "Фильтр учётных записей",
+            "filters": {
+                "all": "Все",
+                "active": "Активные",
+                "inactive": "Деактивированные"
+            },
+            "status": {
+                "active": "Активен",
+                "inactive": "Деактивирован"
+            },
+            "row": {
+                "you": "это вы",
+                "created": "Создан {date}",
+                "lastLogin": "Вход {date}",
+                "neverLoggedIn": "Ни разу не входил",
+                "today": "сегодня",
+                "yesterday": "вчера",
+                "setPassword": "Задать пароль: {user}",
+                "changeOwnPassword": "Сменить свой пароль",
+                "deactivate": "Запретить вход: {user}",
+                "activate": "Разрешить вход: {user}",
+                "delete": "Удалить учётную запись: {user}",
+                "locks": {
+                    "self": "Свою учётную запись нельзя деактивировать и удалить: вернуть доступ будет нечем",
+                    "selfRole": "Свою роль изменить нельзя: права меняет другой администратор",
+                    "lastAdmin": "Это последний активный администратор: сначала назначьте второго, иначе управление учётными записями будет потеряно"
+                }
+            },
+            "role": {
+                "changeLabel": "Роль: {role}. Изменить роль пользователя {user}",
+                "descriptions": {
+                    "admin": "Всё, включая учётные записи и удаление страниц",
+                    "editor": "Страницы, медиа, шаблоны — без управления учётными записями",
+                    "viewer": "Только чтение: открыть и посмотреть"
+                }
+            },
+            "empty": {
+                "title": "Учётных записей пока нет",
+                "description": "Создайте первую — она сможет входить в билдер сразу после создания.",
+                "noResultsTitle": "Никого не найдено",
+                "noResultsDescription": "Проверьте запрос: поиск идёт по имени и по логину."
+            },
+            "loadError": {
+                "title": "Список не загрузился",
+                "description": "Сервер не ответил. Раздел на месте — попробуйте ещё раз.",
+                "retry": "Повторить"
+            },
+            "createModal": {
+                "title": "Новый пользователь",
+                "username": "Имя пользователя",
+                "usernameHint": "Латинские буквы, цифры и символы . _ {'@'} + -, первый символ — буква или цифра. Имя уникально и потом не меняется: переименование учётной записи не поддерживается.",
+                "displayName": "Отображаемое имя",
+                "displayNameHint": "Показывается в углу экрана и в списке. Необязательно: пусто — показывается логин. Дальше имя и фото пользователь правит себе сам.",
+                "password": "Пароль",
+                "passwordHint": "Минимум {min} символов. Хранится scrypt-хешем: посмотреть пароль позже нельзя, только задать новый.",
+                "generate": "Сгенерировать",
+                "role": "Роль",
+                "roleHint": "Роль меняется потом прямо в строке списка.",
+                "canSignIn": "Разрешить вход сразу",
+                "canSignInHint": "Снятая галочка заводит учётную запись деактивированной: логин, роль и пароль у неё уже есть, но вход по ним запрещён, пока его не откроют действием в строке списка.",
+                "submit": "Создать"
+            },
+            "passwordModal": {
+                "title": "Пароль · {user}",
+                "titleFallback": "Пароль пользователя",
+                "newPassword": "Новый пароль",
+                "sessionsTitle": "Все сессии пользователя будут завершены",
+                "sessionsText": "Смена пароля отзывает сессии в той же транзакции, что пишет хеш: пользователь войдёт заново с новым паролем.",
+                "hint": "Минимум {min} символов. Текущий пароль администратор не вводит — свой пароль меняется в профиле, там текущий обязателен.",
+                "submit": "Задать пароль"
+            },
+            "confirm": {
+                "deactivate": {
+                    "title": "Деактивировать {user}?",
+                    "description": "Вход будет запрещён, активные сессии завершатся сразу. Учётная запись, её роль и история остаются — включить обратно можно тем же действием в строке.",
+                    "action": "Деактивировать"
+                },
+                "delete": {
+                    "title": "Удалить {user}?",
+                    "description": "Учётная запись и её сессии исчезнут навсегда. Страницы и версии с пользователем не связаны и не пострадают. Если нужно только закрыть вход — достаточно деактивации.",
+                    "action": "Удалить"
+                }
+            },
+            "toasts": {
+                "created": "Пользователь {user} создан",
+                "roleChanged": "Роль изменена · сессии пользователя завершены",
+                "activated": "Вход разрешён",
+                "deactivated": "Вход запрещён · сессии пользователя завершены",
+                "deleted": "Пользователь {user} удалён",
+                "passwordChanged": "Пароль изменён · сессии {user} завершены"
+            },
+            "validation": {
+                "usernameRequired": "Введите имя пользователя",
+                "usernameTooShort": "Имя не короче {min} символов",
+                "usernameTooLong": "Имя не длиннее {max} символов",
+                "usernameInvalid": "Допустимы латинские буквы, цифры и . _ {'@'} + -; первый символ — буква или цифра",
+                "displayNameTooLong": "Имя не длиннее {max} символов",
+                "displayNameInvalid": "Имя не должно содержать управляющие символы",
+                "passwordRequired": "Введите пароль",
+                "passwordTooShort": "Пароль не короче {min} символов",
+                "passwordTooLong": "Пароль не длиннее {max} символов",
+                "passwordIsDefault": "Этот пароль стоит по умолчанию во всех установках — выберите другой."
+            },
+            "errors": {
+                "usernameTaken": "Такое имя уже занято",
+                "lastActiveAdmin": "Последнего активного администратора нельзя понизить, деактивировать и удалить",
+                "selfTarget": "Свою учётную запись так изменить нельзя — обновите список",
+                "passwordChangeDisabled": "Смена пароля отключена настройками установки",
+                "insufficientRole": "Недостаточно прав для управления учётными записями",
+                "userGone": "Учётной записи больше нет — список обновлён",
+                "serverBusy": "Сервер занят. Попробуйте ещё раз",
+                "timeout": "Ответ не пришёл вовремя: результат неизвестен, список обновлён",
+                "createOutcomeUnknown": "Ответ не пришёл вовремя, и результат пока неизвестен. Нажмите «Создать» ещё раз: повтор безопасен — он не создаст вторую учётную запись, а покажет результат первой отправки",
+                "createInProgress": "Сервер ещё выполняет эту отправку. Подождите несколько секунд и нажмите «Создать» ещё раз, чтобы узнать результат",
+                "createResultGone": "По этой отправке учётная запись была создана, и её уже удалили. Закройте окно и создайте запись заново",
+                "createKeyReused": "Данные формы изменились во время отправки. Закройте окно и создайте учётную запись заново",
+                "createKeyMissing": "Запрос ушёл без идентификатора операции. Обновите страницу и попробуйте снова",
+                "actionFailed": "Не удалось выполнить действие. Попробуйте ещё раз"
+            }
+        },
+        "templates": {
+            "summary": {
+                "count": "Шаблонов: {count}",
+                "lastSaved": "последний сохранён {date}"
+            },
+            "card": {
+                "blocks": "Блоков: {count}",
+                "createPage": "Создать страницу",
+                "preview": "Посмотреть",
+                "rename": "Изменить название и описание",
+                "delete": "Удалить шаблон"
+            },
+            "empty": {
+                "title": "Шаблонов пока нет",
+                "description": "Откройте любую страницу и выберите «Сохранить как шаблон» — или сохраните её прямо из списка страниц",
+                "action": "К списку страниц"
+            },
+            "notFound": {
+                "title": "Ничего не найдено",
+                "description": "Попробуйте изменить поисковый запрос"
+            },
+            "loadFailed": "Не удалось загрузить шаблоны",
+            "retry": "Повторить",
+            "deleteConfirm": {
+                "title": "Удалить шаблон?",
+                "description": "Шаблон «{name}» будет удалён. Страницы, созданные из него, не изменятся."
+            },
+            "saveModal": {
+                "title": "Сохранить как шаблон",
+                "nameLabel": "Название шаблона",
+                "descriptionLabel": "Описание",
+                "descriptionPlaceholder": "Из чего собран шаблон — коротко",
+                "contentHint": "В шаблон уйдёт содержимое страницы и её оформление: блоки, layout, фон и набор устройств. Адрес, SEO-описание и статус публикации не копируются — их задают при создании страницы. Из билдера уезжает то, что сейчас на канвасе, включая несохранённые правки, а миниатюрой станет снимок последнего сохранения.",
+                "pageUpdated": "обновлена {date}",
+                "pageUnsaved": "страница ещё не сохранена",
+                "submit": "Сохранить шаблон"
+            },
+            "renameModal": {
+                "title": "Название и описание шаблона"
+            },
+            "picker": {
+                "title": "Выберите шаблон",
+                "empty": "Шаблонов пока нет: сохраните первый из готовой страницы"
+            },
+            "toasts": {
+                "saved": "Шаблон «{name}» сохранён",
+                "renamed": "Шаблон «{name}» обновлён",
+                "deleted": "Шаблон «{name}» удалён"
+            },
+            "validation": {
+                "nameRequired": "Введите название шаблона",
+                "nameTooShort": "Минимум {min} символа",
+                "nameTooLong": "Максимум {max} символов",
+                "descriptionTooLong": "Максимум {max} символов"
+            },
+            "errors": {
+                "nameTaken": "Шаблон с таким названием уже есть",
+                "actionFailed": "Не удалось выполнить операцию с шаблоном",
+                "timeout": "Сервер не подтвердил операцию вовремя: она могла завершиться. Обновите список перед повторной попыткой",
+                "templateGone": "Шаблон не найден: возможно, его уже удалили",
+                "insufficientRole": "Недостаточно прав для этой операции",
+                "tooLarge": "Страница слишком большая для шаблона",
+                "serverBusy": "Сервер занят, попробуйте позже",
+                "saveOutcomeUnknown": "Сервер не подтвердил сохранение вовремя: шаблон мог сохраниться. Проверьте раздел перед повторной попыткой",
+                "renameOutcomeUnknown": "Сервер не подтвердил правку вовремя: она могла примениться. Проверьте раздел перед повторной попыткой",
+                "deleteOutcomeUnknown": "Сервер не подтвердил удаление вовремя: шаблон мог быть удалён. Проверьте раздел",
+                "sourceReadFailed": "Не удалось прочитать содержимое страницы для шаблона",
+                "contentReadFailed": "Не удалось прочитать содержимое шаблона"
+            }
+        }
+    }
+}

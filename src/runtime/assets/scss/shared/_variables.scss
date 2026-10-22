@@ -1,0 +1,276 @@
+/**
+ * nuxt-bricks - Library Variables
+ */
+
+/* CSS Variables */
+:root {
+    --bricks-font-family-base: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+    --bricks-font-size-sm: 1.2rem;
+    --bricks-font-size-base: 1.4rem;
+    --bricks-font-size-lg: 1.6rem;
+    --bricks-default-transition: 300ms ease;
+
+    --bricks-border-radius-xs: 0.6rem;
+    /* Compact square controls (close button, nav items) — 0.8rem from the design */
+    --bricks-border-radius-control: 0.8rem;
+    --bricks-border-radius-sm: 1rem;
+    --bricks-border-radius-md: 1.4rem;
+    --bricks-border-radius-pill: 99.9rem;
+
+    /* Static white: text over fixed backgrounds (primary, dark overlays) — it does
+       not follow the theme */
+    --bricks-static-white: #fff;
+    --bricks-rgb-white: 255 255 255;
+
+    /* === Base gray colors (light to dark) === */
+    --bricks-base-0: #fff;
+    --bricks-base-50: #f9fafb;
+    --bricks-base-100: #f3f4f6;
+    --bricks-base-200: #e5e7eb;
+    --bricks-base-300: #d1d5db;
+    --bricks-base-400: #9ca3af;
+    --bricks-base-500: #6b7280;
+    --bricks-base-600: #4b5563;
+    --bricks-base-700: #374151;
+    --bricks-base-800: #1f2937;
+    --bricks-base-900: #111827;
+
+    /* Raised surface: the background of buttons, inputs and hover — contrast without
+       borders */
+    --bricks-surface-raised: #f3f4f6;
+
+    /* Background of the builder vertical rail. In the light theme it is the same
+       tone as the toolbar: the base-0/base-50 difference there is on the edge of
+       being visible at all and read as dirt along the seam. In the dark theme the
+       rail stays darker than the toolbar — there the contrast is plain and wanted. */
+    --bricks-surface-rail: var(--bricks-base-0);
+
+    /* === Primary blue colors (light to dark) === */
+    --bricks-primary-50: #eff6ff;
+    --bricks-primary-100: #dbeafe;
+    --bricks-primary-300: #93c5fd;
+    --bricks-primary-400: #60a5fa;
+    --bricks-primary-500: #3b82f6;
+    --bricks-primary-600: #1d4ed8;
+    --bricks-primary: #2563eb;
+
+    /* === Danger/Error red colors (light to dark) === */
+    --bricks-danger-50: #fef2f2;
+    --bricks-danger-500: #ef4444;
+    --bricks-danger-600: #dc2626;
+
+    /* === Other accent colors === */
+    --bricks-green: #10b981;
+    --bricks-yellow: #f59e0b;
+    --bricks-purple: #8b5cf6;
+
+    /* === RGB Channels === */
+    --bricks-rgb-base-900: 17 24 39; /* from #111827 */
+    --bricks-rgb-base-0: 255 255 255; /* from #fff */
+    --bricks-rgb-primary: 37 99 235; /* from --bricks-primary #2563eb */
+    /* from --bricks-yellow: the warning backdrop is built out of transparency — the
+       accent has no ready light tone, and in the dark theme one would not do */
+    --bricks-rgb-yellow: 245 158 11;
+
+    /* === Shadows (layered, soft UI) === */
+    --bricks-shadow-sm:
+        0 0.1rem 0.2rem rgb(var(--bricks-rgb-base-900) / 5%),
+        0 0.2rem 0.8rem rgb(var(--bricks-rgb-base-900) / 6%);
+    --bricks-shadow-md:
+        0 0.4rem 1.2rem rgb(var(--bricks-rgb-base-900) / 8%),
+        0 1.2rem 3.2rem rgb(var(--bricks-rgb-base-900) / 10%);
+    --bricks-shadow-lg:
+        0 0.6rem 1.6rem rgb(var(--bricks-rgb-base-900) / 9%),
+        0 1.6rem 4.8rem rgb(var(--bricks-rgb-base-900) / 12%);
+    --bricks-shadow-xl:
+        0 0.8rem 2.4rem rgb(var(--bricks-rgb-base-900) / 10%),
+        0 2.4rem 6.4rem rgb(var(--bricks-rgb-base-900) / 14%);
+    --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 18%);
+
+    /* === Canvas interaction rings (hover / block selection in the builder) ===
+       The thickness is the same for both: at a fractional canvas zoom a 0.1rem ring
+       in places did not survive down to a whole pixel and the edge "went missing".
+       The only difference is the color. */
+    --bricks-canvas-ring-hover: 0 0 0 0.2rem rgb(var(--bricks-rgb-primary) / 45%);
+    --bricks-canvas-ring-active: 0 0 0 0.2rem var(--bricks-primary);
+
+    /* === Overlay layers ===
+       The builder shell (toolbar 100, vertical nav 60, sidebars 50) is not part of
+       this scale: it takes part in the page flow and always sits below any overlay.
+
+       Before, every caller picked a number of its own — 100, 200, 10000, 10001,
+       99999, 100000, 100001, 999999, 1000000 — and the order held on nothing but
+       somebody having taken a digit larger than their neighbor. Two consequences of
+       that are what is fixed here: the `BricksSelect` dropdown (100) went under the
+       media gallery (99999), and the context menu and the tooltips (10000/10001)
+       under any modal at all.
+
+       Four modal levels rather than one: the order "confirmation → image resolver →
+       gallery → ordinary modal" exists in the code and has to survive (see the
+       comment at BricksConfirmModal in publish/pages/index.vue).
+
+       Dropdowns and popovers stand ABOVE every modal deliberately: they are always
+       opened out of something that is on top already.
+
+       The toast is above the session block: the message about unreachable storage
+       has to stay dismissable while everything else is blocked. */
+    --bricks-z-modal: 1000;
+    --bricks-z-modal-nested: 1100;
+    --bricks-z-modal-raised: 1200;
+    --bricks-z-modal-confirm: 1300;
+    --bricks-z-popover: 1400;
+    --bricks-z-tooltip: 1500;
+    --bricks-z-blocking: 1600;
+    --bricks-z-toast: 1700;
+    --bricks-z-loader: 1800;
+
+    /* === Overlays === */
+    --bricks-overlay-dark: rgb(var(--bricks-rgb-base-900) / 60%);
+    --bricks-overlay-light: rgb(var(--bricks-rgb-base-0) / 20%);
+    --bricks-overlay-modal-start: rgb(var(--bricks-rgb-base-900) / 45%);
+    --bricks-overlay-modal-end: rgb(var(--bricks-rgb-base-900) / 70%);
+
+    /* === Text roles === */
+    /* Secondary text: subtitles, counters, dates, page addresses, placeholders, the
+       captions of an empty state. A role of its own rather than a step of the palette,
+       because the pale steps are not text colors — measured with axe, `base-400` gives
+       2.53:1 on white and `base-300` gives 1.41:1, where small text needs 4.5. This value
+       clears 4.5 on every surface of the interface, `base-100` cards included (4.95:1),
+       and the steps themselves stay where contrast of text is not the question: icons,
+       borders, backgrounds and the dimmed look of a disabled control. */
+    --bricks-text-muted: #636a77;
+
+    /* === Invariant surfaces (do not follow the theme) === */
+    --bricks-dark-surface: #1a1d24; /* dark preview in the text editors */
+    /* Background of the working area around the canvas sheet. One tone in both
+       themes, deliberately: the sheet does not inherit the palette
+       (.bricks-dark .bricks-canvas resets it back to the light one), and a single
+       gray around a white sheet is exactly what makes the sheet a sheet. The former
+       #f3f4f6 coincided with base-100, so in the dark theme it turned into the
+       brightest patch on the screen while the edge of the sheet was barely there. */
+    --bricks-workspace-bg: #dfe0e7;
+    /* Text over that background (the sheet captions in Figma mode). An invariant
+       too: the background does not follow the theme, so `base-500` in the dark theme
+       gave a light-gray caption on light gray — barely readable. */
+    --bricks-workspace-fg: #6b7280;
+}
+
+/* === Dark theme overrides === */
+.bricks-dark {
+    --bricks-base-0: #28262a;
+    --bricks-base-50: #1f1d21;
+    --bricks-base-100: #22252c;
+    --bricks-base-200: #363b45;
+    --bricks-base-300: #3f4e6b;
+    --bricks-base-400: #616a80;
+    --bricks-base-500: #8b93a1;
+    --bricks-base-600: #aab1bd;
+    --bricks-base-700: #bec4cd;
+    --bricks-base-800: #d3d7de;
+    --bricks-base-900: #e8eaef;
+
+    --bricks-surface-raised: #38363c;
+    --bricks-surface-rail: var(--bricks-base-50);
+
+    --bricks-primary-50: #1c2333;
+    --bricks-primary-100: #1e2d4d;
+    --bricks-primary-300: #4a6eb3;
+    --bricks-primary-400: #5589d6;
+    --bricks-primary-500: #60a5fa;
+    --bricks-primary-600: #2563eb;
+    --bricks-primary: #3b82f6;
+
+    --bricks-danger-50: #2b1d20;
+    --bricks-danger-500: #f87171;
+    --bricks-danger-600: #ef4444;
+
+    --bricks-green: #34d399;
+    --bricks-yellow: #fbbf24;
+    --bricks-purple: #a78bfa;
+
+    /* Secondary text of the dark theme: 4.64:1 even on the raised surface, the darkest
+       background text sits on here. The dark `base-500` would have given 3.85:1 there */
+    --bricks-text-muted: #9aa2b1;
+
+    --bricks-rgb-base-900: 232 234 239;
+    --bricks-rgb-base-0: 22 24 29;
+    --bricks-rgb-primary: 59 130 246;
+    --bricks-rgb-yellow: 251 191 36; /* from --bricks-yellow #fbbf24 */
+
+    --bricks-shadow-sm: 0 0.1rem 0.2rem rgb(0 0 0 / 20%), 0 0.2rem 0.8rem rgb(0 0 0 / 25%);
+    --bricks-shadow-md: 0 0.4rem 1.2rem rgb(0 0 0 / 30%), 0 1.2rem 3.2rem rgb(0 0 0 / 35%);
+    --bricks-shadow-lg: 0 0.6rem 1.6rem rgb(0 0 0 / 35%), 0 1.6rem 4.8rem rgb(0 0 0 / 40%);
+    --bricks-shadow-xl: 0 0.8rem 2.4rem rgb(0 0 0 / 40%), 0 2.4rem 6.4rem rgb(0 0 0 / 45%);
+    --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 25%);
+
+    --bricks-overlay-dark: rgb(0 0 0 / 60%);
+    --bricks-overlay-light: rgb(var(--bricks-rgb-base-0) / 30%);
+    --bricks-overlay-modal-start: rgb(0 0 0 / 55%);
+    --bricks-overlay-modal-end: rgb(0 0 0 / 75%);
+
+    /* === Canvas reset: components on the canvas stay in the light theme === */
+    .bricks-canvas {
+        /* The sheet stays in the light theme, so the text role goes back with the
+           palette: without this line a dark-theme muted value would land on a white
+           sheet */
+        --bricks-text-muted: #636a77;
+
+        --bricks-base-0: #fff;
+        --bricks-base-50: #f9fafb;
+        --bricks-base-100: #f3f4f6;
+        --bricks-base-200: #e5e7eb;
+        --bricks-base-300: #d1d5db;
+        --bricks-base-400: #9ca3af;
+        --bricks-base-500: #6b7280;
+        --bricks-base-600: #4b5563;
+        --bricks-base-700: #374151;
+        --bricks-base-800: #1f2937;
+        --bricks-base-900: #111827;
+
+        --bricks-surface-raised: #f3f4f6;
+
+        --bricks-primary-50: #eff6ff;
+        --bricks-primary-100: #dbeafe;
+        --bricks-primary-300: #93c5fd;
+        --bricks-primary-400: #60a5fa;
+        --bricks-primary-500: #3b82f6;
+        --bricks-primary-600: #1d4ed8;
+        --bricks-primary: #2563eb;
+
+        --bricks-danger-50: #fef2f2;
+        --bricks-danger-500: #ef4444;
+        --bricks-danger-600: #dc2626;
+
+        --bricks-green: #10b981;
+        --bricks-yellow: #f59e0b;
+        --bricks-purple: #8b5cf6;
+
+        --bricks-rgb-base-900: 17 24 39;
+        --bricks-rgb-base-0: 255 255 255;
+        --bricks-rgb-primary: 37 99 235;
+        --bricks-rgb-yellow: 245 158 11;
+
+        --bricks-shadow-sm:
+            0 0.1rem 0.2rem rgb(var(--bricks-rgb-base-900) / 5%),
+            0 0.2rem 0.8rem rgb(var(--bricks-rgb-base-900) / 6%);
+        --bricks-shadow-md:
+            0 0.4rem 1.2rem rgb(var(--bricks-rgb-base-900) / 8%),
+            0 1.2rem 3.2rem rgb(var(--bricks-rgb-base-900) / 10%);
+        --bricks-shadow-lg:
+            0 0.6rem 1.6rem rgb(var(--bricks-rgb-base-900) / 9%),
+            0 1.6rem 4.8rem rgb(var(--bricks-rgb-base-900) / 12%);
+        --bricks-shadow-xl:
+            0 0.8rem 2.4rem rgb(var(--bricks-rgb-base-900) / 10%),
+            0 2.4rem 6.4rem rgb(var(--bricks-rgb-base-900) / 14%);
+        --bricks-shadow-focus: 0 0 0 0.4rem rgb(var(--bricks-rgb-primary) / 18%);
+
+        /* The inherited text color has to be reset as well: the builder body sets
+           color: var(--bricks-base-900), and in the dark theme that is a light
+           #e8eaef. Redefining the variables above does not reach it — the color has
+           been computed on body already and travels into the canvas by inheritance,
+           and the content blocks set no color of their own to stop it (BlockText
+           carries no `color` at all). Without this line the text on the white sheet
+           would be nearly invisible. */
+        color: var(--bricks-base-900);
+    }
+}

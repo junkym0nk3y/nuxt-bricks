@@ -1,0 +1,179 @@
+# The CI gate: format/lint/type/test with the coverage thresholds → build (the module
+# plus a production build of the playground) → fresh-consumer smoke from npm pack → npm
+# audit. Every job has to be green to merge into main (required checks are configured in
+# the branch protection of the repository).
+#
+# Every job upgrades npm before it installs anything, because the npm 10 bundled with
+# Node 22 fails twice over. The smoke jobs install a clean consumer from scratch, and npm
+# 10 dies doing that: "Cannot read properties of null (reading 'edgesOut')" while it
+# resolves the peer graph of nuxt. And `npm ci` rejects the lockfile itself: npm 11 writes
+# no entry for an optional peer it leaves uninstalled (nested copies of `unctx` declare
+# `oxc-parser` and `unplugin` that way), while npm 10 reads every such peer as a package
+# missing from the lockfile. The version is pinned instead of floating on 11.x because npm
+# 11.19 stopped running the install scripts of dependencies until each one is approved by
+# hand; publish.yml pins the same one.
+#
+# Every job that packs the module or starts Playwright runs `npm run dev:prepare` right
+# after `npm ci`. The root tsconfig.json extends `.nuxt/tsconfig.json`, which only that
+# step generates, and on a fresh checkout both `nuxt-module-build` (run by `prepack`
+# inside `npm pack`) and the Playwright config loader stop at the dangling `extends`.
+name: CI
+
+permissions:
+    contents: read
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    NUXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+    checks:
+        name: Format, lint, types, tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm i -g npm@11.13.0
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npm run format:check
+            - run: npm run lint:check
+            - run: npm run type-check
+            # Coverage instead of a bare test run: the thresholds per directory live
+            # in vitest.config.ts and are what makes a domain losing its tests visible
+            - run: npm run test:coverage
+
+    build:
+        name: Module build + playground prod build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm i -g npm@11.13.0
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npm run build
+            - run: npm run dev:build
+            # Bundle budget: the gzip size of the initial JS (the entry and a published
+            # page) must not grow unnoticed — the budgets live in scripts/bundle-budget.mjs.
+            - run: npm run budget:bundle
+
+    pack-smoke:
+        name: Fresh consumer smoke (npm pack)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm i -g npm@11.13.0
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npm run smoke:pack
+
+    integration:
+        name: Integration smoke (Postgres + MinIO)
+        runs-on: ubuntu-latest
+        env:
+            # A non-UTC process timezone is what catches regressions of the
+            # timestamptz invariants
+            TZ: Europe/Moscow
+        services:
+            postgres:
+                image: postgres:16
+                env:
+                    POSTGRES_USER: bricks
+                    POSTGRES_PASSWORD: bricks
+                    POSTGRES_DB: bricks
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U bricks"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm i -g npm@11.13.0
+            - name: Start MinIO
+              run: |
+                  docker run -d --name minio -p 9000:9000 \
+                      -e MINIO_ROOT_USER=bricks -e MINIO_ROOT_PASSWORD=bricks-secret \
+                      minio/minio server /data
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npm run smoke:integration
+              env:
+                  BRICKS_IT_DATABASE_URL: postgres://bricks:bricks@127.0.0.1:5432/bricks
+                  BRICKS_IT_S3_ENDPOINT: http://127.0.0.1:9000
+                  BRICKS_IT_S3_ACCESS_KEY: bricks
+                  BRICKS_IT_S3_SECRET_KEY: bricks-secret
+                  BRICKS_IT_S3_BUCKET: bricks-it
+
+    external:
+        name: External backend smoke (Nitro-level)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm i -g npm@11.13.0
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npm run smoke:external
+
+    e2e:
+        name: Critical browser flows
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm i -g npm@11.13.0
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npx playwright install --with-deps chromium
+            - run: npm run test:e2e
+            - uses: actions/upload-artifact@v4
+              if: failure()
+              with:
+                  name: playwright-report
+                  path: playwright-report/
+                  retention-days: 7
+
+    audit:
+        name: npm audit (prod deps)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            - run: npm i -g npm@11.13.0
+            # Production dependencies are blocking; the full audit, dev included, is
+            # informational and does not fail the build.
+            - run: npm audit --omit=dev
+            - run: npm audit || true

@@ -1,0 +1,30 @@
+# LOCAL DEV ENVIRONMENT — not for production.
+# Production: managed PostgreSQL or an own deployment plus `npm run bricks:migrate`
+# (see the README, "Production deployment"). The port is bound to localhost and the
+# password is overridden by the POSTGRES_PASSWORD env var — the default is fit for
+# local use only.
+services:
+    postgres:
+        image: postgres:16-alpine
+        container_name: nuxt-bricks-db
+        restart: unless-stopped
+        ports:
+            - '127.0.0.1:5432:5432'
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER:-postgres}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+            POSTGRES_DB: ${POSTGRES_DB:-bricks}
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+            # Seeds an empty volume with the migration files, in lexicographic order.
+            # The canonical path for an external database is `npm run bricks:migrate`
+            # (the bricks-migrate CLI).
+            - ./migrations:/docker-entrypoint-initdb.d:ro
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-postgres}']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+volumes:
+    postgres_data:

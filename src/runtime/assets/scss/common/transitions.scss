@@ -1,0 +1,376 @@
+/* Sidebar slide */
+.bricks-sidebar-enter-active,
+.bricks-sidebar-leave-active {
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+}
+
+.bricks-sidebar-enter-from {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+}
+
+.bricks-sidebar-leave-to {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+}
+
+.bricks-sidebar-enter-to,
+.bricks-sidebar-leave-from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+/* Sidebar view switch */
+.bricks-sidebar-view-enter-active,
+.bricks-sidebar-view-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.bricks-sidebar-view-enter-from {
+    opacity: 0;
+    transform: translate3d(0.8rem, 0, 0);
+}
+
+.bricks-sidebar-view-leave-to {
+    opacity: 0;
+    transform: translate3d(-0.8rem, 0, 0);
+}
+
+.bricks-sidebar-view-enter-to,
+.bricks-sidebar-view-leave-from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+/* View switch (the content changing when a dashboard section, a list filter or a
+   modal tab is switched). One phase is markedly shorter than
+   --bricks-default-transition on purpose: the transition runs `mode="out-in"`, so a
+   person waits out two phases in a row, and 300 ms each turns switching a tab into
+   a loading screen. */
+.bricks-view-switch-enter-active,
+.bricks-view-switch-leave-active {
+    transition:
+        opacity 140ms ease,
+        transform 140ms ease;
+}
+
+/*
+ * The leaving screen takes no more clicks: under `mode="out-in"` it lives in the
+ * DOM for the whole leave phase, and a list-row button or a form submit would fire
+ * after the screen had already changed. Descendants are listed explicitly because
+ * buttons set `pointer-events: auto` on themselves, and inheritance from the wrapper
+ * does not put that out (the same decision as for the modals below).
+ *
+ * The pointer is only half of it: the keyboard and assistive tech walk past
+ * `pointer-events` entirely. That half is covered by `inert`, which the hosts set on
+ * the leaving node — why it is needed and why nothing removes it is in
+ * `common/utils/transitionInert.ts`.
+ */
+.bricks-view-switch-leave-active,
+.bricks-view-switch-leave-active * {
+    pointer-events: none;
+}
+
+.bricks-view-switch-enter-from {
+    opacity: 0;
+    transform: translate3d(0, 0.4rem, 0);
+}
+
+.bricks-view-switch-leave-to {
+    opacity: 0;
+    transform: translate3d(0, -0.4rem, 0);
+}
+
+/* Details panel slide (the dashboard details panel, slides in from the right — a
+   mirror of sidebar-slide) */
+.bricks-details-slide-enter-active,
+.bricks-details-slide-leave-active {
+    transition:
+        transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bricks-details-slide-enter-from,
+.bricks-details-slide-leave-to {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+/* Modal transitions */
+
+/*
+ * The duration comes from a variable BricksModal sets inline out of its `duration`
+ * prop; why it is not a constant here is spelled out in that component.
+ */
+.bricks-modal-fade-enter-active,
+.bricks-modal-fade-leave-active {
+    transition: opacity var(--bricks-modal-duration, 300ms) ease;
+}
+
+/*
+ * The leaving modal takes no more clicks — the same reason and the same explicit
+ * list of descendants as the view switch above. Without it the buttons live on for
+ * the whole leave animation while the state behind them has already moved on: a
+ * click on the closed draft-restore modal answered for the next session.
+ */
+.bricks-modal-fade-leave-active,
+.bricks-modal-fade-leave-active * {
+    pointer-events: none;
+}
+
+.bricks-modal-fade-enter-from,
+.bricks-modal-fade-leave-to {
+    opacity: 0;
+}
+
+/*
+ * The window itself arrives scaled, while the backdrop under it only fades out.
+ *
+ * Why the target is the children of `.bricks-modal-window` and not the element
+ * itself is in `ui/base/modal/BricksModal.vue`. Aiming at the root of the transition
+ * is out as well — the dimming would travel along with the window and bare the edges
+ * of the screen.
+ *
+ * Nested standalone dialogs are excluded: the media gallery keeps in its slot not
+ * only its own window but a full-screen file preview as well (`role="dialog"`, with
+ * a page-wide dimming and a transition of its own). From the keyboard the two never
+ * collide — Esc is caught by the gallery and closes the preview alone — but when
+ * the gallery is closed from the outside (a session reset putting it out, say) the
+ * preview leaves inside the departing modal, and the scale would squeeze its dimming
+ * and bare a strip of backdrop along the edges of the screen.
+ *
+ * Before this, the rules were written against a `.modal` class that no modal has in
+ * its markup: the content of every one of them is on CSS Modules, so the scale never
+ * played at all and the windows arrived as a plain fade.
+ */
+.bricks-modal-fade-enter-active .bricks-modal-window > *:not([role='dialog']),
+.bricks-modal-fade-leave-active .bricks-modal-window > *:not([role='dialog']) {
+    transition: transform var(--bricks-modal-duration, 300ms) ease;
+}
+
+.bricks-modal-fade-enter-from .bricks-modal-window > *:not([role='dialog']) {
+    transform: scale(0.95) translateY(-2rem);
+}
+
+.bricks-modal-fade-leave-to .bricks-modal-window > *:not([role='dialog']) {
+    transform: scale(0.95) translateY(-2rem);
+}
+
+/* Dropdown transitions */
+.bricks-dropdown-enter-active,
+.bricks-dropdown-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.bricks-dropdown-enter-from {
+    opacity: 0;
+    transform: translateY(1rem);
+}
+
+.bricks-dropdown-leave-to {
+    opacity: 0;
+    transform: translateY(1rem);
+}
+
+.bricks-dropdown-enter-to,
+.bricks-dropdown-leave-from {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Toast notification */
+.bricks-toast-enter-active,
+.bricks-toast-leave-active {
+    transition:
+        opacity 300ms ease,
+        transform 300ms ease;
+}
+
+.bricks-toast-enter-from,
+.bricks-toast-leave-to {
+    opacity: 0;
+    transform: translateY(1.2rem);
+}
+
+/* Fade fast */
+.bricks-fade-fast-enter-active,
+.bricks-fade-fast-leave-active {
+    transition: opacity var(--bricks-default-transition);
+}
+
+.bricks-fade-fast-enter-from,
+.bricks-fade-fast-leave-to {
+    opacity: 0;
+}
+
+/* Fade (standard) */
+.bricks-fade-enter-active,
+.bricks-fade-leave-active {
+    transition: opacity var(--bricks-default-transition);
+}
+
+.bricks-fade-enter-from,
+.bricks-fade-leave-to {
+    opacity: 0;
+}
+
+/* Canvas toolbar fade */
+.bricks-canvas-toolbar-enter-active,
+.bricks-canvas-toolbar-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.bricks-canvas-toolbar-enter-from,
+.bricks-canvas-toolbar-leave-to {
+    opacity: 0;
+    transform: translateY(0.4rem);
+}
+
+/* Canvas flow: the neighbors shifting when a block is inserted or removed and when
+   the insertion point moves. move + enter only: there is deliberately no leave
+   transition — the node leaves the flow at once, and the remaining blocks start
+   closing the gap right away.
+   The .bricks-canvas part of the selector is mandatory: canvas blocks carry a
+   transition of their own (box-shadow) at the same specificity, and without the
+   extra weight this rule lost — FLIP quietly switched itself off. */
+.bricks-canvas .bricks-canvas-flow-move {
+    transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.bricks-canvas .bricks-canvas-flow-enter-active {
+    transition:
+        opacity 160ms ease,
+        transform 160ms ease;
+}
+
+.bricks-canvas .bricks-canvas-flow-enter-from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+}
+
+/* The drop commit frame: the room for the block has already been opened up by the
+   placeholder, so there is no travel left to animate — otherwise the block "arrives"
+   at its position only after the cursor has been released. */
+.bricks-canvas--flow-instant .bricks-canvas-flow-move {
+    transition: none;
+}
+
+/* Canvas item context menu */
+.bricks-canvas-context-menu-enter-active,
+.bricks-canvas-context-menu-leave-active {
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+
+.bricks-canvas-context-menu-enter-from,
+.bricks-canvas-context-menu-leave-to {
+    opacity: 0;
+    transform: scale(0.98);
+}
+
+/* Tooltip transitions */
+.bricks-tooltip-enter-active {
+    transition:
+        opacity 0.3s,
+        transform 0.3s;
+}
+
+.bricks-tooltip-leave-active {
+    transition:
+        opacity 0.15s,
+        transform 0.15s;
+}
+
+.bricks-tooltip-enter-from,
+.bricks-tooltip-leave-active {
+    opacity: 0;
+    transform: translateY(-1.6rem);
+}
+
+/*
+ * Builder loader overlay fade.
+ *
+ * The appearance carries no animation, deliberately: the loader has to cover the
+ * canvas before the content on it changes. Switching pages inside the app brings the
+ * schema in within tens of milliseconds, and over the fade-in the user managed to
+ * see the new page before the loader — that is, the order read backwards. The
+ * departure stays smooth: what it uncovers is an already settled state.
+ */
+.bricks-loader-fade-leave-active {
+    transition: opacity var(--bricks-default-transition);
+}
+
+.bricks-loader-fade-leave-to {
+    opacity: 0;
+}
+
+/* Builder loader rotating phrase: shorter than the rotation itself, whose interval
+   lives in the component */
+.bricks-loader-phrase-fade-enter-active,
+.bricks-loader-phrase-fade-leave-active {
+    transition: opacity 150ms ease;
+}
+
+.bricks-loader-phrase-fade-enter-from,
+.bricks-loader-phrase-fade-leave-to {
+    opacity: 0;
+}
+
+/*
+ * Reduced motion: movement and scale are dropped, the fade stays — a fade draws no
+ * vestibular complaints, while a transition taken away outright would lose the cue that
+ * the screen has changed. Every transition of this file is covered, including the two
+ * full-screen slides (the sidebar and the details panel), which travelled the whole
+ * viewport width.
+ *
+ * The block sits at the end of the file on purpose: the selectors repeat the ones above
+ * at equal specificity, so it only wins where it comes later. The canvas flow keeps the
+ * `.bricks-canvas` part of its selector for the same reason it carries it above — a block
+ * of the canvas has a transition of its own at that specificity.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .bricks-sidebar-enter-from,
+    .bricks-sidebar-leave-to,
+    .bricks-sidebar-view-enter-from,
+    .bricks-sidebar-view-leave-to,
+    .bricks-view-switch-enter-from,
+    .bricks-view-switch-leave-to,
+    .bricks-details-slide-enter-from,
+    .bricks-details-slide-leave-to,
+    .bricks-dropdown-enter-from,
+    .bricks-dropdown-leave-to,
+    .bricks-toast-enter-from,
+    .bricks-toast-leave-to,
+    .bricks-canvas-toolbar-enter-from,
+    .bricks-canvas-toolbar-leave-to,
+    .bricks-canvas-context-menu-enter-from,
+    .bricks-canvas-context-menu-leave-to,
+    .bricks-tooltip-enter-from,
+    .bricks-tooltip-leave-active {
+        transform: none;
+    }
+
+    .bricks-modal-fade-enter-from .bricks-modal-window > *:not([role='dialog']),
+    .bricks-modal-fade-leave-to .bricks-modal-window > *:not([role='dialog']) {
+        transform: none;
+    }
+
+    /* The blocks close the gap and open it up without travelling: the FLIP move is the
+       movement itself, so it is turned off rather than shortened */
+    .bricks-canvas .bricks-canvas-flow-move {
+        transition: none;
+    }
+
+    .bricks-canvas .bricks-canvas-flow-enter-from {
+        transform: none;
+    }
+}

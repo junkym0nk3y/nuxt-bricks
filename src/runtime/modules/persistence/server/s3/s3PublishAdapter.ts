@@ -1,0 +1,374 @@
+/**
+ * The default IPublishAdapter over S3-compatible storage (Yandex Object Storage).
+ * The configuration is runtimeConfig.bricksS3 (see module.ts; the runtime
+ * override is NUXT_BRICKS_S3_*).
+ */
+import {
+    S3Client,
+    PutObjectCommand,
+    DeleteObjectCommand,
+    GetObjectCommand,
+    ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
+import { useRuntimeConfig } from 'nitropack/runtime';
+import { discardUnconfirmedObject } from './s3ObjectCleanup';
+import { extractStorageKey, findManagedPrefixConflict, isManagedStorageKey } from './s3KeyPolicy';
+import { writeStreamToBucket } from './s3StreamUpload';
+import type {
+    IPublishAdapter,
+    IUploadFileParams,
+    IUploadFileStreamParams,
+    IUploadedFile,
+    IStoredFileInfo,
+    TPublishFileKind,
+} from '../../types/adapters';
+import type { IResolvedS3Config, TRawS3Config } from '../../types/s3PublishAdapter';
+
+/**
+ * The ceiling for establishing the TCP connection to storage (ms): an unreachable
+ * endpoint must fail fast — the whole media upload waits on it.
+ */
+const S3_CONNECTION_TIMEOUT_MS = 5_000;
+/**
+ * The ceiling of socket SILENCE (ms), not of the whole operation. The largest
+ * single request is one part of a streaming upload or a whole optimized image, and
+ * an overall ceiling would cut off a healthy one over a slow link. Without the
+ * bound a hung endpoint would hold the request until the client gave up: the
+ * departure of a client does stop a write in flight (the signal is passed into
+ * every send), but a storage that answers nothing is not a client going away.
+ *
+ * It goes into `socketTimeout` specifically. The similar-looking `requestTimeout`
+ * is a trap here: it bounds the total time of the request and the response, and
+ * without `throwOnRequestTimeout` it merely writes a warning to the log when
+ * exceeded, aborting nothing (see `@smithy/node-http-handler`). That is, it does
+ * not cure a hung endpoint, and turned on as an error it would cut a slow upload
+ * off by total time.
+ */
+const S3_SOCKET_TIMEOUT_MS = 30_000;
+/**
+ * The total attempts per request (one plus a retry). The default three over a hung
+ * endpoint give three silence windows in a row plus the backoff — up to a minute
+ * and a half of waiting on an interactive upload; a single retry is enough to
+ * survive a one-off network failure, and the request body is replayable (a Buffer)
+ * with the key always new. A repeated part of a streaming upload is replayable in
+ * the same sense: the part number identifies the part, and uploading it again
+ * REPLACES it rather than appending a second copy.
+ */
+const S3_MAX_ATTEMPTS = 2;
+
+/**
+ * Resolves the S3 configuration from runtimeConfig.
+ *
+ * @returns The full storage configuration.
+ */
+function resolveS3Config(): IResolvedS3Config {
+    const config = useRuntimeConfig();
+    const raw = config.bricksS3 as TRawS3Config;
+
+    const bucket = raw?.bucket || '';
+
+    if (!bucket) {
+        throw new Error(
+            '[S3] Bucket is not configured. ' +
+                'Set bricks.s3.bucket in nuxt.config (or NUXT_BRICKS_S3_BUCKET env).'
+        );
+    }
+
+    const prefix = raw?.prefix || 'bricks-media/';
+    const thumbnailsPrefix = raw?.thumbnailsPrefix || 'bricks-thumbnails/';
+    const avatarsPrefix = raw?.avatarsPrefix || 'bricks-avatars/';
+
+    // The isolation of the namespaces rests solely on the prefixes not
+    // overlapping, and the values are overridden by NUXT_BRICKS_S3_* at runtime —
+    // a build-time check would not see them. The refusal is loud: a silently
+    // working configuration in which avatars land in the media library's listing
+    // breaks the module's promise
+    const conflict = findManagedPrefixConflict({ prefix, thumbnailsPrefix, avatarsPrefix });
+
+    if (conflict) {
+        throw new Error(
+            `[S3] Invalid managed prefixes: ${conflict}. ` +
+                'Set distinct, non-nested bricks.s3 prefixes (or NUXT_BRICKS_S3_* env).'
+        );
+    }
+
+    return {
+        endpoint: raw?.endpoint || 'https://storage.yandexcloud.net',
+        region: raw?.region || 'ru-central1',
+        bucket,
+        accessKeyId: raw?.accessKeyId || '',
+        secretAccessKey: raw?.secretAccessKey || '',
+        prefix,
+        thumbnailsPrefix,
+        avatarsPrefix,
+    };
+}
+
+/**
+ * The managed prefixes of the module's keys in the bucket: only inside them does
+ * the adapter create and delete objects (see the IPublishAdapter contract).
+ *
+ * Avatars are part of the set because otherwise the adapter could neither write
+ * nor delete their file (`uploadFile` and `deleteFile` refuse keys outside the
+ * namespace). The media library does not fill up from that: the bucket import
+ * reads `prefix` only, and media records are created by an upload with a key of
+ * its own.
+ *
+ * @param config - The storage configuration.
+ * @returns The list of prefixes.
+ */
+function resolveManagedPrefixes(config: IResolvedS3Config): string[] {
+    return [config.prefix, config.thumbnailsPrefix, config.avatarsPrefix];
+}
+
+/**
+ * Extracts the S3 key from a public URL, only when the key lies inside the
+ * module's managed namespace.
+ *
+ * @param url - The file's full URL.
+ * @param config - The storage configuration.
+ * @returns The key, or null (a foreign bucket / an outside prefix).
+ */
+function extractManagedKey(url: string, config: IResolvedS3Config): string | null {
+    const key = extractStorageKey(url, config);
+
+    if (!key || !isManagedStorageKey(key, resolveManagedPrefixes(config))) {
+        return null;
+    }
+
+    return key;
+}
+
+/**
+ * Creates the S3 implementation of IPublishAdapter with a lazy client.
+ *
+ * @returns The publication file storage adapter.
+ */
+export function createS3PublishAdapter(): IPublishAdapter {
+    let client: S3Client | null = null;
+    let resolvedConfig: IResolvedS3Config | null = null;
+
+    /**
+     * Lazily creates the S3 client and resolves the configuration.
+     */
+    function useClient(): { client: S3Client; config: IResolvedS3Config } {
+        if (!client || !resolvedConfig) {
+            resolvedConfig = resolveS3Config();
+            client = new S3Client({
+                region: resolvedConfig.region,
+                endpoint: resolvedConfig.endpoint,
+                credentials: {
+                    accessKeyId: resolvedConfig.accessKeyId,
+                    secretAccessKey: resolvedConfig.secretAccessKey,
+                },
+                requestHandler: {
+                    connectionTimeout: S3_CONNECTION_TIMEOUT_MS,
+                    socketTimeout: S3_SOCKET_TIMEOUT_MS,
+                },
+                maxAttempts: S3_MAX_ATTEMPTS,
+            });
+        }
+
+        return { client, config: resolvedConfig };
+    }
+
+    return {
+        /**
+         * Builds the full object key of a new file: the managed prefix for the
+         * file's kind (`prefix` for media, `thumbnailsPrefix` for page previews,
+         * `avatarsPrefix` for profile photos) + the name.
+         */
+        buildFileKey(kind: TPublishFileKind, filename: string): string {
+            const { config } = useClient();
+            const prefixByKind: Record<TPublishFileKind, string> = {
+                media: config.prefix,
+                thumbnail: config.thumbnailsPrefix,
+                avatar: config.avatarsPrefix,
+            };
+
+            return `${prefixByKind[kind]}${filename}`;
+        },
+
+        /**
+         * Uploads a file into the bucket and returns the public URL.
+         * Keys outside the managed namespace are rejected — a key must
+         * have been built through buildFileKey.
+         *
+         * A failed write is compensated right here (see the `uploadFile` contract
+         * and `discardUnconfirmedObject`): the original error goes to the client, and
+         * the object that could have stayed in the bucket with no link to it is
+         * removed best-effort.
+         */
+        async uploadFile(params: IUploadFileParams): Promise<IUploadedFile> {
+            const { client: s3, config } = useClient();
+
+            if (!isManagedStorageKey(params.key, resolveManagedPrefixes(config))) {
+                throw new Error(
+                    'Invalid storage key: object key is outside of the managed prefixes'
+                );
+            }
+
+            try {
+                await s3.send(
+                    new PutObjectCommand({
+                        Bucket: config.bucket,
+                        Key: params.key,
+                        Body: params.buffer,
+                        ContentType: params.mimeType,
+                        ACL: 'public-read',
+                    })
+                );
+            } catch (error: unknown) {
+                // Deletion by the already checked key rather than through
+                // `deleteFile(url)`: parsing the URL back would add a failure path
+                // of its own where the key is already at hand
+                await discardUnconfirmedObject(s3, config.bucket, params.key);
+
+                throw error;
+            }
+
+            return {
+                url: `${config.endpoint}/${config.bucket}/${params.key}`,
+                key: params.key,
+                size: params.buffer.length,
+            };
+        },
+
+        /**
+         * Uploads a file read as a stream: one part of it lives in memory at a
+         * time. Short streams go as a single PutObject, longer ones as an S3
+         * multipart upload (see `writeStreamToBucket`).
+         *
+         * The key is checked exactly as `uploadFile` checks it, and the cleanup of
+         * a write that failed follows the same rule — with the addition that a
+         * multipart upload begun is aborted, or its parts would sit in the bucket
+         * billed and invisible.
+         */
+        async uploadFileStream(params: IUploadFileStreamParams): Promise<IUploadedFile> {
+            const { client: s3, config } = useClient();
+
+            if (!isManagedStorageKey(params.key, resolveManagedPrefixes(config))) {
+                throw new Error(
+                    'Invalid storage key: object key is outside of the managed prefixes'
+                );
+            }
+
+            const size = await writeStreamToBucket(s3, config, params);
+
+            return {
+                url: `${config.endpoint}/${config.bucket}/${params.key}`,
+                key: params.key,
+                size,
+            };
+        },
+
+        /**
+         * Deletes a file from the bucket by its public URL. A URL outside our own
+         * bucket or outside the managed prefixes is an error (in a shared bucket
+         * foreign objects are left alone).
+         */
+        async deleteFile(url: string): Promise<void> {
+            const { client: s3, config } = useClient();
+            const key = extractManagedKey(url, config);
+
+            if (!key) {
+                throw new Error(
+                    'Invalid storage URL: file does not belong to the managed storage prefixes'
+                );
+            }
+
+            await s3.send(
+                new DeleteObjectCommand({
+                    Bucket: config.bucket,
+                    Key: key,
+                })
+            );
+        },
+
+        /**
+         * Checks that the URL belongs to our own storage (the anti-SSRF contract):
+         * the host is fixed by the config (`endpoint/bucket/`), and the key must lie
+         * inside the managed prefixes — arbitrary origins and the foreign objects of
+         * a shared bucket do not pass.
+         */
+        isOwnedUrl(url: string): boolean {
+            const { config } = useClient();
+            return extractManagedKey(url, config) !== null;
+        },
+
+        /**
+         * Returns the full list of the bucket's files under a prefix (the default
+         * is bricks-media/). ListObjectsV2 returns at most 1000 objects per
+         * request — the pages are read on through NextContinuationToken.
+         */
+        async listFiles(prefix?: string): Promise<IStoredFileInfo[]> {
+            const { client: s3, config } = useClient();
+            const files: IStoredFileInfo[] = [];
+            let continuationToken: string | undefined;
+
+            do {
+                const response = await s3.send(
+                    new ListObjectsV2Command({
+                        Bucket: config.bucket,
+                        Prefix: prefix ?? config.prefix,
+                        ContinuationToken: continuationToken,
+                    })
+                );
+
+                const contents = response.Contents ?? [];
+
+                files.push(
+                    ...contents
+                        .filter((item) => Boolean(item.Key) && !item.Key?.endsWith('/'))
+                        .map((item) => ({
+                            key: item.Key || '',
+                            url: `${config.endpoint}/${config.bucket}/${item.Key}`,
+                            size: item.Size || 0,
+                            lastModified:
+                                item.LastModified?.toISOString() || new Date().toISOString(),
+                        }))
+                );
+
+                continuationToken = response.IsTruncated
+                    ? response.NextContinuationToken
+                    : undefined;
+            } while (continuationToken);
+
+            return files;
+        },
+
+        /**
+         * Reads the head of an object with a ranged GetObject: the format is
+         * decided by the first bytes, and a full read of a video would pull
+         * hundreds of megabytes for nothing.
+         *
+         * A key outside the managed namespace is refused the same way
+         * `deleteFile` refuses one: in a shared bucket the module must not read
+         * foreign objects either.
+         */
+        async readFileHead(key: string, maxBytes: number): Promise<Buffer> {
+            const { client: s3, config } = useClient();
+
+            if (!isManagedStorageKey(key, resolveManagedPrefixes(config))) {
+                throw new Error(
+                    `[S3] Refusing to read a key outside the managed namespace: ${key}`
+                );
+            }
+
+            const response = await s3.send(
+                new GetObjectCommand({
+                    Bucket: config.bucket,
+                    Key: key,
+                    // The range is inclusive on both ends
+                    Range: `bytes=0-${maxBytes - 1}`,
+                })
+            );
+
+            if (!response.Body) {
+                return Buffer.alloc(0);
+            }
+
+            return Buffer.from(await response.Body.transformToByteArray());
+        },
+    };
+}

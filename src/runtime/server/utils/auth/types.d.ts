@@ -1,0 +1,138 @@
+/**
+ * Database-auth types: the mode, the role guard and the H3EventContext augmentation.
+ */
+import type { IAuthSessionUser } from '../../../modules/persistence/types/authAdapters';
+import type { IBricksRoutePrefixes } from '../../../modules/common/utils/bricks/routePaths';
+import type { TBricksUserRole } from '../../../modules/common/types/auth';
+
+/** Authentication mode of the protected paths */
+export type TBricksAuthMode = 'basic' | 'database';
+
+/** Login request body (before validation the fields are arbitrary) */
+export interface IAuthLoginBody {
+    username?: unknown;
+    password?: unknown;
+}
+
+/**
+ * The validated body of an account creation, BEFORE the password is hashed.
+ *
+ * The plaintext password is part of it deliberately: validation and the digest of the
+ * request happen before the derivation, and the derivation is the slow step the
+ * operation key exists to protect. The adapter never sees this shape — it receives
+ * `ICreateAuthUserPayload`, where the password is a hash already.
+ */
+export interface IAuthUserCreateInput {
+    username: string;
+    password: string;
+    role: TBricksUserRole;
+    /** The display name; null — the username is shown everywhere */
+    displayName: string | null;
+    isActive: boolean;
+}
+
+/**
+ * The scrypt parameters taken out of the self-describing hash string.
+ *
+ * They come from the store rather than from the code, so `verifyPassword` derives by
+ * THEM and not by the current defaults — that is what lets the defaults be raised
+ * without invalidating the rows already written.
+ */
+export interface IParsedPasswordHash {
+    n: number;
+    r: number;
+    p: number;
+    salt: Buffer;
+    hash: Buffer;
+}
+
+/** Validated login credentials */
+export interface IAuthLoginCredentials {
+    username: string;
+    password: string;
+}
+
+/**
+ * A sign-in candidate: the password check passed, but there is no session yet.
+ * `authVersion` was read BEFORE the scrypt check and goes into the insert as a
+ * condition.
+ */
+export interface IAuthLoginCandidate {
+    id: number;
+    username: string;
+    role: TBricksUserRole;
+    authVersion: number;
+    /**
+     * The hash the password was verified against. It is carried along because the
+     * rehash of a weak hash writes CONDITIONALLY on it: a parallel sign-in of the same
+     * account could have rehashed the row already, and overwriting a salt somebody
+     * else has just written is a write nobody asked for.
+     */
+    passwordHash: string;
+}
+
+/**
+ * Account projection in the "who am I" responses: the `me` handler and the
+ * own-profile handlers.
+ *
+ * One shape for all three sources (the session, the row after a profile edit,
+ * the row after a photo change) — otherwise the corner of the screen would be
+ * left guessing what exactly arrived. The activity flag, the generation and the
+ * creation date are absent here: the profile interface does not need them, and
+ * an inactive account never reaches these handlers at all.
+ */
+export interface IAuthProfileUser {
+    id: number;
+    username: string;
+    role: TBricksUserRole;
+    /** Display name; null means the username is shown */
+    displayName: string | null;
+    /** Link to the profile photo; null means the letter placeholder */
+    avatarUrl: string | null;
+}
+
+/** Validated body of editing one's own profile */
+export interface IAuthProfileInput {
+    /** Display name; null means clear it and show the username */
+    displayName: string | null;
+}
+
+/** Validated body of changing one's own password */
+export interface IAuthOwnPasswordInput {
+    /**
+     * The current password is mandatory precisely here: without it a stolen
+     * cookie would change the password on its own and lock the owner out.
+     */
+    currentPassword: string;
+    newPassword: string;
+}
+
+/**
+ * Access requirement for an `/api/bricks/**` path.
+ * `null` — the path is open to everyone (public read model, health, component
+ * manifest); `'authenticated'` — any valid session is enough (one's own
+ * profile); a role — the minimum rank from `BRICKS_ROLE_RANK`.
+ */
+export type TBricksAccessRequirement = TBricksUserRole | 'authenticated' | null;
+
+/** Parsed request target for the auth middleware (logical path without baseURL) */
+export interface IAuthRequestTarget {
+    /** Path without `app.baseURL` and query — the input of the protection matrix */
+    logicalPathname: string;
+    /** Query string of the request (with a leading `?`, or empty) */
+    search: string;
+    /** Active bricks route prefixes */
+    prefixes: IBricksRoutePrefixes;
+    /** `app.baseURL` of the application (used to build the redirect URL) */
+    baseURL: string;
+}
+
+declare module 'h3' {
+    interface H3EventContext {
+        /**
+         * User of an authorized database-auth session (put here by the auth
+         * middleware).
+         */
+        bricksUser?: IAuthSessionUser;
+    }
+}

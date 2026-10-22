@@ -1,0 +1,4 @@
+// Do not add `@use 'common/fonts'` here: why it is a separate css entry, and what
+// breaks otherwise, is in src/module.ts where that entry is registered.
+@use 'shared/variables' as *;
+@use 'common/transitions' as *;

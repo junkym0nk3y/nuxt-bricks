@@ -1,0 +1,166 @@
+<script setup lang="ts">
+/**
+ * @description The modal that edits the caption of a template: the name and the
+ * description.
+ *
+ * The caption alone is editable: the contents of a template are an imprint of a moment,
+ * and "refresh it from the current page" would mean a tie to the source, versions of the
+ * template and the resolving of conflicts. A typo in the name, on the other hand, would
+ * otherwise be fixable by nothing short of a deletion and another save.
+ */
+
+// #region Imports
+// Types
+import type { ITemplatesRenameModalProps, ITemplatesRenameModalEmits } from '../types/templates';
+
+// Vue
+import { computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+// Constants
+import {
+    TEMPLATE_DESCRIPTION_MAX_LENGTH,
+    TEMPLATE_NAME_MAX_LENGTH,
+} from '../../../common/constants/templates';
+
+// Composables
+import { useTemplateRenameForm } from '../composables/useTemplateRenameForm';
+
+// Components
+import BricksButton from '../../../ui/base/button/BricksButton.vue';
+import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
+import BricksInput from '../../../ui/inputs/BricksInput.vue';
+import BricksModal from '../../../ui/base/modal/BricksModal.vue';
+import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
+import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
+// #endregion
+
+// #region Props
+const props = withDefaults(defineProps<ITemplatesRenameModalProps>(), {});
+// #endregion
+
+// #region Emits
+const emit = defineEmits<ITemplatesRenameModalEmits>();
+// #endregion
+
+// #region Data
+const { t } = useI18n();
+
+const { name, description, errors, generalError, isSubmitting, submitForm, resetForm } =
+    useTemplateRenameForm({
+        template: computed(() => props.template),
+        onSaved: (template) => emit('saved', template),
+    });
+// #endregion
+
+// #region Methods
+/** Closes the modal; while a submission is running the closing is blocked */
+function handleClose(): void {
+    if (isSubmitting.value) {
+        return;
+    }
+
+    emit('close');
+}
+// #endregion
+
+// #region Lifecycle
+watch(
+    () => props.isOpen,
+    (isOpen) => {
+        if (isOpen) {
+            resetForm();
+        }
+    }
+);
+// #endregion
+</script>
+
+<template>
+    <BricksModal
+        :is-open="props.isOpen"
+        :title="t('bricks.templates.renameModal.title')"
+        variant="gradient"
+        padded
+        @close="handleClose"
+    >
+        <div :class="$style.TheBuilderTemplatesRenameModal">
+            <BricksModalHeader :close-disabled="isSubmitting" @close="handleClose" />
+
+            <form :class="$style.form" novalidate @submit.prevent="submitForm">
+                <div :class="$style.field">
+                    <BricksInput
+                        :label="t('bricks.templates.saveModal.nameLabel')"
+                        :value="name"
+                        :max-length="TEMPLATE_NAME_MAX_LENGTH"
+                        :disabled="isSubmitting"
+                        :error-message="errors.name"
+                        autocomplete="off"
+                        @update:value="(value: string) => (name = value)"
+                    />
+                </div>
+
+                <div :class="$style.field">
+                    <BricksInput
+                        :label="t('bricks.templates.saveModal.descriptionLabel')"
+                        :value="description"
+                        :max-length="TEMPLATE_DESCRIPTION_MAX_LENGTH"
+                        :placeholder="t('bricks.templates.saveModal.descriptionPlaceholder')"
+                        :disabled="isSubmitting"
+                        :error-message="errors.description"
+                        autocomplete="off"
+                        @update:value="(value: string) => (description = value)"
+                    />
+                </div>
+
+                <BricksFieldError :message="generalError" />
+
+                <BricksModalFooter variant="inline">
+                    <BricksButton
+                        size="md"
+                        variant="ghost"
+                        type="button"
+                        :disabled="isSubmitting"
+                        @click="handleClose"
+                    >
+                        {{ t('bricks.common.cancel') }}
+                    </BricksButton>
+                    <BricksButton
+                        size="md"
+                        variant="primary"
+                        type="submit"
+                        :disabled="isSubmitting || props.template === null"
+                    >
+                        {{ t('bricks.common.save') }}
+                    </BricksButton>
+                </BricksModalFooter>
+            </form>
+        </div>
+    </BricksModal>
+</template>
+
+<style module lang="scss">
+.TheBuilderTemplatesRenameModal {
+    overflow: hidden;
+    display: flex;
+    width: 100%;
+    max-width: 44rem;
+    border-radius: var(--bricks-border-radius-md);
+    background: var(--bricks-base-0);
+    box-shadow: var(--bricks-shadow-lg);
+    flex-direction: column;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+    padding: 2rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+</style>

@@ -1,0 +1,1355 @@
+{
+    "bricks": {
+        "common": {
+            "cancel": "Cancel",
+            "close": "Close",
+            "delete": "Delete",
+            "loading": "Loading…",
+            "notFound": "Nothing found",
+            "unknownError": "Unknown error",
+            "readTimeout": "The server did not respond in time — please try again",
+            "writeTimeout": "The server did not confirm the operation in time: it may have completed. Refresh the data before retrying",
+            "statementTimeout": "The request exceeded the server time limit and was stopped. Please try again",
+            "confirm": "Confirm",
+            "increase": "Increase",
+            "decrease": "Decrease",
+            "clear": "Clear",
+            "showPassword": "Show password",
+            "hidePassword": "Hide password",
+            "tagsLimit": "Character limit {max} reached",
+            "save": "Save",
+            "removeTag": "Remove tag {tag}",
+            "loaderPhrases": [
+                "Stacking bricks into slots…",
+                "Warming up the Vite glob cache…",
+                "Convincing TipTap to keep focus…",
+                "Hydrating drafts…",
+                "Computing rem compensation…",
+                "Painting pixels in var(--bricks-primary)…",
+                "Assembling the brick manifest…",
+                "Negotiating with the painter’s algorithm…",
+                "Snapping everything to the 0.2rem grid…",
+                "Waking up the Pinia stores…",
+                "Waiting for the Claude usage limit to reset…"
+            ]
+        },
+        "toolbar": {
+            "grid": "Grid",
+            "undo": "Undo (Ctrl+Z)",
+            "redo": "Redo (Ctrl+Shift+Z)",
+            "media": "Media library",
+            "preview": "Preview",
+            "save": "Save",
+            "saveDraft": "Save changes",
+            "saveCopy": "Save as copy",
+            "dashboardLink": "All pages (opens in a new tab)",
+            "pageSelector": {
+                "ariaLabel": "{title}, select page",
+                "search": "Search pages...",
+                "loading": "Loading page list",
+                "draft": "Draft",
+                "noResultsTitle": "Nothing found",
+                "noResultsDescription": "Check the query or create a page",
+                "emptyTitle": "No saved pages yet",
+                "emptyDescription": "Save the current one or create a new page",
+                "allPages": "All pages",
+                "createPage": "Create page",
+                "replaced": "The page /{pagename} was replaced elsewhere. Reload the editor to open the new version — unsaved changes to the current one will be gone.",
+                "created": "Page /{pagename} created"
+            },
+            "saveTemplate": "Save as template"
+        },
+        "nav": {
+            "library": "Components",
+            "schema": "Schema",
+            "settings": "Settings",
+            "docs": "Documentation",
+            "themeLight": "Light theme",
+            "themeDark": "Dark theme",
+            "language": "Interface language"
+        },
+        "auth": {
+            "login": {
+                "title": "Sign in to builder",
+                "username": "Username",
+                "usernamePlaceholder": "Enter username",
+                "password": "Password",
+                "passwordPlaceholder": "Enter password",
+                "submit": "Sign in"
+            },
+            "validation": {
+                "usernameRequired": "Enter username",
+                "passwordRequired": "Enter password"
+            },
+            "errors": {
+                "invalidCredentials": "Invalid username or password",
+                "tooManyAttempts": "Too many login attempts. Try again later",
+                "loginFailed": "Failed to sign in. Try again",
+                "notConfigured": "Authentication is not configured. Contact your administrator",
+                "sessionCheckFailed": "Failed to verify the session. Check the connection and try signing in"
+            },
+            "logout": "Sign out",
+            "logoutFailed": "Failed to sign out. Try again",
+            "roles": {
+                "admin": "Administrator",
+                "editor": "Editor",
+                "viewer": "Viewer"
+            },
+            "defaultPassword": {
+                "title": "Default password.",
+                "description": "You signed in with the password from the migration — it is the same in every nuxt-bricks installation. Replace it with your own.",
+                "action": "Change password"
+            },
+            "profile": {
+                "title": "Profile",
+                "open": "Profile",
+                "menuLabel": "Profile: {name}",
+                "tabsLabel": "Profile sections",
+                "tabs": {
+                    "profile": "Profile",
+                    "password": "Password"
+                },
+                "displayName": "Display name",
+                "displayNamePlaceholder": "How to show you",
+                "displayNameHint": "Shown in the corner, in the profile menu and in the user list.",
+                "usernameHint": "The username never changes: it is how you sign in and how the account is listed.",
+                "role": "Role",
+                "roleHint": "— cannot be changed for yourself",
+                "currentPassword": "Current password",
+                "newPassword": "New password",
+                "changePassword": "Change",
+                "passwordHint": "At least {min} characters. Changing the password ends every session, including this one — you will need to sign in again.",
+                "photo": {
+                    "upload": "Upload photo",
+                    "replace": "Replace photo",
+                    "hint": "PNG, JPEG or WebP up to {max}MB. Cropped to a square and re-encoded to WebP 256×256 — the original is not stored.",
+                    "emptyHint": "Without a photo the first letter of the name is shown everywhere. PNG, JPEG or WebP up to {max}MB.",
+                    "fileInputLabel": "Choose an image for the profile photo"
+                },
+                "crop": {
+                    "title": "Profile photo",
+                    "zoom": "Zoom",
+                    "hint": "Drag the photo to choose the area. The circle is drawn by the interface, the file itself is stored as a square.",
+                    "submit": "Save photo",
+                    "frameLabel": "Photo area: drag with the mouse or move with arrow keys"
+                },
+                "toasts": {
+                    "saved": "Profile saved",
+                    "photoSaved": "Photo updated",
+                    "photoRemoved": "Photo removed"
+                },
+                "validation": {
+                    "displayNameTooLong": "The name must be at most {max} characters",
+                    "displayNameInvalid": "The name must not contain control characters",
+                    "currentPasswordRequired": "Enter the current password",
+                    "newPasswordRequired": "Enter the new password",
+                    "passwordTooShort": "The password must be at least {min} characters",
+                    "passwordTooLong": "The password must be at most {max} characters",
+                    "passwordIsDefault": "This password is the default in every installation — choose another one."
+                },
+                "errors": {
+                    "invalidCurrentPassword": "The current password is incorrect",
+                    "passwordChangeDisabled": "Password changes are disabled by the installation settings",
+                    "passwordRejected": "The password was rejected. Check its length and try again",
+                    "passwordFailed": "Failed to change the password. Try again",
+                    "tooManyAttempts": "Too many attempts. Try again later",
+                    "tooManyUploads": "Too many uploads. Try again in a minute",
+                    "serverBusy": "The server is busy processing images. Try again in a minute",
+                    "avatarTooLarge": "The file is larger than {max}MB",
+                    "avatarRejected": "Failed to process the image. Choose another file",
+                    "avatarTimeout": "The server did not confirm the upload in time: the photo may have been saved. Reload the page",
+                    "avatarFailed": "Failed to save the photo. Try again",
+                    "avatarRemoveTimeout": "The server did not confirm the removal in time: the photo may have been removed. Reload the page",
+                    "avatarRemoveFailed": "Failed to remove the photo. Try again",
+                    "photoTooSmall": "The image is too small: the selected area is under {min} pixels",
+                    "photoUnreadable": "Failed to read the file. Choose another image",
+                    "displayNameRejected": "The server rejected the name. Check its length and contents",
+                    "saveTimeout": "The server did not confirm the save in time. Reload the page before trying again",
+                    "saveFailed": "Failed to save the profile. Try again"
+                }
+            }
+        },
+        "library": {
+            "title": "Add component",
+            "searchPlaceholder": "Search components...",
+            "favoritesToggle": "Favorites only",
+            "emptyHint": "Try changing your search query",
+            "noComponents": "No components available",
+            "noComponentsHint": "Add a *.brick.ts file next to a component in components/",
+            "loadFailed": "Failed to load the component library",
+            "retry": "Retry",
+            "categories": {
+                "layout": "Layout",
+                "other": "Other",
+                "content": "Content"
+            },
+            "skippedBricks": "Components failed to load: {count}",
+            "skippedBricksDevHint": "Present in the manifest but missing from the bundle — restart the dev server"
+        },
+        "properties": {
+            "title": "Properties",
+            "device": "Device",
+            "reset": "Reset",
+            "display": "Display",
+            "showComponent": "Show component",
+            "showOn": "Show on:",
+            "fullWidth": "Display full width",
+            "switchOn": "On",
+            "modalDisabled": "Disabled",
+            "select": "Select",
+            "add": "Add",
+            "gridSize": {
+                "label": "Grid size",
+                "overflow": "The grid shows the first {cols} × {rows} — the exact value stays in the fields"
+            },
+            "spacing": {
+                "content": "Content",
+                "block": "Block",
+                "increase": "Increase {side}",
+                "decrease": "Decrease {side}",
+                "mirrored": "{side} (mirrored)",
+                "sides": {
+                    "top": "top spacing",
+                    "bottom": "bottom spacing",
+                    "left": "left spacing",
+                    "right": "right spacing"
+                }
+            },
+            "inline": {
+                "text": "Text",
+                "lineBreak": "Line break",
+                "media": "Media",
+                "textPlaceholder": "Enter text",
+                "newText": "New text",
+                "lineBreakHint": "Text after this segment will start on a new line.",
+                "replaceMedia": "Replace media",
+                "width": "Width",
+                "height": "Height",
+                "svgColor": "SVG color",
+                "empty": "Add text or media to compose a rich heading"
+            },
+            "gallery": {
+                "label": "Image gallery",
+                "tagPlaceholder": "Add tag...",
+                "empty": "Click to add an image",
+                "replaceImage": "Replace image {number}",
+                "moveUp": "Move image {number} up",
+                "moveDown": "Move image {number} down",
+                "remove": "Remove image {number}",
+                "titlePlaceholder": "Title",
+                "captionPlaceholder": "Caption",
+                "moveUpBlocked": "Image {number} is already the first",
+                "moveDownBlocked": "Image {number} is already the last",
+                "tagsLabel": "Tags of image {number}",
+                "titleLabel": "Title of image {number}",
+                "captionLabel": "Caption of image {number}"
+            },
+            "accordion": {
+                "label": "Accordion items",
+                "itemTitle": "Title",
+                "itemContent": "Content",
+                "titlePlaceholder": "Enter title...",
+                "contentPlaceholder": "Enter text...",
+                "empty": "Click to add an item",
+                "copySuffix": "(copy)",
+                "defaultTitle": "Question {n}",
+                "defaultContent": "Answer"
+            },
+            "json": {
+                "invalid": "Invalid JSON",
+                "notObject": "An object or an array is expected",
+                "format": "Format",
+                "label": "JSON"
+            },
+            "htmlId": "HTML ID",
+            "valuePlaceholder": "Enter {label}",
+            "mediaPicker": {
+                "label": "Media",
+                "previewAlt": "Preview"
+            },
+            "deviceScopeLockedHint": "A device tab edits the adaptive properties alone. The rest are the same on every device — switch to the base one to change them."
+        },
+        "publish": {
+            "settingsTitle": "Page settings",
+            "settingsTitleEdit": "Edit page settings",
+            "urlPrefixHint": "Optional. The page will be available at /prefix/pagename",
+            "subdomain": "Subdomain",
+            "subdomainHint": "Optional. The page will be available only on this subdomain",
+            "domainStub": "domain",
+            "titlePlaceholder": "Page title",
+            "backgroundColor": "Background color",
+            "exportJson": "Export JSON",
+            "importJson": "Import JSON",
+            "jsonFileInputLabel": "Choose a JSON file with the page schema",
+            "socialImageSelect": "Choose from media library",
+            "socialImageClear": "Clear",
+            "fillRequired": "Fill in the required fields *",
+            "publishFailed": "Failed to publish the page. Please try again.",
+            "copyFailedRetry": "Failed to save the copy. Please try again.",
+            "previewCreateFailed": "Failed to create the preview. Please try again.",
+            "previewFallback": "Preview",
+            "dashboard": {
+                "title": "Builder",
+                "createPage": "Create page",
+                "refresh": "Refresh list",
+                "nav": {
+                    "pages": "Pages",
+                    "templates": "Templates",
+                    "users": "Users",
+                    "media": "Media library"
+                },
+                "search": {
+                    "pages": "Search pages...",
+                    "templates": "Search templates...",
+                    "users": "Search by name...",
+                    "media": "Search by name or alt..."
+                },
+                "filters": {
+                    "all": "All",
+                    "published": "Published",
+                    "drafts": "Drafts"
+                },
+                "row": {
+                    "updated": "Updated {date}",
+                    "draft": "Draft",
+                    "statusPublished": "Published",
+                    "statusDraft": "Draft",
+                    "edit": "Edit",
+                    "preview": "Preview",
+                    "duplicate": "Duplicate",
+                    "delete": "Delete",
+                    "thumbnailPreview": "Open page preview",
+                    "saveAsTemplate": "Save as template"
+                },
+                "empty": {
+                    "title": "No pages yet",
+                    "description": "Create your first page — it will appear in this list",
+                    "cta": "Create first page",
+                    "noResultsTitle": "Nothing found",
+                    "noResultsDescription": "Try a different search query or filter"
+                },
+                "toasts": {
+                    "duplicated": "Page copy created",
+                    "duplicateFailed": "Failed to duplicate the page",
+                    "loadFailed": "Failed to load published pages",
+                    "deleteFailed": "Failed to delete the page"
+                },
+                "details": {
+                    "created": "created {date}",
+                    "published": "Published",
+                    "copyUrl": "Copy URL",
+                    "ogImage": "OG image",
+                    "selectFromMedia": "Select from Media",
+                    "routing": "Routing: urlPrefix, subdomain",
+                    "versions": {
+                        "title": "Versions",
+                        "empty": "No saved versions yet",
+                        "current": "Current",
+                        "noThumbnail": "No preview",
+                        "restore": "Restore",
+                        "preview": "Preview",
+                        "restoreConfirm": {
+                            "title": "Restore version?",
+                            "description": "The page will revert to the version from {date}. The current state will be kept in the version history."
+                        },
+                        "toasts": {
+                            "restored": "Version restored",
+                            "restoreFailed": "Failed to restore the version",
+                            "loadFailed": "Failed to load page versions",
+                            "previewFailed": "Failed to open the version preview"
+                        }
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "replaceHint": "Import will replace the page content",
+                        "exporting": "Preparing the file…",
+                        "importing": "Applying the schema…",
+                        "exportFailed": "Failed to build the schema file",
+                        "importFailed": "Failed to apply the schema",
+                        "busy": "Wait for the current import to finish",
+                        "replaceConfirm": {
+                            "title": "Replace the page content?",
+                            "description": "The schema of “{title}” will be replaced with {filename}. The previous state will be kept in the version history.",
+                            "confirm": "Import"
+                        }
+                    },
+                    "save": "Save changes",
+                    "cancel": "Cancel",
+                    "openInEditor": "Open in editor",
+                    "toasts": {
+                        "saved": "Changes saved",
+                        "saveFailed": "Failed to save changes",
+                        "urlCopied": "URL copied",
+                        "copyFailed": "Failed to copy URL",
+                        "statusFailed": "Failed to change publication status"
+                    }
+                },
+                "createModal": {
+                    "title": "New page",
+                    "titleLabel": "Page title",
+                    "descriptionPlaceholder": "A short summary — goes into the meta description",
+                    "urlHint": "Will be available at {url}",
+                    "startWith": "Start with",
+                    "blankTitle": "Blank page",
+                    "blankDescription": "A clean canvas with no blocks",
+                    "templateTitle": "From a template",
+                    "templateDescription": "A copy of a saved template",
+                    "fileTitle": "From a JSON file",
+                    "fileDescription": "Upload a ready-made schema",
+                    "fileBlocks": "Blocks: {count}",
+                    "advanced": "Advanced: urlPrefix, subdomain, keywords",
+                    "submit": "Create and open in editor",
+                    "createFailed": "Failed to create the page"
+                },
+                "deleteConfirm": {
+                    "title": "Delete page?",
+                    "generic": "Are you sure you want to delete this page?",
+                    "named": "Are you sure you want to delete the page “{title}” ({path})?"
+                },
+                "filtersLabel": "Pages filter"
+            },
+            "toasts": {
+                "unsavedChanges": "There are unsaved changes",
+                "loadPageFailed": "Failed to load the page",
+                "savePageFailed": "Failed to save the page",
+                "revisionConflict": "The page was modified elsewhere. Data refreshed — saving again will overwrite those changes",
+                "pageUpdated": "Page updated",
+                "draftUpdated": "Changes saved as draft",
+                "pagePublished": "Page published",
+                "draftSaved": "Draft saved",
+                "copySaved": "Page copy saved",
+                "copyFailed": "Failed to save the page copy",
+                "previewFailed": "Failed to open the preview",
+                "schemaImported": "Schema imported",
+                "forPage": "Page “{page}”: {message}"
+            },
+            "draft": {
+                "pendingTitle": "You have unsaved changes",
+                "pendingAction": "Restore",
+                "restoreTitle": "Restore unsaved changes?",
+                "restoreDescription": "We found changes that were not saved. Restore them or delete the draft?",
+                "restoreDescriptionDated": "The draft from {date} differs from the saved version of this page. Restore the changes or delete the draft?",
+                "restoreConfirm": "Restore changes",
+                "restoreDiscard": "Delete draft",
+                "storageUnavailable": "Drafts are unavailable: the browser blocked local storage. Save your changes manually"
+            },
+            "session": {
+                "errorTitle": "The page did not load",
+                "errorDescription": "The editor could not open the session, so changes cannot be saved. Try again or go back to the page list.",
+                "errorRetry": "Try again",
+                "errorOpenPages": "My pages",
+                "saveBlocked": "The page has not loaded yet — saving is disabled",
+                "previewBlocked": "The page has not loaded yet — the preview is disabled",
+                "errorTimeout": "The page is not responding — loading was cancelled"
+            },
+            "navigation": {
+                "title": "Navigation",
+                "text": "Text",
+                "textPlaceholder": "About us",
+                "link": "Link",
+                "moveUp": "Move up",
+                "moveDown": "Move down",
+                "addItem": "Add item"
+            },
+            "validation": {
+                "pagenameRequired": "Pagename is required",
+                "pagenameMin": "Minimum 3 characters",
+                "pagenameMax": "Maximum 80 characters",
+                "pagenameFormat": "Only lowercase letters, digits and hyphens are allowed",
+                "addressTaken": "This page address is already taken",
+                "pagenameEditorTaken": "This page's editor address is taken by a builder route",
+                "pagenameAddressTaken": "The page URL is taken by another application route",
+                "titleRequired": "Title is required",
+                "titleMin": "Minimum 3 characters",
+                "titleMax": "Maximum 120 characters",
+                "descriptionRequired": "Description is required",
+                "descriptionMin": "Minimum 10 characters",
+                "descriptionMax": "Maximum 500 characters",
+                "keywordsMax": "Maximum 255 characters",
+                "socialImageUrl": "Invalid URL",
+                "layoutRequired": "Layout is required",
+                "urlPrefixFormat": "Only lowercase letters, digits, hyphens and / are allowed",
+                "urlPrefixMax": "Maximum 100 characters",
+                "urlPrefixAddressTaken": "With this prefix the page URL is taken by another route",
+                "subdomainFormat": "Only lowercase letters, digits and hyphens are allowed",
+                "subdomainMax": "Maximum 63 characters",
+                "codeMax": "Maximum 20000 characters"
+            },
+            "seo": {
+                "sectionLabel": "SEO & Meta",
+                "titleLabel": "Title *",
+                "pagenameLabel": "Address (pagename) *",
+                "descriptionLabel": "Description *",
+                "descriptionPlaceholder": "Short page description for search results",
+                "keywordsLabel": "Keywords",
+                "keywordsPlaceholder": "promo, landing, marketing",
+                "noindexLabel": "Hide from search engines (noindex)",
+                "noindexHint": "The page stays reachable by its link, but search engines will not index it."
+            },
+            "code": {
+                "sectionLabel": "Page code",
+                "hint": "The HTML is inserted into the published page as is and runs for visitors. Paste only code from trusted sources — counters, pixels, widgets. The code does not run on the editor canvas.",
+                "headLabel": "Code at the end of head",
+                "bodyEndLabel": "Code at the end of body"
+            },
+            "layout": "Layout",
+            "urlPrefix": "URL prefix",
+            "socialImage": "OG/Twitter image",
+            "preview": {
+                "mode": "Preview mode",
+                "close": "Close preview",
+                "loading": "Loading the page…",
+                "component": "Component",
+                "componentUnavailable": "{name} is unavailable",
+                "componentMissing": "The component is missing from the library. Update bricks or the schema."
+            }
+        },
+        "media": {
+            "galleryTitle": "Media library management",
+            "select": "Select",
+            "cancel": "Cancel",
+            "emptyFiltered": "No files match the filter",
+            "emptyNoUploads": "No uploaded images",
+            "loadFailed": "Failed to load media",
+            "loadFailedCheckDb": "Failed to load media. Check the database connection.",
+            "listResponseInvalid": "The server returned the media list in an unknown format",
+            "deleteFailed": "Failed to delete media",
+            "uploadFailed": "Failed to upload the file",
+            "uploadFailedForFile": "“{name}”: {message}",
+            "updateMetaFailed": "Failed to save the name and description",
+            "updateCategoryFailed": "Failed to change the category",
+            "deleteImageTitle": "Delete image?",
+            "deleteImageDescription": "This action cannot be undone. The image will be deleted permanently.",
+            "fullscreen": "Fullscreen preview",
+            "categoryLabel": "Category",
+            "searchPlaceholder": "Search by name or alt",
+            "nameLabel": "Name",
+            "filenamePlaceholder": "File name",
+            "altPlaceholder": "Image description",
+            "sizeHint": "images up to {image} MB, video up to {video} MB",
+            "fileTypeImage": "Image",
+            "fileTypeVideo": "Video",
+            "fileTooLarge": "{type} “{name}” exceeds the {max} MB limit",
+            "fileTypeUnsupported": "“{name}”: only images and videos are supported",
+            "categories": {
+                "all": "All"
+            },
+            "resolver": {
+                "title": "New images found",
+                "globalAction": "Action for all:",
+                "itemAction": "Action for the image {name}",
+                "keep": "Keep",
+                "placeholder": "Placeholder",
+                "skip": "Skip",
+                "apply": "Apply",
+                "importedWithoutComparison": "Schema imported without checking the media library: it is unavailable, images left as is"
+            },
+            "categoryFilterLabel": "Category filter",
+            "emptyNoUploadsHint": "Drop files anywhere in this window or press “Upload”",
+            "emptyNoUploadsSectionHint": "Drop files into this area or press Upload",
+            "resetFilter": "Reset filter",
+            "selectFileHint": "Select a file to edit its properties",
+            "librarySummary": "files in the library: {count} · {size}",
+            "altUnusedForVideo": "alt is not used for video",
+            "categoryLoadFailed": "Failed to load categories",
+            "categoryListResponseInvalid": "The server returned categories in an unknown format",
+            "categoryCreate": "Create category",
+            "categoryCreateConfirm": "Create",
+            "categoryCreateFailed": "Failed to create the category",
+            "categoryNamePlaceholder": "Category name",
+            "categoryDuplicate": "Category “{name}” already exists",
+            "categoryUnknown": "This category no longer exists — refresh the list and pick another one",
+            "categoryDelete": "Delete category “{name}”",
+            "categoryDeleteTitle": "Delete category “{name}”?",
+            "categoryDeleteDescription": "The category will be deleted and {count} more files will have no category. The files stay in the library.",
+            "categoryDeleteFailed": "Failed to delete the category",
+            "categoryManage": "Manage categories",
+            "categoryManageDone": "Done",
+            "upload": {
+                "optionsTitle": "Optimization settings",
+                "formatLabel": "Format",
+                "formatOriginal": "Original",
+                "qualityLabel": "Quality",
+                "maxWidthLabel": "Max width",
+                "skipOptimization": "Upload without optimization",
+                "skipOptimizationHint": "The file is stored as is. Preview and mock are still generated — without them the Media block has nothing to show while loading.",
+                "variantsHint": "Preview and mock are always generated — the progressive loading mode is a Media block property, not an upload setting.",
+                "paramsSummary": "{format} · q{quality} · up to {maxWidth}px",
+                "progress": "Uploading {current} of {total} · {name}",
+                "dropNow": "Release to upload — selected: {count}",
+                "progressShort": "Uploading {current} of {total}"
+            },
+            "summary": {
+                "vector": "vector",
+                "video": "video",
+                "dimensionsUnknown": "unknown size"
+            },
+            "librarySummaryShort": "{count} files · {size}",
+            "dropAnywhereHint": "files can be dropped anywhere in this window",
+            "dropSectionHint": "files can be dropped into this area",
+            "uploadFiles": "Upload",
+            "tileUpload": "Upload files",
+            "tileUploadHint": "or drop them here",
+            "noCategory": "No category",
+            "details": {
+                "about": "About the file",
+                "size": "Size",
+                "dimensions": "Dimensions",
+                "format": "Format",
+                "uploadedAt": "Uploaded",
+                "uploadedOn": "uploaded {date}",
+                "url": "URL",
+                "copyUrl": "Copy URL",
+                "urlCopied": "File URL copied",
+                "copyFailed": "Could not copy the URL"
+            },
+            "fullscreenFor": "Full-screen preview of {filename}",
+            "fileInputLabel": "Choose files to upload"
+        },
+        "schema": {
+            "title": "Page schema",
+            "empty": "No components",
+            "emptyHint": "Add components to the canvas from the library",
+            "importErrorFileType": "Choose a .json file",
+            "importErrorInvalid": "Invalid schema: missing components array",
+            "importErrorStructure": "Schema file failed structure validation: {detail}",
+            "importErrorDevices": "Device set in the file failed validation: {detail}",
+            "importErrorParse": "Failed to parse the JSON file",
+            "importErrorRead": "Failed to read the file",
+            "importedWithOrphanDevices": "Schema imported. Overrides for devices outside the page device set are kept but not applied: {keys}",
+            "moveRefused": {
+                "descendant": "A block cannot be moved into its own content",
+                "depthLimit": "Nesting is too deep: the block does not fit here",
+                "gridCapacity": "The grid has no free cells left",
+                "slotCapacity": "The slot is already taken by another block",
+                "targetNotContainer": "This block cannot hold other blocks",
+                "invalidGraph": "The page structure is corrupted — reload the editor",
+                "fallback": "The block cannot be moved here"
+            }
+        },
+        "canvas": {
+            "areaLabel": "Page canvas",
+            "emptyTitle": "Add new components",
+            "emptyDescription": "Open the component library and build your future page structure with drag & drop",
+            "favorite": "Add to favorites",
+            "previewExit": "Exit preview",
+            "previewEnter": "Interactive preview",
+            "edit": "Edit",
+            "copy": "Copy",
+            "paste": "Paste",
+            "duplicate": "Duplicate",
+            "enable": "Enable",
+            "disable": "Disable",
+            "deviceVisibility": "Device visibility",
+            "moveUp": "Move up",
+            "moveDown": "Move down",
+            "toastCopied": "Component copied to clipboard",
+            "toastPasted": "Component copy added to the canvas",
+            "toastDeleted": "Component deleted",
+            "toastFavoriteAdded": "Component added to favorites",
+            "toastDisabled": "Component display disabled",
+            "zoomIn": "Zoom in",
+            "zoomOut": "Zoom out",
+            "zoomReset": "Reset zoom",
+            "viewportLabel": "Canvas view mode",
+            "componentDisabled": "Disabled"
+        },
+        "textEditor": {
+            "editorTitle": "Text editor",
+            "render": "Render",
+            "code": "Code",
+            "expand": "Expand",
+            "htmlPlaceholder": "Enter HTML code…",
+            "aspectLocked": "Aspect ratio locked",
+            "aspectFree": "Free resizing",
+            "alignBaseline": "Baseline",
+            "alignMiddle": "Middle",
+            "alignTop": "Top",
+            "alignBottom": "Bottom",
+            "floatLeft": "Float left",
+            "floatRight": "Float right",
+            "floatNone": "No float",
+            "size": "Size",
+            "inlineEditor": "Inline editor",
+            "done": "Done",
+            "escToExit": "Esc — exit",
+            "value": "Value",
+            "auto": "Auto",
+            "normal": "Normal",
+            "fontSizePlaceholder": "e.g. 2.2 (rem)",
+            "fontWeightPlaceholder": "e.g. 450",
+            "lineHeightPlaceholder": "e.g. 1.35, 120% or 2rem",
+            "letterSpacingPlaceholder": "e.g. 0.15rem or 5%",
+            "linkModal": {
+                "title": "Link",
+                "url": "URL",
+                "urlPlaceholder": "example.com",
+                "newTab": "Open in a new tab",
+                "hint": "Without a protocol the URL is prefixed with https://. Allowed: http(s), mailto, tel, an anchor (#) and a site-root path (/).",
+                "invalidUrl": "This link address is not allowed",
+                "apply": "Apply",
+                "remove": "Remove link"
+            },
+            "toolbar": {
+                "bold": "Bold",
+                "italic": "Italic",
+                "underline": "Underline",
+                "link": "Link",
+                "fontFamily": "Font family",
+                "fontSize": "Font size",
+                "fontWeight": "Font weight",
+                "lineHeight": "Line height",
+                "letterSpacing": "Letter spacing",
+                "textColor": "Text color",
+                "alignLeft": "Align left",
+                "alignCenter": "Align center",
+                "alignRight": "Align right",
+                "alignJustify": "Justify",
+                "bulletList": "Bullet list",
+                "numberedList": "Numbered list",
+                "insertImage": "Insert image",
+                "darkBackground": "Dark background",
+                "divider": "Divider"
+            },
+            "loadFailedFallback": "The editor failed to load — a plain textarea is used instead."
+        },
+        "docs": {
+            "title": "Documentation",
+            "articleNotFound": "Article not found.",
+            "comingSoonTitle": "Coming soon",
+            "comingSoonDescription": "The English guide is on its way. Until then, switch the interface to Russian to read the current one."
+        },
+        "validation": {
+            "required": "Required field",
+            "invalidValue": "Invalid value",
+            "invalidFormat": "Invalid format",
+            "stringMin": "Minimum {min} characters",
+            "stringMax": "Maximum {max} characters",
+            "fieldFallback": "Field",
+            "fieldRequired": "{field} is required",
+            "fieldNumeric": "{field} must contain digits only",
+            "fieldDecimal": "{field} must be a number",
+            "fieldMax": "{field} must not exceed {max} characters",
+            "fieldMin": "{field} must not be less than {min}",
+            "fieldSlug": "{field} must contain only lowercase letters, digits and hyphens",
+            "fieldInvalid": "{field} is filled in incorrectly",
+            "invalidHex": "Invalid HEX"
+        },
+        "blocks": {
+            "grid": {
+                "description": "Grid for arranging components in columns and rows.",
+                "props": {
+                    "columns": {
+                        "label": "Columns",
+                        "description": "Number of columns in the grid (1-12)"
+                    },
+                    "rows": {
+                        "label": "Rows",
+                        "description": "Number of rows in the grid"
+                    },
+                    "gap": {
+                        "label": "Gap",
+                        "description": "Spacing between items in pixels"
+                    },
+                    "variant": {
+                        "label": "Bento Variant",
+                        "description": "Preset item arrangement variants",
+                        "options": {
+                            "default": "Default",
+                            "leadLeft": "Lead Left",
+                            "leadRight": "Lead Right"
+                        }
+                    },
+                    "rowHeight": {
+                        "label": "Row Height",
+                        "description": "Grid row height mode",
+                        "options": {
+                            "auto": "Auto (by content)",
+                            "fr1": "Equal rows (1fr)",
+                            "minContent": "Min content",
+                            "maxContent": "Max content"
+                        }
+                    },
+                    "minRowHeight": {
+                        "label": "Min Row Height (rem)",
+                        "description": "Minimum row height in rem (0 = no limit)"
+                    },
+                    "paddingX": {
+                        "label": "Horizontal Padding",
+                        "description": "Horizontal inner padding of the container in rem"
+                    },
+                    "paddingY": {
+                        "label": "Vertical Padding",
+                        "description": "Vertical inner padding of the container in rem"
+                    }
+                },
+                "groups": {
+                    "spacing": "Spacing"
+                }
+            },
+            "flex": {
+                "description": "Flex container for horizontal or vertical element layout.",
+                "props": {
+                    "direction": {
+                        "label": "Direction",
+                        "description": "Direction of element placement",
+                        "options": {
+                            "row": "Horizontal",
+                            "column": "Vertical"
+                        }
+                    },
+                    "justify": {
+                        "label": "Main axis",
+                        "description": "For row: horizontal; for column: vertical",
+                        "options": {
+                            "start": "Start",
+                            "center": "Center",
+                            "end": "End",
+                            "spaceBetween": "Space between",
+                            "spaceAround": "Space around"
+                        }
+                    },
+                    "align": {
+                        "label": "Cross axis",
+                        "description": "For row: vertical; for column: horizontal",
+                        "options": {
+                            "stretch": "Stretch",
+                            "start": "Start",
+                            "center": "Center",
+                            "end": "End",
+                            "baseline": "Baseline"
+                        }
+                    },
+                    "gap": {
+                        "label": "Gap",
+                        "description": "Spacing between elements in pixels"
+                    },
+                    "wrap": {
+                        "label": "Wrap lines",
+                        "description": "Wrap elements to a new line when space runs out"
+                    },
+                    "paddingX": {
+                        "label": "Horizontal padding",
+                        "description": "Horizontal inner padding of the container in rem"
+                    },
+                    "paddingY": {
+                        "label": "Vertical padding",
+                        "description": "Vertical inner padding of the container in rem"
+                    }
+                },
+                "groups": {
+                    "spacing": "Spacing"
+                }
+            },
+            "section": {
+                "description": "Wrapper section with configurable background (color, image) and padding.",
+                "props": {
+                    "backgroundColor": {
+                        "label": "Background color",
+                        "description": "CSS color or CSS variable (e.g. var(--bricks-base-900))"
+                    },
+                    "backgroundImage": {
+                        "label": "Background image",
+                        "description": "Background image URL"
+                    },
+                    "paddingTop": {
+                        "label": "Padding top"
+                    },
+                    "paddingBottom": {
+                        "label": "Padding bottom"
+                    },
+                    "paddingX": {
+                        "label": "Horizontal padding"
+                    },
+                    "maxWidth": {
+                        "label": "Max content width",
+                        "description": "Max width of the centered content (0 = no limit)"
+                    },
+                    "borderRadius": {
+                        "label": "Border radius (rem)"
+                    },
+                    "minHeight": {
+                        "label": "Min height (rem)",
+                        "description": "Minimum section height (0 = fit content)"
+                    }
+                },
+                "groups": {
+                    "background": "Background",
+                    "spacing": "Spacing"
+                }
+            },
+            "space": {
+                "description": "Spacer between blocks, vertical or horizontal.",
+                "props": {
+                    "size": {
+                        "label": "Size (rem)",
+                        "description": "Spacing amount in rem"
+                    },
+                    "direction": {
+                        "label": "Direction",
+                        "description": "Direction in which the spacing is applied",
+                        "options": {
+                            "vertical": "Vertical",
+                            "horizontal": "Horizontal",
+                            "both": "Both directions"
+                        }
+                    },
+                    "showDivider": {
+                        "label": "Show divider",
+                        "description": "Display a divider line"
+                    },
+                    "dividerColor": {
+                        "label": "Divider color",
+                        "description": "Empty value = var(--bricks-base-200)"
+                    },
+                    "dividerWidth": {
+                        "label": "Divider width (px)"
+                    },
+                    "dividerStyle": {
+                        "label": "Divider style",
+                        "options": {
+                            "solid": "Solid",
+                            "dashed": "Dashed",
+                            "dotted": "Dotted"
+                        }
+                    },
+                    "dividerMarginX": {
+                        "label": "Divider side margins (rem)",
+                        "description": "Horizontal divider margins from edges in rem"
+                    }
+                },
+                "groups": {
+                    "divider": "Divider"
+                }
+            },
+            "media": {
+                "description": "Media block (image or video) with display settings.",
+                "props": {
+                    "type": {
+                        "label": "Media type",
+                        "options": {
+                            "image": "Image",
+                            "video": "Video"
+                        }
+                    },
+                    "src": {
+                        "label": "Source"
+                    },
+                    "alt": {
+                        "label": "Alt text"
+                    },
+                    "objectFit": {
+                        "label": "Object fit",
+                        "options": {
+                            "contain": "Contain",
+                            "cover": "Cover",
+                            "fill": "Fill",
+                            "none": "None",
+                            "scaleDown": "Scale down"
+                        }
+                    },
+                    "width": {
+                        "label": "Width",
+                        "description": "Width (rem, %, auto)"
+                    },
+                    "height": {
+                        "label": "Height",
+                        "description": "Height (rem, %, auto)"
+                    },
+                    "borderRadius": {
+                        "label": "Border radius",
+                        "description": "Border radius (rem)"
+                    },
+                    "loadMode": {
+                        "label": "Progressive loading",
+                        "description": "What fills the frame while the image loads",
+                        "options": {
+                            "config": "Same as module settings",
+                            "off": "Off",
+                            "twoStep": "Two steps: preview → full",
+                            "threeStep": "Three steps: mock → preview → full"
+                        }
+                    },
+                    "eagerLoad": {
+                        "label": "Above the fold — load at once",
+                        "description": "Drops lazy loading and sets fetchpriority=\"high\": progressive loading hurts LCP above the fold"
+                    }
+                },
+                "groups": {
+                    "sizes": "Sizes",
+                    "loading": "Loading"
+                }
+            },
+            "slider": {
+                "description": "Slider container (swiper) for scrolling through child elements.",
+                "props": {
+                    "slidesPerView": {
+                        "label": "Slides per view"
+                    },
+                    "spaceBetween": {
+                        "label": "Space between (px)"
+                    },
+                    "loop": {
+                        "label": "Loop slides"
+                    },
+                    "autoplay": {
+                        "label": "Autoplay"
+                    },
+                    "autoplayDelay": {
+                        "label": "Autoplay delay (ms)"
+                    },
+                    "showNavigation": {
+                        "label": "Show navigation"
+                    },
+                    "showPagination": {
+                        "label": "Show pagination"
+                    },
+                    "captions": {
+                        "label": "Caption tabs (JSON)",
+                        "description": "Array of objects [text, subtitle?] for text navigation tabs"
+                    },
+                    "captionPosition": {
+                        "label": "Caption tabs position",
+                        "options": {
+                            "top": "Top",
+                            "bottom": "Bottom"
+                        }
+                    },
+                    "showCaptionNavigation": {
+                        "label": "Clickable caption tabs",
+                        "description": "Clicking a tab switches the slide"
+                    }
+                }
+            },
+            "svg": {
+                "description": "SVG block with color and size settings.",
+                "props": {
+                    "src": {
+                        "label": "SVG image",
+                        "description": "Select an SVG from the media gallery"
+                    },
+                    "color": {
+                        "label": "Color",
+                        "description": "Applied to SVG fill/stroke (empty = original colors)"
+                    },
+                    "width": {
+                        "label": "Width",
+                        "description": "rem or CSS value (e.g. 4.8rem, 100%, auto)"
+                    },
+                    "height": {
+                        "label": "Height",
+                        "description": "rem or CSS value"
+                    },
+                    "alignment": {
+                        "label": "Alignment",
+                        "options": {
+                            "left": "Left",
+                            "center": "Center",
+                            "right": "Right"
+                        }
+                    },
+                    "marginTop": {
+                        "label": "Margin Top"
+                    },
+                    "marginBottom": {
+                        "label": "Margin Bottom"
+                    }
+                },
+                "groups": {
+                    "spacing": "Spacing"
+                },
+                "emptyLabel": "Pick an SVG from the media library"
+            },
+            "text": {
+                "description": "Text block with HTML content.",
+                "props": {
+                    "fontSize": {
+                        "label": "Font size"
+                    },
+                    "content": {
+                        "label": "Content"
+                    },
+                    "marginTop": {
+                        "label": "Margin Top"
+                    },
+                    "marginBottom": {
+                        "label": "Margin Bottom"
+                    }
+                },
+                "groups": {
+                    "spacing": "Spacing"
+                },
+                "defaultContent": "Enter text"
+            },
+            "accordion": {
+                "description": "Accordion — a list of expandable items with a title and content.",
+                "props": {
+                    "items": {
+                        "label": "Items",
+                        "description": "List of accordion items (array of title/content objects)"
+                    },
+                    "allowMultiple": {
+                        "label": "Allow multiple open",
+                        "description": "Allow multiple items to be open at the same time"
+                    },
+                    "initialOpenIndex": {
+                        "label": "Open by default (index)",
+                        "description": "Index of the item open on load (-1 = all closed)"
+                    },
+                    "gap": {
+                        "label": "Gap between items (rem)",
+                        "description": "Gap between items (0 = single block, >0 = card mode)"
+                    },
+                    "borderRadius": {
+                        "label": "Corner radius (rem)",
+                        "description": "Corner radius of the accordion or cards"
+                    },
+                    "accentColor": {
+                        "label": "Accent color",
+                        "description": "Accent color for hover, borders and background"
+                    },
+                    "animationDuration": {
+                        "label": "Animation speed (ms)",
+                        "description": "Expand/collapse animation duration in milliseconds"
+                    }
+                },
+                "emptyLabel": "Add items in the properties panel"
+            }
+        },
+        "devices": {
+            "title": "Page devices",
+            "ownTitle": "Custom devices for this page",
+            "ownHintOn": "Custom set — {count} devices. The project keeps its own; other pages are unaffected.",
+            "ownHintOff": "The page uses the project set — {count} devices. Turn on to define a set for this page only.",
+            "add": "Add device",
+            "addCounter": "{current} of {max}",
+            "addMaxReached": "{max} of {max} — maximum",
+            "remove": "Remove “{label}”",
+            "locked": "Edge devices cannot be removed",
+            "iconPicker": "Device icon",
+            "rangesTitle": "Window width ranges",
+            "rangesHint": "The threshold is the device width. The narrowest always starts at 0, the widest has no upper bound. The outlined segment is the device open on the canvas.",
+            "rangeFrom": "from {min}",
+            "settingsGroup": "Devices",
+            "settingsAction": "Configure devices",
+            "settingsInherited": "Same as project · {count}",
+            "settingsCustom": "Custom set · {count}",
+            "columns": {
+                "device": "Device",
+                "width": "Width, px",
+                "aside": "Padding, rem",
+                "maxWidth": "Max, rem",
+                "minWidth": "Min, rem"
+            },
+            "errors": {
+                "labelRequired": "A name is required — the device key in the schema is built from it",
+                "widthMin": "Nothing goes below {min}: no block is designed for such a window",
+                "widthTaken": "“{label}” already uses this width",
+                "widthBetween": "An intermediate device width must be between {min} (“{minLabel}”) and {max} (“{maxLabel}”)",
+                "widthMax": "Nothing goes above {max}: that is no longer a screen",
+                "edgeOrder": "Mobile must stay the narrowest and desktop the widest"
+            },
+            "removeConfirm": {
+                "title": "Remove “{label}”?",
+                "description": "Property overrides for this device will be removed from every block on the page: {count} right now. The {range} range goes to “{label}”."
+            },
+            "revertConfirm": {
+                "title": "Restore the project set?",
+                "description": "The page's own set will be removed. Blocks keep overrides only for devices that also exist in the project set; the rest are lost."
+            },
+            "orphanKeys": "The schema has overrides for devices outside the set — they are kept but will not be applied: {keys}"
+        },
+        "users": {
+            "createUser": "User",
+            "filtersLabel": "User filter",
+            "filters": {
+                "all": "All",
+                "active": "Active",
+                "inactive": "Deactivated"
+            },
+            "status": {
+                "active": "Active",
+                "inactive": "Deactivated"
+            },
+            "row": {
+                "you": "you",
+                "created": "Created {date}",
+                "lastLogin": "Signed in {date}",
+                "neverLoggedIn": "Never signed in",
+                "today": "today",
+                "yesterday": "yesterday",
+                "setPassword": "Set password: {user}",
+                "changeOwnPassword": "Change your password",
+                "deactivate": "Disable sign-in: {user}",
+                "activate": "Enable sign-in: {user}",
+                "delete": "Delete account: {user}",
+                "locks": {
+                    "self": "You cannot deactivate or delete your own account: there would be no way back in",
+                    "selfRole": "You cannot change your own role: another admin does that",
+                    "lastAdmin": "This is the last active admin: assign a second one first, otherwise user management is lost"
+                }
+            },
+            "role": {
+                "changeLabel": "Role: {role}. Change role of {user}",
+                "descriptions": {
+                    "admin": "Everything, including accounts and page deletion",
+                    "editor": "Pages, media, templates — no user management",
+                    "viewer": "Read only: open and look"
+                }
+            },
+            "empty": {
+                "title": "No accounts yet",
+                "description": "Create the first one — it can sign in right after creation.",
+                "noResultsTitle": "Nobody found",
+                "noResultsDescription": "Check the query: search covers the display name and the username."
+            },
+            "loadError": {
+                "title": "The list did not load",
+                "description": "The server did not answer. The section is there — try again.",
+                "retry": "Try again"
+            },
+            "createModal": {
+                "title": "New user",
+                "username": "Username",
+                "usernameHint": "Latin letters, digits and . _ {'@'} + -, starting with a letter or a digit. The username is unique and never changes: renaming an account is not supported.",
+                "displayName": "Display name",
+                "displayNameHint": "Shown in the corner and in the list. Optional: empty means the username is shown. From now on the person edits their own name and photo.",
+                "password": "Password",
+                "passwordHint": "At least {min} characters. Stored as a scrypt hash: the password cannot be read later, only replaced.",
+                "generate": "Generate",
+                "role": "Role",
+                "roleHint": "The role is changed later right in the list row.",
+                "canSignIn": "Allow signing in right away",
+                "canSignInHint": "Unchecked creates the account deactivated: it already has a username, a role and a password, but signing in is refused until someone opens it from the list row.",
+                "submit": "Create"
+            },
+            "passwordModal": {
+                "title": "Password · {user}",
+                "titleFallback": "User password",
+                "newPassword": "New password",
+                "sessionsTitle": "All sessions of this user will end",
+                "sessionsText": "The password change revokes sessions in the same transaction that writes the hash: the person signs in again with the new password.",
+                "hint": "At least {min} characters. The admin does not enter the current password — your own password is changed in the profile, where the current one is required.",
+                "submit": "Set password"
+            },
+            "confirm": {
+                "deactivate": {
+                    "title": "Deactivate {user}?",
+                    "description": "Sign-in will be denied and active sessions end immediately. The account, its role and history stay — the same row action turns it back on.",
+                    "action": "Deactivate"
+                },
+                "delete": {
+                    "title": "Delete {user}?",
+                    "description": "The account and its sessions are gone for good. Pages and versions are not linked to the person and stay intact. To only close access, deactivation is enough.",
+                    "action": "Delete"
+                }
+            },
+            "toasts": {
+                "created": "User {user} created",
+                "roleChanged": "Role changed · user sessions ended",
+                "activated": "Sign-in enabled",
+                "deactivated": "Sign-in denied · user sessions ended",
+                "deleted": "User {user} deleted",
+                "passwordChanged": "Password changed · sessions of {user} ended"
+            },
+            "validation": {
+                "usernameRequired": "Enter a username",
+                "usernameTooShort": "At least {min} characters",
+                "usernameTooLong": "At most {max} characters",
+                "usernameInvalid": "Allowed: latin letters, digits and . _ {'@'} + -; must start with a letter or a digit",
+                "displayNameTooLong": "At most {max} characters",
+                "displayNameInvalid": "The name must not contain control characters",
+                "passwordRequired": "Enter a password",
+                "passwordTooShort": "At least {min} characters",
+                "passwordTooLong": "At most {max} characters",
+                "passwordIsDefault": "This password is the default in every installation — choose another one."
+            },
+            "errors": {
+                "usernameTaken": "This username is already taken",
+                "lastActiveAdmin": "The last active admin cannot be demoted, deactivated or deleted",
+                "selfTarget": "Your own account cannot be changed this way — refresh the list",
+                "passwordChangeDisabled": "Password change is disabled by the installation settings",
+                "insufficientRole": "Not enough permissions to manage accounts",
+                "userGone": "The account no longer exists — the list has been refreshed",
+                "serverBusy": "The server is busy. Try again",
+                "timeout": "No answer in time: the outcome is unknown, the list has been refreshed",
+                "createOutcomeUnknown": "No answer in time, so the outcome is not known yet. Press \"Create\" once more: the repeat is safe — it creates no second account and reports the outcome of the first submission",
+                "createInProgress": "The server is still working on this submission. Wait a few seconds and press \"Create\" again to learn the outcome",
+                "createResultGone": "This submission did create an account, and that account has been deleted. Close the window and create the account anew",
+                "createKeyReused": "The form data changed while the submission was in flight. Close the window and create the account anew",
+                "createKeyMissing": "The request went out without an operation identifier. Reload the page and try again",
+                "actionFailed": "The action failed. Try again"
+            }
+        },
+        "templates": {
+            "summary": {
+                "count": "Templates: {count}",
+                "lastSaved": "last saved {date}"
+            },
+            "card": {
+                "blocks": "Blocks: {count}",
+                "createPage": "Create page",
+                "preview": "View",
+                "rename": "Edit name and description",
+                "delete": "Delete template"
+            },
+            "empty": {
+                "title": "No templates yet",
+                "description": "Open any page and choose “Save as template” — or save it right from the pages list",
+                "action": "Go to pages"
+            },
+            "notFound": {
+                "title": "Nothing found",
+                "description": "Try changing the search query"
+            },
+            "loadFailed": "Failed to load templates",
+            "retry": "Retry",
+            "deleteConfirm": {
+                "title": "Delete template?",
+                "description": "Template “{name}” will be deleted. Pages created from it stay unchanged."
+            },
+            "saveModal": {
+                "title": "Save as template",
+                "nameLabel": "Template name",
+                "descriptionLabel": "Description",
+                "descriptionPlaceholder": "What the template is made of — briefly",
+                "contentHint": "The template keeps the page content and its appearance: blocks, layout, background and device set. Address, SEO fields and publication status are not copied — you set them when creating a page. From the builder it takes what is on the canvas right now, unsaved edits included, while the thumbnail comes from the last save.",
+                "pageUpdated": "updated {date}",
+                "pageUnsaved": "page is not saved yet",
+                "submit": "Save template"
+            },
+            "renameModal": {
+                "title": "Template name and description"
+            },
+            "picker": {
+                "title": "Choose a template",
+                "empty": "No templates yet: save the first one from a finished page"
+            },
+            "toasts": {
+                "saved": "Template “{name}” saved",
+                "renamed": "Template “{name}” updated",
+                "deleted": "Template “{name}” deleted"
+            },
+            "validation": {
+                "nameRequired": "Enter the template name",
+                "nameTooShort": "At least {min} characters",
+                "nameTooLong": "At most {max} characters",
+                "descriptionTooLong": "At most {max} characters"
+            },
+            "errors": {
+                "nameTaken": "A template with this name already exists",
+                "actionFailed": "Failed to complete the template operation",
+                "timeout": "The server did not confirm the operation in time: it may have completed. Refresh the list before retrying",
+                "templateGone": "Template not found: it may have been deleted already",
+                "insufficientRole": "Not enough permissions for this operation",
+                "tooLarge": "The page is too large for a template",
+                "serverBusy": "The server is busy, try again later",
+                "saveOutcomeUnknown": "The server did not confirm the save in time: the template may have been saved. Check the section before retrying",
+                "renameOutcomeUnknown": "The server did not confirm the change in time: it may have been applied. Check the section before retrying",
+                "deleteOutcomeUnknown": "The server did not confirm the deletion in time: the template may be gone. Check the section",
+                "sourceReadFailed": "Failed to read the page content for a template",
+                "contentReadFailed": "Failed to read the template content"
+            }
+        }
+    }
+}

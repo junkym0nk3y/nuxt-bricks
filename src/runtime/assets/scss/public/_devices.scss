@@ -1,0 +1,192 @@
+////
+/// Responsive mixins for the authors of brick components.
+///
+/// The problem they solve: an ordinary `@media` in an SFC is measured against the
+/// width of the WINDOW, while the builder canvas is a sheet of fixed width INSIDE a
+/// window of another width. Because of that a brick that was responsive on published
+/// did not rearrange itself in the builder at all: the window there is always wider
+/// than the sheet.
+///
+/// So every mixin expands into two branches:
+///   * `@media` for the window, fenced off from the descendants of the canvas (by
+///     the same guard in spirit that the module uses to keep published rules apart
+///     from canvas ones);
+///   * `@container bricks` for the canvas sheet — `.bricks-canvas` is declared a
+///     container, and `transform: scale()` has no effect on container size, so the
+///     sheet reports its honest width.
+///
+/// The `$devices` map is the device set of the PROJECT. The set of one particular
+/// page the mixins do not know and are not meant to: the breakpoint of a brick
+/// author ("narrower than 768 — one column") and the step of a page set ("this page
+/// has a laptop") are different things. Whoever wants to follow the page set
+/// declares `responsiveCssVars` in their own `*.brick.ts` and gets per-device values
+/// out of the schema.
+///
+/// The values of the map are overridden by the `bricks.devices` module option: it is
+/// resolved at build time and written into the file behind the `#bricks-scss` alias,
+/// so the numbers of the mixins and of the runtime are one. A direct
+/// `@use ... with ($devices: ...)` works too, but then the drift from the runtime is
+/// the consumer's own to answer for.
+////
+
+@use 'sass:list';
+@use 'sass:map';
+
+// Sass variables and maps here are a deliberate exception to the ban
+// (.claude/rules/styles.md): a public mixin API does not exist without them. The
+// exception is limited to this folder and does not touch component styles.
+$devices: (
+    mobile: 375,
+    tablet: 768,
+    desktop: 1600,
+) !default;
+
+// In the guard of the window branch the canvas is recognized by an attribute, not
+// by the `.bricks-canvas` class. The reason: the mixins expand inside the consumer's
+// own style block, and in a `<style module>` CSS Modules rewrites a bare class into
+// a hashed one (`._bricks-canvas_a1b2c3`). Such a guard never matches — the window
+// branch stopped being fenced off, and a brick on a narrow canvas sheet got the
+// layout of the window width, that is, precisely the bug the mixins exist for. An
+// attribute selector CSS Modules leaves alone, and `~=` compares a whole class token
+// rather than a substring
+$canvas-guard: '[class~="bricks-canvas"]';
+
+/// Width of a device by its key.
+///
+/// @param {String} $key - Device key out of the `$devices` map.
+/// @return {Number} Width in px.
+@function bricks-device-width($key) {
+    @if not map.has-key($devices, $key) {
+        @error 'nuxt-bricks: unknown device "#{$key}". Known: #{map.keys($devices)}.';
+    }
+
+    @return map.get($devices, $key);
+}
+
+/// Key of the next device by width; `null` — there is nothing past it.
+///
+/// @param {String} $key - Device key.
+/// @return {String|null} Key of the neighbor on the right.
+@function bricks-device-next($key) {
+    $keys: map.keys($devices);
+    $index: list.index($keys, $key);
+
+    @if not $index or $index >= list.length($keys) {
+        @return null;
+    }
+
+    @return list.nth($keys, $index + 1);
+}
+
+/// Styles from the device width and wider.
+///
+/// @param {String} $key - Device key.
+/// @content Rules of the branch.
+@mixin bricks-up($key) {
+    $min: bricks-device-width($key);
+
+    @media (min-width: #{$min}px) {
+        &:where(:not(#{$canvas-guard} *)) {
+            @content;
+        }
+    }
+
+    @container bricks (min-width: #{$min}px) {
+        @content;
+    }
+}
+
+/// Styles narrower than the device width (the boundary is not included).
+///
+/// @param {String} $key - Device key.
+/// @content Rules of the branch.
+@mixin bricks-down($key) {
+    $max: bricks-device-width($key) - 1;
+
+    @media (max-width: #{$max}px) {
+        &:where(:not(#{$canvas-guard} *)) {
+            @content;
+        }
+    }
+
+    @container bricks (max-width: #{$max}px) {
+        @content;
+    }
+}
+
+/// Styles in the range between two devices (the upper boundary is not included).
+///
+/// @param {String} $from - Key of the lower boundary.
+/// @param {String} $to - Key of the upper boundary.
+/// @content Rules of the branch.
+@mixin bricks-between($from, $to) {
+    $min: bricks-device-width($from);
+    $max: bricks-device-width($to) - 1;
+
+    @media (min-width: #{$min}px) and (max-width: #{$max}px) {
+        &:where(:not(#{$canvas-guard} *)) {
+            @content;
+        }
+    }
+
+    @container bricks (min-width: #{$min}px) and (max-width: #{$max}px) {
+        @content;
+    }
+}
+
+/// Styles exactly on the step of a device — the same step the runtime computes.
+///
+/// The boundaries the mixin works out itself, and that is the whole point: by hand
+/// they would have to be recomputed on every edit of the set. The narrowest device
+/// has NO lower boundary: its step starts at zero, the same as in `deviceRanges`.
+/// Otherwise `only(mobile)` would give `375–767`, and a 360-wide window on published
+/// would be left without the rule while the 375 sheet in the builder still got it —
+/// precisely the divergence between canvas and published page the mixins exist for.
+///
+/// @param {String} $key - Device key.
+/// @content Rules of the branch.
+@mixin bricks-only($key) {
+    $next: bricks-device-next($key);
+    $is-narrowest: list.index(map.keys($devices), $key) == 1;
+
+    @if not $next {
+        @include bricks-up($key) {
+            @content;
+        }
+    } @else if $is-narrowest {
+        @include bricks-down($next) {
+            @content;
+        }
+    } @else {
+        @include bricks-between($key, $next) {
+            @content;
+        }
+    }
+}
+
+/// Hides the element from the device width and wider.
+///
+/// @param {String} $key - Device key.
+@mixin bricks-hide-up($key) {
+    @include bricks-up($key) {
+        display: none;
+    }
+}
+
+/// Hides the element narrower than the device width.
+///
+/// @param {String} $key - Device key.
+@mixin bricks-hide-down($key) {
+    @include bricks-down($key) {
+        display: none;
+    }
+}
+
+/// Hides the element exactly on the step of the device.
+///
+/// @param {String} $key - Device key.
+@mixin bricks-hide-only($key) {
+    @include bricks-only($key) {
+        display: none;
+    }
+}

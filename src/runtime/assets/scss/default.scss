@@ -1,0 +1,474 @@
+/**
+ * nuxt-bricks - Default Styles
+ *
+ * Isolation from the host app: there are no global selectors. The reset comes in
+ * two zones.
+ *
+ * 1. The content zone — @layer bricks-reset on :where(.bricks-canvas,
+ *    body.bricks-render): the vendored normalize (common/_normalize.scss) plus the
+ *    strip-reset. Layered styles lose to ANY non-layered rule of the consumer
+ *    project (even a bare `button {}`) → the canvas and published/preview behave
+ *    alike and look "the way the project looks". The bricks-render class is set by
+ *    render/pages/[pagename].vue through useHead.
+ *
+ * 2. The builder chrome zone — a non-layered reset of specificity (0,0,1) under
+ *    :where(body.bricks-page), with :not(:where(.bricks-canvas *)) carved out: it
+ *    loses to the CSS modules of the builder (0,1,0) but beats the element styles
+ *    of the project by load order (the bricks CSS is pushed into nuxt.options.css
+ *    after the consumer CSS). The class is set by builder.vue through useHead;
+ *    teleported modal content are children of body and therefore covered too. The
+ *    rem base of the builder (html { font-size: 10px }) builder.vue sets inline.
+ *
+ * New reset rules go into these two zones only, and the strip-reset lists of both
+ * zones are kept in sync. The rem fallback of published (:where(html)) is set by
+ * render/pages/[pagename].vue through useHead.
+ */
+@use 'common/normalize' as *;
+
+// Declaration order is what fixes the priority between the two layers; the rule it
+// protects is asserted by test/module/styleIsolation.spec.ts.
+@layer bricks-reset, bricks-typography;
+
+/* ============================================================================
+   Content zone: the builder canvas plus published/preview.
+   Project styles of any specificity win (non-layered beats @layer).
+   ========================================================================== */
+@layer bricks-reset {
+    :where(.bricks-canvas, body.bricks-render) {
+        box-sizing: border-box;
+
+        // normalize (carries body { margin: 0 } as a declaration on the wrapper)
+        @include bricks-normalize;
+
+        // bricks strip-reset — keep in sync with the chrome zone below
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            letter-spacing: normal;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button,
+        input,
+        optgroup,
+        select,
+        textarea {
+            margin: 0;
+            padding: 0;
+            border: none;
+            background-color: transparent;
+            outline: none;
+            font-family: inherit;
+            font-size: 100%;
+            line-height: inherit;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        input {
+            outline: none;
+
+            &[type='number']::-webkit-inner-spin-button,
+            &[type='number']::-webkit-outer-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+
+            &[disabled] {
+                -webkit-text-fill-color: var(--bricks-base-100);
+                opacity: 1;
+            }
+
+            &::-ms-clear {
+                display: none;
+            }
+        }
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:focus {
+            transition:
+                background-color 600000s 0s,
+                color 600000s 0s;
+        }
+
+        address {
+            font-style: normal;
+        }
+    }
+}
+
+/* ============================================================================
+   Builder surface: the styles of body itself — (0,1,1) deliberately, they guard
+   the chrome from the project's own body { font-family } and the like. CSS
+   modules make no claim on body.
+   ========================================================================== */
+body.bricks-page {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    background: var(--bricks-base-0);
+    font-family: var(--bricks-font-family-base), serif;
+    font-size: var(--bricks-font-size-base);
+
+    /* Default of the former global normalize.css (html { line-height: 1.15 }) */
+    line-height: 1.15;
+    color: var(--bricks-base-900);
+    -ms-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ============================================================================
+   Builder chrome zone: a reset (0,0,1) on everything under body.bricks-page
+   EXCEPT the canvas (the content zone rules there). The rule lists are kept in
+   sync with the strip-reset of the content zone.
+   ========================================================================== */
+:where(body.bricks-page) {
+    :is(h1, h2, h3, h4, h5, h6):not(:where(.bricks-canvas *)) {
+        letter-spacing: normal;
+    }
+
+    *:not(:where(.bricks-canvas, .bricks-canvas *)) {
+        box-sizing: border-box;
+    }
+
+    /* .ProseMirror is carved out along with the canvas: this rule is non-layered,
+       while the typography of TipTap content lives in a @layer — by cascade origin
+       it would lose to any specificity, and a link in the editor would be left
+       without its underline */
+    a:not(:where(.bricks-canvas *, .ProseMirror *)) {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    :is(button, input, optgroup, select, textarea):not(:where(.bricks-canvas *)) {
+        margin: 0;
+        padding: 0;
+        border: none;
+        background-color: transparent;
+        outline: none;
+        font-family: inherit;
+        font-size: 100%;
+        line-height: inherit;
+        letter-spacing: normal;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
+    input:not(:where(.bricks-canvas *)) {
+        outline: none;
+
+        &[type='number']::-webkit-inner-spin-button,
+        &[type='number']::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        &[disabled] {
+            -webkit-text-fill-color: var(--bricks-base-100);
+            opacity: 1;
+        }
+
+        &::-ms-clear {
+            display: none;
+        }
+
+        &:-webkit-autofill,
+        &:-webkit-autofill:focus {
+            transition:
+                background-color 600000s 0s,
+                color 600000s 0s;
+        }
+    }
+
+    address:not(:where(.bricks-canvas *)) {
+        font-style: normal;
+    }
+}
+
+/* Published/preview content: a reset of zero specificity (:where()) — it keeps the
+   former behavior of bricks blocks (border-box, links inherit) for a consumer with
+   no reset of their own, while any rule of the project overrides it */
+:where(.bricks-container, .bricks-container *) {
+    box-sizing: border-box;
+}
+
+/* Links inside rich text (the v-html of the block and the editor) are carved out
+   for the same reason: their look is set by @layer bricks-typography below */
+:where(.bricks-container a):not(:where([data-tiptap-content] *, .ProseMirror *)) {
+    text-decoration: none;
+    color: inherit;
+}
+
+// Typography of TipTap content — wrapped in a @layer so the consumer project can
+// override it. To override, write the same selectors outside any @layer and they
+// win by the cascade. Whatever is left alone stays as the library has it.
+@layer bricks-typography {
+    // Inline formatting (strong, em) — safe on every element.
+    // .ProseMirror is qualified by body.bricks-page throughout: the TipTap editors
+    // of bricks live in the builder only, while a bare .ProseMirror would leak into
+    // the consumer's own TipTap.
+    .bricks-text,
+    body.bricks-page .ProseMirror {
+        strong,
+        b {
+            font-weight: 600;
+        }
+
+        em,
+        i {
+            font-style: italic;
+        }
+    }
+
+    // Block content (ul, ol, p, blockquote) — inside rich-text containers only.
+    // [data-tiptap-content] is the v-html of BlockText, .ProseMirror is the TipTap
+    // editor. Without that limit, the ul/ol of component markup (navigation,
+    // features and so on) pick up a padding they never asked for.
+    .bricks-text [data-tiptap-content],
+    body.bricks-page .ProseMirror {
+        p {
+            margin: 0 0 0.2em;
+        }
+
+        ul,
+        ol {
+            padding-left: 2rem;
+            list-style-position: outside;
+        }
+
+        ul {
+            list-style-type: disc;
+        }
+
+        ol {
+            list-style-type: decimal;
+        }
+
+        li {
+            margin: 0.6rem 0;
+            list-style: inherit;
+        }
+
+        // Link: the reset strips `a` of its underline and color, so without an
+        // explicit rule an inserted link looks no different from the text around it
+        a {
+            text-decoration: underline;
+            text-underline-offset: 0.2rem;
+            color: var(--bricks-primary);
+        }
+
+        blockquote {
+            margin: 0 0 1.6rem;
+            padding-left: 1.6rem;
+            border-left: 0.4rem solid currentcolor;
+            font-style: italic;
+        }
+
+        code {
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.4rem;
+            border: 1px solid currentcolor;
+            font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+        }
+
+        pre {
+            overflow-x: auto;
+            margin: 0 0 1.6rem;
+            padding: 1.6rem;
+            border-radius: 0.8rem;
+            border: 1px solid currentcolor;
+
+            code {
+                padding: 0;
+                border: none;
+            }
+        }
+
+        // Images coming from the TipTap textarea editor
+        img[data-display='block'] {
+            display: block;
+        }
+
+        img[data-align='center'] {
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        img[data-align='right'] {
+            margin-right: 0;
+            margin-left: auto;
+        }
+
+        img[data-float='left'] {
+            float: left;
+            margin: 0 1.6rem 1.6rem 0;
+        }
+
+        img[data-float='right'] {
+            float: right;
+            margin: 0 0 1.6rem 1.6rem;
+        }
+
+        // Float through CSS classes (TipTap v3 Image extension)
+        .float-left {
+            float: left;
+            margin: 0 1.6rem 1.6rem 0;
+        }
+
+        .float-right {
+            float: right;
+            margin: 0 0 1.6rem 1.6rem;
+        }
+
+        .float-none {
+            float: none;
+            margin: 0;
+        }
+
+        // Vertical-align through CSS classes (TipTap Video extension)
+        .valign-baseline {
+            vertical-align: baseline;
+        }
+
+        .valign-middle {
+            vertical-align: middle;
+        }
+
+        .valign-top {
+            vertical-align: top;
+        }
+
+        .valign-bottom {
+            vertical-align: bottom;
+        }
+    }
+
+    // Image size capped for TipTap content only (v-html and editor)
+    .bricks-text [data-tiptap-content] img,
+    body.bricks-page .ProseMirror img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.4rem;
+    }
+
+    // Video inside TipTap content (v-html and editor)
+    .bricks-text [data-tiptap-content] video,
+    body.bricks-page .ProseMirror video {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.4rem;
+    }
+}
+
+// TipTap v3 Resizable Image — styles for the resize handles
+body.bricks-page .ProseMirror {
+    // NodeView wrapper — relative so the handles have something to position against
+    [data-resize-wrapper] {
+        position: relative;
+        display: inline-block;
+    }
+
+    // Visual feedback when an image or a video is selected
+    .ProseMirror-selectednode [data-resize-wrapper] img,
+    .ProseMirror-selectednode [data-resize-wrapper] video {
+        outline: 2px solid var(--bricks-primary, #2563eb);
+        outline-offset: 2px;
+    }
+
+    // Resize handles — dataset.resizeHandle = direction (e.g. "bottom-right")
+    [data-resize-handle] {
+        position: absolute;
+        z-index: 10;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        border: 2px solid var(--bricks-primary, #2563eb);
+        background: var(--bricks-base-0, #fff);
+        transition: transform 0.15s ease;
+        cursor: pointer;
+
+        &:hover {
+            transform: scale(1.3);
+        }
+
+        // Corner handles — positions and cursors
+        &[data-resize-handle='top-left'] {
+            top: -0.5rem;
+            left: -0.5rem;
+            cursor: nw-resize;
+        }
+
+        &[data-resize-handle='top-right'] {
+            top: -0.5rem;
+            right: -0.5rem;
+            cursor: ne-resize;
+        }
+
+        &[data-resize-handle='bottom-left'] {
+            bottom: -0.5rem;
+            left: -0.5rem;
+            cursor: sw-resize;
+        }
+
+        &[data-resize-handle='bottom-right'] {
+            right: -0.5rem;
+            bottom: -0.5rem;
+            cursor: se-resize;
+        }
+    }
+}
+
+.bricks-scrollbox {
+    overflow: hidden;
+
+    // Room held for the scrollbar: its arrival must not change the content width
+    scrollbar-gutter: stable;
+
+    // Modern CSS Scrollbars Styling (Firefox, Chrome 121+)
+    scrollbar-width: thin;
+    scrollbar-color: var(--bricks-base-500) transparent;
+
+    // Fallback for older WebKit browsers (Chrome < 121, Safari)
+    &::-webkit-scrollbar {
+        width: 0.6rem;
+        height: 0.6rem;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-track-piece {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: var(--bricks-border-radius-xs);
+        background-color: var(--bricks-base-500);
+        cursor: pointer;
+
+        &:hover {
+            background-color: var(--bricks-primary);
+        }
+    }
+
+    &::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+}

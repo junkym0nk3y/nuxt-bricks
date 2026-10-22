@@ -1,0 +1,185 @@
+{
+    "name": "nuxt-bricks",
+    "description": "Visual landing page builder for Nuxt 3 with drag-and-drop components",
+    "version": "0.0.1",
+    "license": "MIT",
+    "type": "module",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/junkym0nk3y/nuxt-bricks.git"
+    },
+    "homepage": "https://github.com/junkym0nk3y/nuxt-bricks#readme",
+    "bugs": {
+        "url": "https://github.com/junkym0nk3y/nuxt-bricks/issues"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/types.d.mts",
+            "import": "./dist/module.mjs"
+        },
+        "./persistence": {
+            "types": "./dist/runtime/modules/persistence/server/registry.d.ts",
+            "import": "./dist/runtime/modules/persistence/server/registry.js"
+        },
+        "./sanitize": {
+            "types": "./dist/runtime/modules/common/utils/sanitize/index.d.ts",
+            "import": "./dist/runtime/modules/common/utils/sanitize/index.js"
+        },
+        "./scss/mixins": {
+            "sass": "./dist/scss/mixins.scss",
+            "default": "./dist/scss/mixins.scss"
+        }
+    },
+    "main": "./dist/module.mjs",
+    "typesVersions": {
+        "*": {
+            ".": [
+                "./dist/types.d.mts"
+            ],
+            "persistence": [
+                "./dist/runtime/modules/persistence/server/registry.d.ts"
+            ],
+            "sanitize": [
+                "./dist/runtime/modules/common/utils/sanitize/index.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "dist",
+        "migrations",
+        "docs/external-backend-contract.md",
+        "LICENSE",
+        "CHANGELOG.md"
+    ],
+    "bin": {
+        "bricks-migrate": "dist/cli/bricks-migrate.mjs"
+    },
+    "engines": {
+        "node": ">=22.17"
+    },
+    "packageManager": "npm@11.13.0",
+    "scripts": {
+        "prepare": "simple-git-hooks",
+        "prepack": "nuxt-module-build build",
+        "build": "nuxt-module-build build",
+        "dev": "nuxi dev playground",
+        "dev:build": "nuxi build playground",
+        "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
+        "bricks:migrate": "node ./src/cli/bricks-migrate.mjs",
+        "el:check": "oxlint .",
+        "el:fix": "oxlint --fix .",
+        "sl:check": "stylelint \"**/*.{scss,vue}\"",
+        "sl:fix": "stylelint \"**/*.{scss,vue}\" --fix",
+        "deps:check": "depcruise src/runtime --config .dependency-cruiser.cjs",
+        "knip:check": "knip",
+        "lint:check": "npm run el:check && npm run sl:check && npm run format:check && npm run deps:check && npm run knip:check",
+        "lint:fix": "npm run format && npm run sl:fix && npm run el:fix",
+        "type-check": "vue-tsc --noEmit",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "test": "vitest run",
+        "test:coverage": "vitest run --coverage",
+        "test:watch": "vitest watch",
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
+        "test:e2e:dev": "nuxi dev e2e/fixture --port 4321 --host 127.0.0.1",
+        "test:e2e:dev:auth": "nuxi dev e2e/fixture-auth --port 4323 --host 127.0.0.1",
+        "smoke:pack": "node ./scripts/pack-smoke.mjs",
+        "smoke:integration": "node ./scripts/integration-smoke.mjs",
+        "smoke:external": "node ./scripts/external-smoke.mjs",
+        "budget:bundle": "node ./scripts/bundle-budget.mjs"
+    },
+    "simple-git-hooks": {
+        "pre-commit": "npx lint-staged",
+        "commit-msg": "npx commitlint --edit $1"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.914.0",
+        "@fastify/busboy": "^3.2.2",
+        "@nuxt/kit": "^3.21.1",
+        "@nuxtjs/i18n": "^10.6.0",
+        "defu": "^6.1.4",
+        "markdown-it": "^14.3.3",
+        "modern-screenshot": "^4.7.0",
+        "oxc-parser": "^0.132.0",
+        "pathe": "^1.1.0",
+        "sharp": "^0.35.5",
+        "ufo": "^1.6.4",
+        "xss": "^1.0.15"
+    },
+    "peerDependencies": {
+        "@kalimahapps/vue-icons": "^1.9.5",
+        "@pinia/nuxt": "^0.11.2",
+        "@tiptap/core": "^3.0.0",
+        "@tiptap/extension-color": "^3.0.0",
+        "@tiptap/extension-document": "^3.0.0",
+        "@tiptap/extension-font-family": "^3.0.0",
+        "@tiptap/extension-hard-break": "^3.0.0",
+        "@tiptap/extension-image": "^3.0.0",
+        "@tiptap/extension-paragraph": "^3.0.0",
+        "@tiptap/extension-text": "^3.0.0",
+        "@tiptap/extension-text-align": "^3.0.0",
+        "@tiptap/extension-text-style": "^3.0.0",
+        "@tiptap/extension-underline": "^3.0.0",
+        "@tiptap/starter-kit": "^3.0.0",
+        "@tiptap/vue-3": "^3.0.0",
+        "@vee-validate/rules": "^4.13.1",
+        "@vueuse/core": "^13.0.0",
+        "pg": "^8.20.0",
+        "pinia": "^3.0.0",
+        "reka-ui": "^2.0.0",
+        "sass": "^1.80.0",
+        "swiper": "^14.0.5",
+        "vee-validate": "^4.13.1",
+        "yup": "^1.7.1"
+    },
+    "peerDependenciesMeta": {
+        "pg": {
+            "optional": true
+        },
+        "sass": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@axe-core/playwright": "^4.13.0",
+        "@commitlint/cli": "^19.8.1",
+        "@commitlint/config-conventional": "^19.8.1",
+        "@modelcontextprotocol/sdk": "^1.32.1",
+        "@nuxt/module-builder": "^1.0.2",
+        "@nuxt/test-utils": "^4.3.4",
+        "@pinia/nuxt": "^0.11.3",
+        "@playwright/test": "^1.62.0",
+        "@types/markdown-it": "^14.1.2",
+        "@types/node": "^22.10.0",
+        "@types/pg": "^8.20.0",
+        "@vitejs/plugin-vue": "^6.0.7",
+        "@vitest/coverage-v8": "^4.1.12",
+        "@vue/test-utils": "^2.4.11",
+        "dependency-cruiser": "^17.4.3",
+        "fuse.js": "^7.3.0",
+        "happy-dom": "^20.11.1",
+        "knip": "^6.25.0",
+        "lint-staged": "^16.4.0",
+        "nuxt": "^3.21.11",
+        "oxlint": "^1.56.0",
+        "pg": "^8.21.0",
+        "pinia": "^3.0.4",
+        "postcss-html": "^1.5.0",
+        "postcss-scss": "^4.0.9",
+        "prettier": "3.8.3",
+        "sass": "^1.94.2",
+        "simple-git-hooks": "^2.13.1",
+        "stylelint": "^16.10.0",
+        "stylelint-config-css-modules": "^4.4.0",
+        "stylelint-config-standard": "^36.0.1",
+        "stylelint-config-standard-scss": "^13.1.0",
+        "stylelint-order": "^6.0.4",
+        "stylelint-scss": "^6.9.0",
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.12",
+        "vue": "3.5.44",
+        "vue-tsc": "^3.2.4",
+        "zod": "^4.4.3"
+    }
+}

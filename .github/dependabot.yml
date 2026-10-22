@@ -1,0 +1,17 @@
+# Dependency auto-updates: npm weekly (minor and patch grouped into a single PR,
+# major ones separately), GitHub Actions weekly.
+version: 2
+updates:
+    - package-ecosystem: npm
+      directory: /
+      schedule:
+          interval: weekly
+      groups:
+          minor-and-patch:
+              update-types:
+                  - minor
+                  - patch
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly

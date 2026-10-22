@@ -1,0 +1,115 @@
+# Attaches the built package tarball to a GitHub release when the release is published.
+#
+# The package is not published to npm yet: a consumer installs it straight from the
+# release asset (`npm install https://github.com/<owner>/<repo>/releases/download/
+# v<version>/nuxt-bricks-<version>.tgz`). A git URL does not work as a dependency: npm
+# prepares a git dependency with the `prepare` script alone and never runs `prepack`,
+# where dist is built, so the package would arrive without a build. The asset downloads
+# without authentication only while the repository is public.
+#
+# An uploaded asset is never replaced (no --clobber): the lock file of a consumer pins
+# the integrity of the tarball, and a rebuilt one under the same URL would fail every
+# `npm ci` that installed the previous one. A fix ships as a new version and a new
+# release.
+#
+# The trigger is `released`, not `published`: `published` fires for pre-releases as
+# well, and a pre-release is not meant to reach consumers.
+#
+# The gate here is deliberately narrower than ci.yml — the checks, the module build
+# and the fresh-consumer smoke, which is the only job that looks at the tarball the
+# release actually ships. What is NOT re-run: the browser flows, the Postgres/MinIO
+# integration, the external backend smoke, the playground production build, the
+# bundle budget and the audit. The ancestry guard below is what makes skipping them
+# defensible: the released commit is required to be on main, where the full matrix
+# has already run.
+#
+# npm is pinned to the same version as ci.yml: the npm 10 bundled with Node 22 dies
+# resolving the peer graph of a clean consumer, and 11.19 stopped running install
+# scripts until each dependency is approved by hand.
+name: Publish
+
+permissions:
+    contents: read
+
+on:
+    release:
+        types: [released]
+
+concurrency:
+    group: publish-${{ github.ref }}
+    cancel-in-progress: false
+
+env:
+    NUXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+    publish:
+        name: Release tarball
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            # The whole history is needed by the ancestry guard below; a shallow
+            # clone has no merge base to check against.
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm i -g npm@11.13.0
+
+            # A release tag that disagrees with package.json would ship a version
+            # nobody tagged: the tarball and the git history would then point at
+            # different sources for the same version number. Only the `v` form is
+            # accepted: the tag is part of the asset URL, and the install command in
+            # README carries `v<version>`, so a bare `<version>` tag would put the
+            # tarball where the documented command answers 404.
+            #
+            # The tag arrives through the environment rather than through a `${{ }}`
+            # substitution inside the script: git accepts quotes, `$(…)` and
+            # backticks in a ref name, so a substituted tag name is executable text
+            # in a job that holds a token with write access to the repository.
+            - name: Release tag matches package version
+              env:
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+              run: |
+                  version="$(node -p "require('./package.json').version")"
+                  if [ "$RELEASE_TAG" != "v$version" ]; then
+                      echo "Release tag $RELEASE_TAG is not v$version (the package version)"
+                      exit 1
+                  fi
+
+            # Releasing a commit that never reached main would ship code the full CI
+            # matrix has never seen: a release can be cut from any commit in the
+            # repository, and this workflow re-runs only part of that matrix.
+            - name: Released commit is on main
+              run: |
+                  git fetch --no-tags origin main
+                  if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+                      echo "Commit $GITHUB_SHA is not an ancestor of origin/main"
+                      exit 1
+                  fi
+
+            - run: npm ci
+            - run: npm run dev:prepare
+            - run: npm run format:check
+            - run: npm run lint:check
+            - run: npm run type-check
+            - run: npm test
+            - run: npm run build
+            - run: npm run smoke:pack
+
+            # Packed once more rather than taken over from the smoke: the smoke keeps
+            # its tarball in a working directory of its own, and `npm pack` builds the
+            # module itself (prepack), so the asset is exactly what packing gives. npm
+            # does not create the destination: without the mkdir it fails on ENOENT.
+            - run: |
+                  mkdir -p release-asset
+                  npm pack --pack-destination release-asset
+            - name: Attach the tarball to the release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+              run: gh release upload "$RELEASE_TAG" release-asset/*.tgz
