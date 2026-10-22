@@ -3,7 +3,8 @@
  * Integration smoke: a production-like gate built out of the packed tarball.
  *
  * It needs a live Postgres (BRICKS_IT_DATABASE_URL); the S3 part turns on when
- * BRICKS_IT_S3_ENDPOINT/ACCESS_KEY/SECRET_KEY/BUCKET are set (MinIO in CI).
+ * BRICKS_IT_S3_ENDPOINT/ACCESS_KEY/SECRET_KEY/BUCKET are set (any S3-compatible server;
+ * CI sets none, so there the media stage is skipped).
  *
  * The flow: npm pack → a clean consumer (database auth) → bricks-migrate out of the
  * tarball (plus a status with no pending and no drift; the same migration seeds the
@@ -111,8 +112,8 @@ async function scaffoldConsumer(consumerDir, tarballPath) {
 
 /**
  * Creates the S3 bucket idempotently through the SDK from the node_modules of the
- * consumer (the same dependency the module itself uses). MinIO may still be coming up in
- * parallel — up to 10 retries with a pause between them.
+ * consumer (the same dependency the module itself uses). The S3 server may still be coming
+ * up in parallel — up to 10 retries with a pause between them.
  *
  * @param {string} consumerDir - The consumer directory.
  * @returns {Promise<void>} Resolves once the bucket exists.
@@ -191,7 +192,7 @@ async function main() {
         assertOk(!status.includes('drifted'), `the checksum registry reported drift:\n${status}`);
 
         if (HAS_S3) {
-            console.info('[integration-smoke] Creating the S3 bucket (MinIO)...');
+            console.info('[integration-smoke] Creating the S3 bucket...');
             await ensureBucket(consumerDir);
         }
 

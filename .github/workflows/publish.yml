@@ -17,7 +17,7 @@
 #
 # The gate here is deliberately narrower than ci.yml — the checks, the module build
 # and the fresh-consumer smoke, which is the only job that looks at the tarball the
-# release actually ships. What is NOT re-run: the browser flows, the Postgres/MinIO
+# release actually ships. What is NOT re-run: the browser flows, the Postgres
 # integration, the external backend smoke, the playground production build, the
 # bundle budget and the audit. The ancestry guard below is what makes skipping them
 # defensible: the released commit is required to be on main, where the full matrix

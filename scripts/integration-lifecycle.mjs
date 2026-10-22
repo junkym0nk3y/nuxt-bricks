@@ -315,7 +315,7 @@ export async function runLifecycle({ origin, username, password, pagename, hasS3
         'restore returned no page with a new revision'
     );
 
-    // Media (S3): the full cycle against MinIO
+    // Media (S3): the full cycle against the S3 server
     if (hasS3) {
         await runMediaStage(origin, api, cookie);
     } else {
