@@ -39,8 +39,9 @@ export function useCanvas() {
     const VERTICAL_NAV_WIDTH_PX = convertRemToPx(VERTICAL_NAV_WIDTH_REM);
 
     /**
-     * Visual width of the Figma mode content at scale = 1: every sheet of the set
-     * with its rem compensation plus the gaps between them.
+     * Visual width of the Figma mode content at scale = 1: every sheet of the set plus
+     * the gaps between them. A sheet is as wide as its device whatever the rem base —
+     * the compensation scales the content inside it (`getRemCompensationStyle`).
      *
      * Measured over the set, not over three hardcoded devices: a fourth sheet grows
      * the sum, and a fixed triple would leave the fit scale too high.
@@ -52,10 +53,7 @@ export function useCanvas() {
             return 0;
         }
 
-        const sheets = devices.reduce(
-            (total, device) => total + device.width * getRemCompensation(device.key),
-            0
-        );
+        const sheets = devices.reduce((total, device) => total + device.width, 0);
 
         return sheets + FIGMA_GAP_PX * (devices.length - 1);
     };
@@ -85,10 +83,7 @@ export function useCanvas() {
             return Math.min(availableWidth / getFigmaContentWidth(), 1);
         }
 
-        // Account for the rem compensation: the canvas is visually remCompensation times wider
-        const effectiveWidth = canvasStore.width * remCompensation.value;
-        const scaleX = availableWidth / effectiveWidth;
-        return Math.min(scaleX, 1);
+        return Math.min(availableWidth / canvasStore.width, 1);
     };
 
     /**
@@ -124,15 +119,10 @@ export function useCanvas() {
         { immediate: true }
     );
 
-    // Canvas transform including the rem compensation (normal mode)
+    // Transform of the canvas sheet and of the Figma mode row: the zoom of the user or
+    // the fit scale, nothing else. The rem compensation is not a part of it — it scales
+    // the content inside the sheet (`sheetLayoutHeight` below, `getRemCompensationStyle`)
     const canvasTransform = computed(() => {
-        const totalScale = canvasStore.scale * remCompensation.value;
-        return `scale(${totalScale})`;
-    });
-
-    // Transform of the Figma mode wrapper — without the rem compensation, because every
-    // viewport has its own (applied in BuilderCanvasViewport)
-    const figmaBaseTransform = computed(() => {
         return `scale(${canvasStore.scale})`;
     });
 
@@ -140,8 +130,16 @@ export function useCanvas() {
     // not affect layout, and without min-width a zoom above the fit scale would push the
     // left edge of the canvas outside the scroll area, where scrolling cannot reach it
     const canvasWrapperStyle = computed(() => {
-        const totalScale = canvasStore.scale * remCompensation.value;
-        return { minWidth: convertPxToRem(canvasStore.width * totalScale) };
+        return { minWidth: convertPxToRem(canvasStore.width * canvasStore.scale) };
+    });
+
+    /**
+     * Layout height of the sheet of the normal mode, in px. The store keeps the height of
+     * the content in its own px — measured inside the scaled content — and the sheet
+     * takes it times the compensation.
+     */
+    const sheetLayoutHeight = computed<number>(() => {
+        return canvasStore.height * remCompensation.value;
     });
 
     // The same min-width for the Figma mode wrapper, rounded up to a whole pixel: the
@@ -169,9 +167,8 @@ export function useCanvas() {
         return convertPxToRem(layoutHeight * (scale - 1));
     };
 
-    // The canvas of the normal mode is as tall as the store says
     const canvasMarginBottom = computed(() => {
-        return getScaledHeightMargin(canvasStore.height, canvasStore.scale * remCompensation.value);
+        return getScaledHeightMargin(sheetLayoutHeight.value, canvasStore.scale);
     });
 
     const figmaWrapperMarginBottom = computed(() => {
@@ -218,9 +215,9 @@ export function useCanvas() {
         canvasContainer,
         figmaWrapper,
         canvasTransform,
-        figmaBaseTransform,
         canvasContainerStyle,
         canvasWrapperStyle,
+        sheetLayoutHeight,
         canvasMarginBottom,
         figmaWrapperMinWidth,
         figmaWrapperMarginBottom,

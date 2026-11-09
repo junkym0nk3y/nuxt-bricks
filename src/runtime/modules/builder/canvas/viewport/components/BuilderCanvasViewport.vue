@@ -19,6 +19,7 @@ import { useCanvasDrops } from '../composables/useCanvasDrops';
 import { useCanvasDropGuard } from '../composables/useCanvasDropGuard';
 import { useCanvasFlowGuard } from '../composables/useCanvasFlowGuard';
 import { useCanvasComponentTreeWatch } from '../composables/useCanvasComponentTreeWatch';
+import { getRemCompensationStyle } from '../composables/useCanvasRemBase';
 
 // Constants
 import { DEFAULT_CANVAS_HEIGHT } from '../../../../common/constants/devices';
@@ -103,22 +104,24 @@ const viewportWidth = computed<number>(() => canvasStore.getViewportWidth(props.
 
 const viewportHeight = ref<number>(DEFAULT_CANVAS_HEIGHT);
 
-/** Rem compensation of this sheet: the uniform scale that renders its rem base */
+/**
+ * Rem compensation of this sheet: the scale of its content that renders its rem base —
+ * why the content and not the sheet, in `getRemCompensationStyle`.
+ */
 const compensation = computed<number>(() => getRemCompensation?.(props.viewport) ?? 1);
 
 /**
- * Box of the sheet in the row: its visual size, the compensation applied.
+ * Size of the sheet in the row: the width of the device, the height of the scaled
+ * content. `viewportHeight` is measured inside the content, in its own px.
  *
- * A transform leaves the layout box as it was, so a sheet scaled by its compensation used
- * to take its unscaled width in the row. The width the canvas computes for the row
- * (`getFigmaContentWidth`) counts the visual one, and the two parted by
- * `width × (1 − compensation)` per sheet: the row overflowed the scroll area
- * symmetrically, and its left edge went where no scrolling reaches — by 148px of a
- * 1024px sheet at a compensation of 0.71, times the zoom. The gaps around such a sheet
- * grew by the same amount, and a compensation above 1 made sheets overlap instead.
+ * The box is the layout box of the sheet itself and has to stay so: the width the canvas
+ * computes for the row (`getFigmaContentWidth`) counts these widths, and a sheet that took
+ * another width in the row than the one counted — as a sheet under a transform does —
+ * overflowed the scroll area symmetrically and put its left edge where no scrolling
+ * reaches.
  */
 const frameStyle = computed<Record<string, string>>(() => ({
-    width: convertPxToRem(viewportWidth.value * compensation.value),
+    width: convertPxToRem(viewportWidth.value),
     height: convertPxToRem(viewportHeight.value * compensation.value),
 }));
 
@@ -134,22 +137,17 @@ const viewportStyle = computed<Record<string, string>>(() => ({
     width: frameStyle.value.width,
 }));
 
-const canvasStyle = computed<Record<string, string>>(() => {
-    const style: Record<string, string> = {
-        width: convertPxToRem(viewportWidth.value),
-        height: convertPxToRem(viewportHeight.value),
-        backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--bricks-base-0)',
-        fontFamily: config.defaultFont,
-        ...getDragPlaceholderVars(canvasStore.dragState),
-    };
+const canvasStyle = computed<Record<string, string>>(() => ({
+    ...frameStyle.value,
+    backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--bricks-base-0)',
+    fontFamily: config.defaultFont,
+    ...getDragPlaceholderVars(canvasStore.dragState),
+}));
 
-    if (compensation.value !== 1) {
-        style.transform = `scale(${compensation.value})`;
-        style.transformOrigin = 'top left';
-    }
-
-    return style;
-});
+/** Content of the sheet under its rem compensation */
+const contentCompensationStyle = computed<Record<string, string> | undefined>(() =>
+    getRemCompensationStyle(compensation.value)
+);
 
 /** Root flow: the page blocks and the insertion point as one keyed list for TransitionGroup */
 const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
@@ -268,7 +266,7 @@ onBeforeUnmount(() => {
                 @dragover="handleCanvasDragOver"
                 @click="handleCanvasClick"
             >
-                <div :class="$style.screenContent">
+                <div :class="$style.screenContent" :style="contentCompensationStyle">
                     <div
                         ref="containerRef"
                         :style="{

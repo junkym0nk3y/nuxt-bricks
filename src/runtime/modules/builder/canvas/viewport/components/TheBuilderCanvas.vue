@@ -19,6 +19,7 @@ import { usePublishStore } from '../../../publish/stores/publish';
 
 // Composables
 import { useCanvas } from '../composables/useCanvas';
+import { getRemCompensationStyle } from '../composables/useCanvasRemBase';
 import { useBricksConfig } from '../../../../common/composables/useBricksConfig';
 import { useCanvasDrops } from '../composables/useCanvasDrops';
 import { useCanvasDropGuard } from '../composables/useCanvasDropGuard';
@@ -66,13 +67,14 @@ const {
     canvasContainer,
     figmaWrapper,
     canvasTransform,
-    figmaBaseTransform,
     canvasContainerStyle,
     canvasWrapperStyle,
+    sheetLayoutHeight,
     canvasMarginBottom,
     figmaWrapperMinWidth,
     figmaWrapperMarginBottom,
     figmaGap,
+    remCompensation,
     getRemCompensation,
     handleResize,
     resetZoom,
@@ -200,12 +202,16 @@ const rightSidebarOffset = computed(() => {
  * shrink of the layout width), the grid computed 1fr from the wrong width, and the canvas
  * showed something other than the published page.
  *
+ * The sheet is as wide as its device in px, and its height is the one of the scaled
+ * content (`sheetLayoutHeight`): the rem compensation lives on the content
+ * (`getRemCompensationStyle`), not here.
+ *
  * @returns Style object of the canvas element
  */
 const canvasStyle = computed<Record<string, string>>(() => {
     const baseStyle = {
         width: convertPxToRem(canvasStore.width),
-        height: convertPxToRem(canvasStore.height),
+        height: convertPxToRem(sheetLayoutHeight.value),
         backgroundColor: publishStore.currentFormState.backgroundColor || 'var(--bricks-base-0)',
         fontFamily: config.defaultFont,
         ...getDragPlaceholderVars(canvasStore.dragState),
@@ -223,14 +229,19 @@ const canvasStyle = computed<Record<string, string>>(() => {
     };
 });
 
+/** Content of the sheet under the rem compensation — why so, in `getRemCompensationStyle` */
+const contentCompensationStyle = computed<Record<string, string> | undefined>(() =>
+    getRemCompensationStyle(remCompensation.value)
+);
+
 /** Root flow: the page blocks and the insertion point as one keyed list for TransitionGroup */
 const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
     buildDropFlowEntries(componentsStore.getRootComponents(), rootDropIndex.value, 'root-drop')
 );
 
 /**
- * Styles of the Figma mode wrapper — the base scale without the rem compensation, which
- * every BuilderCanvasViewport applies for itself.
+ * Styles of the Figma mode wrapper — the scale of the row; the rem compensation scales
+ * the content of every BuilderCanvasViewport for itself.
  *
  * The transform lives on this inner wrapper, while the outer one carries the min-width of
  * the visual width: putting both on one node would apply the scale twice. The visual
@@ -241,7 +252,7 @@ const figmaWrapperStyle = computed<Record<string, string>>(() => {
     const style: Record<string, string> = {};
 
     if (isMounted.value) {
-        style.transform = figmaBaseTransform.value;
+        style.transform = canvasTransform.value;
         style.marginBottom = figmaWrapperMarginBottom.value;
         style.gap = figmaGap;
     }
@@ -413,7 +424,7 @@ onBeforeUnmount(() => {
                     @dragover="handleCanvasDragOver"
                     @click="handleCanvasClick"
                 >
-                    <div :class="$style.screenContent">
+                    <div :class="$style.screenContent" :style="contentCompensationStyle">
                         <div
                             ref="containerRef"
                             :style="{

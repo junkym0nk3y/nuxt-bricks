@@ -177,8 +177,8 @@ export function usePageThumbnail(sessionToken: IBuilderSessionToken): IUsePageTh
                     node.offsetHeight,
                     node.offsetWidth * THUMBNAIL_ASPECT_RATIO * THUMBNAIL_MAX_FRAMES
                 ),
-                // The canvasTransform (`canvasStore.scale * remCompensation`, see
-                // `useCanvas`) and the frame of the canvas are neutralized
+                // The canvasTransform (`canvasStore.scale`, see `useCanvas`) and the
+                // frame of the canvas are neutralized
                 style: { transform: 'none', margin: '0', boxShadow: 'none', borderRadius: '0' },
                 fetchFn: createProxyFetchFn(),
             });
