@@ -12,7 +12,13 @@ import {
 } from '@aws-sdk/client-s3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import { discardUnconfirmedObject } from './s3ObjectCleanup';
-import { extractStorageKey, findManagedPrefixConflict, isManagedStorageKey } from './s3KeyPolicy';
+import {
+    extractStorageKey,
+    findManagedPrefixConflict,
+    findPublicUrlProblem,
+    isManagedStorageKey,
+    resolvePublicBaseUrl,
+} from './s3KeyPolicy';
 import { writeStreamToBucket } from './s3StreamUpload';
 import type {
     IPublishAdapter,
@@ -55,6 +61,29 @@ const S3_SOCKET_TIMEOUT_MS = 30_000;
  * REPLACES it rather than appending a second copy.
  */
 const S3_MAX_ATTEMPTS = 2;
+
+/**
+ * Resolves the public base address of the objects (the `publicUrl` option).
+ *
+ * Checked here and not at build time for the same reason as the prefixes: the value
+ * is overridden by NUXT_BRICKS_S3_PUBLIC_URL at runtime.
+ *
+ * @param raw - The raw storage configuration.
+ * @returns The trimmed value, or an empty string (the API address is used).
+ */
+function resolvePublicUrl(raw: TRawS3Config): string {
+    const publicUrl = raw?.publicUrl?.trim() || '';
+    const problem = findPublicUrlProblem(publicUrl);
+
+    if (problem) {
+        throw new Error(
+            `[S3] Invalid public URL: ${problem}. ` +
+                'Fix bricks.s3.publicUrl (or NUXT_BRICKS_S3_PUBLIC_URL env).'
+        );
+    }
+
+    return publicUrl;
+}
 
 /**
  * Resolves the S3 configuration from runtimeConfig.
@@ -101,6 +130,7 @@ function resolveS3Config(): IResolvedS3Config {
         prefix,
         thumbnailsPrefix,
         avatarsPrefix,
+        publicUrl: resolvePublicUrl(raw),
     };
 }
 
@@ -228,7 +258,7 @@ export function createS3PublishAdapter(): IPublishAdapter {
             }
 
             return {
-                url: `${config.endpoint}/${config.bucket}/${params.key}`,
+                url: `${resolvePublicBaseUrl(config)}/${params.key}`,
                 key: params.key,
                 size: params.buffer.length,
             };
@@ -256,7 +286,7 @@ export function createS3PublishAdapter(): IPublishAdapter {
             const size = await writeStreamToBucket(s3, config, params);
 
             return {
-                url: `${config.endpoint}/${config.bucket}/${params.key}`,
+                url: `${resolvePublicBaseUrl(config)}/${params.key}`,
                 key: params.key,
                 size,
             };
@@ -287,9 +317,9 @@ export function createS3PublishAdapter(): IPublishAdapter {
 
         /**
          * Checks that the URL belongs to our own storage (the anti-SSRF contract):
-         * the host is fixed by the config (`endpoint/bucket/`), and the key must lie
-         * inside the managed prefixes — arbitrary origins and the foreign objects of
-         * a shared bucket do not pass.
+         * the host is fixed by the config (`publicUrl`, otherwise `endpoint/bucket/`), and
+         * the key must lie inside the managed prefixes — arbitrary origins and the
+         * foreign objects of a shared bucket do not pass.
          */
         isOwnedUrl(url: string): boolean {
             const { config } = useClient();
@@ -322,7 +352,7 @@ export function createS3PublishAdapter(): IPublishAdapter {
                         .filter((item) => Boolean(item.Key) && !item.Key?.endsWith('/'))
                         .map((item) => ({
                             key: item.Key || '',
-                            url: `${config.endpoint}/${config.bucket}/${item.Key}`,
+                            url: `${resolvePublicBaseUrl(config)}/${item.Key}`,
                             size: item.Size || 0,
                             lastModified:
                                 item.LastModified?.toISOString() || new Date().toISOString(),

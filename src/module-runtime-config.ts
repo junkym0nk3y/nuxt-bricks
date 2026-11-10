@@ -132,6 +132,9 @@ function applyBricksPersistenceRuntimeConfig(
         prefix: 'bricks-media/',
         thumbnailsPrefix: 'bricks-thumbnails/',
         avatarsPrefix: 'bricks-avatars/',
+        // An empty key still has to be declared: Nitro applies the runtime override
+        // (NUXT_BRICKS_S3_PUBLIC_URL) only to keys that exist in runtimeConfig
+        publicUrl: '',
     });
 }
 

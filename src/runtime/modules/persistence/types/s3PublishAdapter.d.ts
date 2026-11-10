@@ -14,6 +14,8 @@ export interface IResolvedS3Config {
     prefix: string;
     thumbnailsPrefix: string;
     avatarsPrefix: string;
+    /** The public base of the objects' links; empty — the API address is used. */
+    publicUrl: string;
 }
 
 /**

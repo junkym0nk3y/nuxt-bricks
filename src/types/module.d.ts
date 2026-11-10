@@ -167,6 +167,15 @@ export interface IBricksModuleOptions {
          * bucket import as media records.
          */
         avatarsPrefix?: string;
+        /**
+         * Public base address of the objects (default empty — the links are built
+         * from the API address, `<endpoint>/<bucket>/<key>`). Set it when the
+         * storage serves anonymous reads from a domain of its own rather than from
+         * the API address (Selectel: `https://<uuid>.selstorage.ru`, a CDN): the
+         * links become `<publicUrl>/<key>`, and only such links count as the
+         * storage's own for deletion and the media proxy.
+         */
+        publicUrl?: string;
     };
     /**
      * Dev-only proxying of non-bricks /api/* to the backend of the host project

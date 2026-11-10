@@ -6,8 +6,10 @@ import { describe, expect, it } from 'vitest';
 import {
     extractStorageKey,
     findManagedPrefixConflict,
+    findPublicUrlProblem,
     isManagedStorageKey,
     isSafeStorageKey,
+    resolvePublicBaseUrl,
 } from '../../src/runtime/modules/persistence/server/s3/s3KeyPolicy';
 // #endregion
 
@@ -266,5 +268,71 @@ describe('findManagedPrefixConflict: набор managed-префиксов', () 
                 avatarsPrefix: 'bricks/avatars/',
             })
         ).toBeNull();
+    });
+});
+
+describe('publicUrl: публичный адрес объектов отдельно от API-адреса', () => {
+    const PUBLIC_BASE = { ...BASE, publicUrl: 'https://files.example.net/' };
+
+    it('без publicUrl база ссылок — API-адрес бакета', () => {
+        expect(resolvePublicBaseUrl(BASE)).toBe('https://storage.example.com/my-bucket');
+        expect(resolvePublicBaseUrl({ ...BASE, endpoint: 'https://storage.example.com/' })).toBe(
+            'https://storage.example.com/my-bucket'
+        );
+    });
+
+    it('с publicUrl база ссылок — публичный адрес без завершающего слеша', () => {
+        expect(resolvePublicBaseUrl(PUBLIC_BASE)).toBe('https://files.example.net');
+        expect(resolvePublicBaseUrl({ ...BASE, publicUrl: 'https://cdn.example.net/media' })).toBe(
+            'https://cdn.example.net/media'
+        );
+    });
+
+    it('извлекает ключ из публичной ссылки', () => {
+        expect(
+            extractStorageKey('https://files.example.net/bricks-media/a.webp', PUBLIC_BASE)
+        ).toBe('bricks-media/a.webp');
+        expect(
+            extractStorageKey('https://cdn.example.net/media/bricks-media/a.webp?v=2', {
+                ...BASE,
+                publicUrl: 'https://cdn.example.net/media',
+            })
+        ).toBe('bricks-media/a.webp');
+    });
+
+    it('с publicUrl ссылка через API-адрес — не своя', () => {
+        expect(
+            extractStorageKey(
+                'https://storage.example.com/my-bucket/bricks-media/a.webp',
+                PUBLIC_BASE
+            )
+        ).toBe(null);
+    });
+
+    it('с путём в publicUrl ссылка мимо этого пути — не своя', () => {
+        expect(
+            extractStorageKey('https://cdn.example.net/other/bricks-media/a.webp', {
+                ...BASE,
+                publicUrl: 'https://cdn.example.net/media',
+            })
+        ).toBe(null);
+    });
+
+    it.each([
+        ['пусто', ''],
+        ['https', 'https://files.example.net'],
+        ['http с путём', 'http://cdn.example.net/media/'],
+    ])('принимает publicUrl: %s', (_label, value) => {
+        expect(findPublicUrlProblem(value)).toBe(null);
+    });
+
+    it.each([
+        ['относительный путь', '/media'],
+        ['не http(s)', 'ftp://files.example.net'],
+        ['учётные данные', 'https://user:pass@files.example.net'],
+        ['query', 'https://files.example.net/?x=1'],
+        ['fragment', 'https://files.example.net/#a'],
+    ])('отказывает publicUrl: %s', (_label, value) => {
+        expect(findPublicUrlProblem(value)).not.toBe(null);
     });
 });

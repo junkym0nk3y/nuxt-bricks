@@ -20,11 +20,17 @@
  */
 
 /**
- * The bucket's base address, for extracting a key.
+ * Where the bucket's objects are addressed from: the S3 API address (`endpoint` +
+ * `bucket`) and, optionally, a separate public address of the objects.
  */
 export interface IStorageUrlBase {
     endpoint: string;
     bucket: string;
+    /**
+     * The public base of the objects' links (`<publicUrl>/<key>`); empty — the links
+     * go through the API address, `<endpoint>/<bucket>/<key>`.
+     */
+    publicUrl?: string;
 }
 
 /**
@@ -55,13 +61,77 @@ export function isSafeStorageKey(key: string): boolean {
 }
 
 /**
+ * The base of the public links to the bucket's objects, without a trailing `/`.
+ *
+ * `publicUrl` exists because the API address does not have to serve reads: Selectel,
+ * for one, answers 403 to an anonymous GET on `<endpoint>/<bucket>/<key>` even for a
+ * `public-read` object and serves it only from the bucket's own domain. The links the
+ * adapter stored used to be built from the API address alone, so on such a storage
+ * every uploaded file was written successfully and then never shown.
+ *
+ * @param base - The storage's addresses.
+ * @returns The base the object key is appended to.
+ */
+export function resolvePublicBaseUrl(base: IStorageUrlBase): string {
+    const publicUrl = base.publicUrl?.trim() ?? '';
+
+    if (publicUrl) {
+        return publicUrl.replace(/\/+$/, '');
+    }
+
+    return `${base.endpoint.replace(/\/+$/, '')}/${base.bucket}`;
+}
+
+/**
+ * Checks the `publicUrl` option: an absolute http(s) address without credentials, a
+ * query or a fragment. The link is assembled by concatenation, so a `?` or a `#` would
+ * turn the key into a query, and `extractStorageKey` would no longer recover it — the
+ * file would become undeletable, as with such a character in a prefix.
+ *
+ * The value itself stays out of the message: a rejected address may carry credentials or
+ * a token in its query, and the message reaches the server log and, through the page
+ * thumbnail upload, the client.
+ *
+ * @param publicUrl - The option's value (empty is allowed: the API address is used).
+ * @returns The violation's text, or null when the value is correct.
+ */
+export function findPublicUrlProblem(publicUrl: string): string | null {
+    const value = publicUrl.trim();
+
+    if (!value) {
+        return null;
+    }
+
+    let parsed: URL;
+
+    try {
+        parsed = new URL(value);
+    } catch {
+        return 'publicUrl must be an absolute URL';
+    }
+
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        return 'publicUrl must use http or https';
+    }
+
+    if (parsed.username || parsed.password || URL_DELIMITERS_PATTERN.test(value)) {
+        return 'publicUrl must not contain credentials, "?" or "#"';
+    }
+
+    return null;
+}
+
+/**
  * Extracts the canonical S3 object key from a file's public URL.
  * The URL is parsed by the parser: the protocol/host/userinfo are matched against the
  * base, the query/fragment are dropped (the `?v=` cache buster is not part of the
  * key), the key is decoded once and passes `isSafeStorageKey`.
  *
+ * The base is the one the adapter builds the links from (`resolvePublicBaseUrl`): with
+ * `publicUrl` set, a link through the API address is not the storage's own.
+ *
  * @param url - The file's full URL.
- * @param base - The storage's endpoint and bucket.
+ * @param base - The storage's addresses.
  * @returns The canonical key, or null (a foreign origin/bucket, an unsafe key).
  */
 export function extractStorageKey(url: string, base: IStorageUrlBase): string | null {
@@ -70,7 +140,7 @@ export function extractStorageKey(url: string, base: IStorageUrlBase): string | 
 
     try {
         parsed = new URL(url);
-        baseUrl = new URL(`${base.endpoint.replace(/\/+$/, '')}/${base.bucket}/`);
+        baseUrl = new URL(`${resolvePublicBaseUrl(base)}/`);
     } catch {
         return null;
     }
