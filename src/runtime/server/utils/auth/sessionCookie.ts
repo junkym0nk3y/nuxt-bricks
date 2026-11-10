@@ -51,7 +51,25 @@ export function getSessionTokenFromCookie(event: H3Event): string | null {
 }
 
 /**
- * Sets the HttpOnly session cookie (SameSite=Lax, Secure in production, path=/).
+ * The path of the session cookie — the application's `app.baseURL`.
+ *
+ * With the root path the cookie travelled with every request to the whole domain: an
+ * application mounted under a prefix next to another site (`/landings/` on a shared
+ * domain) handed the editor's session token to that site on each of its requests. Every
+ * route that needs the session (the builder, the preview, `/api/bricks/**`) lives under
+ * the base, so the cookie is limited to it.
+ *
+ * @returns The base path with its trailing `/` (`/` without a base).
+ */
+export function resolveSessionCookiePath(): string {
+    const baseURL = (useRuntimeConfig().app?.baseURL as string | undefined) || '/';
+
+    return baseURL.startsWith('/') ? baseURL : '/';
+}
+
+/**
+ * Sets the HttpOnly session cookie (SameSite=Lax, Secure in production, the path of
+ * `resolveSessionCookiePath`).
  *
  * @param event - Request event.
  * @param token - The opaque token (not its hash).
@@ -62,14 +80,15 @@ export function setSessionCookie(event: H3Event, token: string, maxAgeSeconds: n
         httpOnly: true,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
-        path: '/',
+        path: resolveSessionCookiePath(),
         maxAge: maxAgeSeconds,
     });
 }
 
 /**
- * Deletes the session cookie (logout or an invalid session).
+ * Deletes the session cookie (logout or an invalid session). The path is the one the
+ * cookie was set with: a deletion on another path leaves the cookie in the browser.
  */
 export function clearSessionCookie(event: H3Event): void {
-    deleteCookie(event, SESSION_COOKIE_NAME, { path: '/' });
+    deleteCookie(event, SESSION_COOKIE_NAME, { path: resolveSessionCookiePath() });
 }

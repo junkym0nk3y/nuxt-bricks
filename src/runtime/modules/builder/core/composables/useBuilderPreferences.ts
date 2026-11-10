@@ -7,7 +7,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Nuxt
-import { useCookie } from '#imports';
+import { useCookie, useRuntimeConfig } from '#imports';
 
 // Constants
 import { DARK_MODE_COOKIE, DARK_MODE_COOKIE_MAX_AGE } from '../constants/theme';
@@ -30,19 +30,27 @@ export function useBuilderPreferences(): IUseBuilderPreferencesReturn {
     // #region Data
     const { locale, setLocale } = useI18n();
 
+    /**
+     * The path of both cookies is the application's base rather than the domain root: an
+     * application mounted under a prefix next to another site would otherwise send them
+     * with every request to that site. The builder and the preview both live under the
+     * base, so each of them still reads the same choice.
+     */
+    const cookiePath = useRuntimeConfig().app.baseURL || '/';
+
     const darkModeCookie = useCookie<boolean>(DARK_MODE_COOKIE, {
         default: () => false,
         maxAge: DARK_MODE_COOKIE_MAX_AGE,
+        path: cookiePath,
     });
 
     /**
      * No `default` here: a cookie with one is written into the response even when
-     * nobody has chosen anything. The path is the root, so that the preview, served
-     * outside the builder prefix, reads the same choice.
+     * nobody has chosen anything.
      */
     const localeCookie = useCookie<string | null>(BUILDER_LOCALE_COOKIE, {
         maxAge: BUILDER_LOCALE_COOKIE_MAX_AGE,
-        path: '/',
+        path: cookiePath,
         sameSite: 'lax',
     });
     // #endregion
