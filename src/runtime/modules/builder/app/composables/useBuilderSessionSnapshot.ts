@@ -82,11 +82,21 @@ export function useBuilderSessionSnapshot(
     /**
      * Applies a snapshot into the builder stores.
      *
+     * The publication flag stays the one the form holds: the editor never keeps it as
+     * an unsaved edit — the switch writes it to the server at once — so the flag of a
+     * draft is only a copy of the server state from the time the draft was written.
+     * Taken from the draft, it brought back a flag the person had changed since (the
+     * switch of the editor or of the dashboard), and the next save sent it to the
+     * server: the publication was silently taken back.
+     *
      * @param snapshot - The snapshot to apply.
      */
     function applySnapshot(snapshot: IBuilderDraftSnapshot): void {
         componentsStore.loadSchema(snapshot.schema, { resetHistory: true });
-        publishStore.setCurrentFormState(snapshot.formState);
+        publishStore.setCurrentFormState({
+            ...snapshot.formState,
+            published: publishStore.currentFormState.published,
+        });
     }
 
     /**

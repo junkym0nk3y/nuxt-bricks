@@ -4,6 +4,12 @@ import type { IBuilderDraftSnapshot } from '../types/builderDrafts';
 /**
  * Builds the object to compare out of the publish settings.
  *
+ * The publication flag is left out: it is never an unsaved edit — the switch writes it
+ * to the server at once, on the dashboard and in the editor alike — so a difference in
+ * it is not a change to keep. Compared, a flag changed on the dashboard after a draft
+ * was written made a draft equal to the saved page in everything else look like
+ * unsaved work: the editor offered to restore it, and the autosave kept it.
+ *
  * @param formState - Form state.
  */
 function pickComparableFormState(formState: TPublishFormState): Record<string, unknown> {
@@ -12,7 +18,6 @@ function pickComparableFormState(formState: TPublishFormState): Record<string, u
         title: (formState.title ?? '').trim(),
         description: (formState.description ?? '').trim(),
         keywords: (formState.keywords ?? '').trim(),
-        published: Boolean(formState.published),
         layout: formState.layout ?? '',
         backgroundColor: formState.backgroundColor ?? '',
         socialImage: formState.socialImage ?? '',

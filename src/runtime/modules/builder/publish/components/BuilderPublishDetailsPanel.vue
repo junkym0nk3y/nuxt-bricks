@@ -40,11 +40,11 @@ import { usePublishDetailsUrl } from '../composables/usePublishDetailsUrl';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
-import BricksSwitch from '../../../ui/inputs/BricksSwitch.vue';
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../ui/base/modal/BricksCloseButton.vue';
 import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
 import BuilderPublishSeoFields from './BuilderPublishSeoFields.vue';
+import BuilderPublishPublicationCard from './BuilderPublishPublicationCard.vue';
 import BuilderPublishDetailsPanelOgImage from './BuilderPublishDetailsPanelOgImage.vue';
 import BuilderPublishDetailsPanelRouting from './BuilderPublishDetailsPanelRouting.vue';
 import BuilderPublishDetailsPanelVersions from './BuilderPublishDetailsPanelVersions.vue';
@@ -98,7 +98,14 @@ const {
     }
 );
 
-const { liveUrl, copyLiveUrl } = usePublishDetailsUrl({ pagename, urlPrefix, subdomain });
+// The address of the SAVED page rather than of the form: the card links to the live page,
+// and an address typed in but not saved yet has no page behind it — the link and the copy
+// would lead to nothing, or to another page that holds that address
+const { liveUrl, liveHref, copyLiveUrl } = usePublishDetailsUrl({
+    pagename: computed(() => props.page.pagename),
+    urlPrefix: computed(() => props.page.urlPrefix ?? ''),
+    subdomain: computed(() => props.page.subdomain ?? ''),
+});
 // #endregion
 
 // #region Computed
@@ -131,8 +138,8 @@ function handleClose(): void {
  *
  * @param value - The new publication flag.
  */
-function handleTogglePublished(value: boolean | string): void {
-    emit('toggle-published', props.page, Boolean(value));
+function handleTogglePublished(value: boolean): void {
+    emit('toggle-published', props.page, value);
 }
 
 /**
@@ -245,27 +252,14 @@ defineExpose({
         </div>
 
         <div :class="[$style.content, 'bricks-scrollbox']">
-            <div :class="$style.publication">
-                <BricksSwitch
-                    :value="props.page.published"
-                    :true-value="true"
-                    :false-value="false"
-                    false-label=""
-                    :disabled="!canEdit || props.isTogglingPublished"
-                    :true-label="t('bricks.publish.dashboard.details.published')"
-                    @update:value="handleTogglePublished"
-                />
-                <div v-if="liveUrl" :class="$style.urlRow">
-                    <BricksIcon icon="ph:link" :class="$style.urlIcon" />
-                    <span :class="$style.urlText">{{ liveUrl }}</span>
-                    <BricksIconButton
-                        icon="ta:outline-copy"
-                        :label="t('bricks.publish.dashboard.details.copyUrl')"
-                        variant="ghost"
-                        @click="handleCopyUrl"
-                    />
-                </div>
-            </div>
+            <BuilderPublishPublicationCard
+                :published="props.page.published"
+                :live-url="liveUrl"
+                :live-href="liveHref"
+                :disabled="!canEdit || props.isTogglingPublished"
+                @toggle-published="handleTogglePublished"
+                @copy-url="handleCopyUrl"
+            />
 
             <BuilderPublishSeoFields
                 v-model:title="title"
@@ -412,39 +406,6 @@ defineExpose({
     padding: 1.6rem 2rem;
     flex-direction: column;
     gap: 1.6rem;
-}
-
-.publication {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1.2rem;
-    border-radius: var(--bricks-border-radius-sm);
-    background: var(--bricks-base-50);
-}
-
-.urlRow {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    min-width: 0;
-}
-
-.urlIcon {
-    flex-shrink: 0;
-    width: 1.4rem;
-    height: 1.4rem;
-    color: var(--bricks-base-400);
-}
-
-.urlText {
-    overflow: hidden;
-    flex: 1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--bricks-primary-600);
 }
 
 .saveBar {

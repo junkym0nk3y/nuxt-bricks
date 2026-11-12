@@ -245,19 +245,32 @@ export interface IUsePublishPagesDataReturn {
 
 // #region usePublishDetailsUrl
 /**
- * The reactive fields of the details panel form that take part in the live URL.
+ * The reactive address fields that take part in the live URL — of the saved page, in
+ * both hosts: the URL is a link to the live page, and an unsaved address has none.
  */
 export interface IPublishDetailsUrlFields {
-    pagename: Ref<string>;
-    urlPrefix: Ref<string>;
-    subdomain: Ref<string>;
+    pagename: Readonly<Ref<string>>;
+    urlPrefix: Readonly<Ref<string>>;
+    subdomain: Readonly<Ref<string>>;
+}
+
+/**
+ * The live URL taken apart: the host with the subdomain and the path with
+ * `app.baseURL`.
+ */
+export interface IPublishDetailsUrlParts {
+    host: string;
+    path: string;
 }
 
 /**
  * The return value of `usePublishDetailsUrl`.
  */
 export interface IPublishDetailsUrlReturn {
+    /** The URL without a scheme, as the panel prints it */
     liveUrl: ComputedRef<string>;
+    /** The URL with a scheme for the link; empty until the host is known */
+    liveHref: ComputedRef<string>;
     copyLiveUrl: () => Promise<boolean>;
 }
 // #endregion

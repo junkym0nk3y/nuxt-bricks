@@ -61,7 +61,10 @@ const route = useRoute();
 // identifies the page
 const address = resolvePageAddressFromRoute(route.params);
 // Preview mode is decided purely by the route <previewPrefix>/<address> (the query
-// is not used); on dynamic pretty-URL routes the component works in live mode
+// is not used); on dynamic pretty-URL routes the component works in live mode.
+// The preview banner is a fixed overlay and reserves no room above the page: a top
+// padding under it used to shift the whole page down by the height of the banner,
+// and the preview no longer matched the live page it is there to show
 const isPreview = typeof route.name === 'string' && BRICKS_PREVIEW_ROUTE_NAMES.includes(route.name);
 
 // Preview of a saved version: the id comes from the query. Such a tab shows a
@@ -267,7 +270,7 @@ useHead(() => {
     <div :class="[$style.bricksPage, 'bricks-text', 'page']">
         <div
             v-if="page"
-            :class="[$style.pageContent, { [$style.pageContentPreview]: isPreview }]"
+            :class="$style.pageContent"
             :style="{ backgroundColor: pageBackgroundColor }"
         >
             <div v-if="isPreview" :class="$style.previewBanner">
@@ -309,10 +312,6 @@ useHead(() => {
 .pageContent {
     width: 100%;
     min-height: 100vh;
-}
-
-.pageContentPreview {
-    padding-top: 6rem;
 }
 
 .previewBanner {

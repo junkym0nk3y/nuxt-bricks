@@ -300,6 +300,21 @@ export interface IPublishDetailsPanelEmits {
     notify: [message: string, variant: 'success' | 'error'];
 }
 
+export interface IPublishPublicationCardProps {
+    published: boolean;
+    /** The URL without a scheme, as printed; empty — the row is not shown */
+    liveUrl: string;
+    /** The URL with a scheme; empty until the host is known — printed without a link */
+    liveHref: string;
+    /** The switch is closed: no right to edit, or a write is running */
+    disabled?: boolean;
+}
+
+export interface IPublishPublicationCardEmits {
+    'toggle-published': [published: boolean];
+    'copy-url': [];
+}
+
 /** Per-field validation errors of the meta form (the vee-validate `errors`) */
 export type TPublishFormErrors = Partial<Record<keyof IPublishPageFormValues, string>>;
 

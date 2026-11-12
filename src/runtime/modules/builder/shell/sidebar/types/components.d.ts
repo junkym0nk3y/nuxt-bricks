@@ -33,6 +33,8 @@ export interface ISidebarProps {
 export interface ISidebarEmits {
     openMediaGallery: [context: TMediaGalleryContext];
     retryLibrary: [];
+    /** The publication switch of the publish settings; the write belongs to the page */
+    togglePublished: [published: boolean];
 }
 
 export interface ISidebarComponentsViewProps {
@@ -99,6 +101,7 @@ export interface ISidebarSchemaTreeViewEmits {
 export interface ISidebarPublishViewEmits {
     close: [];
     openMediaGallery: [];
+    togglePublished: [published: boolean];
 }
 
 export interface ISidebarPublishSocialImageProps {

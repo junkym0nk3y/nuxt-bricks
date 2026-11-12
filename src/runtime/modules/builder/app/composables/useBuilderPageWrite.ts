@@ -163,7 +163,16 @@ export function useBuilderPageWrite(options: IBuilderPageWriteOptions): IUseBuil
         const errorMessage = publishStore.generalError || t('bricks.publish.toasts.savePageFailed');
         showToast(errorMessage, 'error');
 
-        publishStore.setCurrentFormField('published', previousPublished);
+        // The flag goes back to the one of the server — out of the row of the list —
+        // rather than to the one taken before the request: a conflict refreshes the list
+        // before the refusal arrives, the form has taken the fresh flag from it by then
+        // (`useBuilderPublishToggle`), and the value from before the request would put
+        // the stale one back — the next save would publish a page somebody else had taken
+        // down. A page that has never been saved has no row: its flag is the former one
+        publishStore.setCurrentFormField(
+            'published',
+            publishStore.editingPageSavedPublished ?? previousPublished
+        );
         options.ensurePublishSettingsVisible();
         return false;
     }

@@ -1,8 +1,16 @@
 <script setup lang="ts">
 /**
- * @description Publish settings inside the sidebar: the layout, the device set of the
- * page, the SEO fields together with the address, the social image, the background
- * color and the navigation items.
+ * @description Publish settings inside the sidebar: the publication card of a saved
+ * page, the layout, the device set of the page, the SEO fields together with the
+ * address, the social image, the background color and the navigation items.
+ *
+ * The publication card is the one of the dashboard details panel: the switch writes to
+ * the server at once (the write belongs to the page — `useBuilderPublishToggle` — because
+ * it has to reach the saved snapshot of the session), and the URL is built out of the
+ * SAVED row of the page rather than out of the form: the card links to the live page,
+ * and an address typed into the form but not saved yet has no page behind it. The
+ * address the form will give the page is what the URL preview under the address fields
+ * is for.
  *
  * The values come from the store rather than from the form: the source of truth of
  * the sidebar is `currentFormState`, while the form holds the validation only — what
@@ -19,6 +27,7 @@
 // #region Imports
 // Types
 import type { TPublishFormErrors } from '../../../publish/types/dashboard';
+import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
 import type { TBricksPageDeviceSet } from '../../../../common/types/devices';
 import type { ISidebarPublishViewEmits } from '../types/components';
 
@@ -31,6 +40,9 @@ import { Form } from 'vee-validate';
 
 // Composables
 import { useSidebarPublishForm } from '../composables/useSidebarPublishForm';
+import { usePublishDetailsUrl } from '../../../publish/composables/usePublishDetailsUrl';
+import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
+import { useBuilderToast } from '../../../core/composables/useBuilderToast';
 
 // Pinia
 import { usePublishStore } from '../../../publish/stores/publish';
@@ -52,6 +64,7 @@ import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
 import BricksFieldHint from '../../../../ui/inputs/BricksFieldHint.vue';
 import BuilderPublishDevicesModal from '../../../publish/components/BuilderPublishDevicesModal.vue';
 import BuilderPublishSeoFields from '../../../publish/components/BuilderPublishSeoFields.vue';
+import BuilderPublishPublicationCard from '../../../publish/components/BuilderPublishPublicationCard.vue';
 import BuilderShellSidebarNavigationEditor from './BuilderShellSidebarNavigationEditor.vue';
 import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishSocialImage.vue';
 // #endregion
@@ -66,6 +79,8 @@ const publishStore = usePublishStore();
 const canvasStore = useCanvasStore();
 const componentsStore = useComponentsStore();
 const { projectDevices } = useBricksDevices();
+const { canEdit } = useBuilderPermissions();
+const { showToast } = useBuilderToast();
 
 const isDevicesModalOpen = ref(false);
 const {
@@ -109,6 +124,22 @@ const devicesSummary = computed<string>(() => {
     return publishStore.currentFormState.viewportConfig
         ? t('bricks.devices.settingsCustom', { count })
         : t('bricks.devices.settingsInherited', { count });
+});
+
+/**
+ * The saved row of the open page; `null` for a page that has never been saved — it has
+ * nothing to publish yet, and the card is not shown.
+ */
+const savedPage = computed<TPublishedPageSummary | null>(() =>
+    publishStore.editingPageId === null
+        ? null
+        : (publishStore.getPageById(publishStore.editingPageId) ?? null)
+);
+
+const { liveUrl, liveHref, copyLiveUrl } = usePublishDetailsUrl({
+    pagename: computed(() => savedPage.value?.pagename ?? ''),
+    urlPrefix: computed(() => savedPage.value?.urlPrefix ?? ''),
+    subdomain: computed(() => savedPage.value?.subdomain ?? ''),
 });
 // #endregion
 
@@ -217,6 +248,28 @@ function handleNoindexUpdate(value: boolean): void {
 }
 
 /**
+ * Passes the publication switch to the page, which owns the write.
+ *
+ * @param published - The new publication flag.
+ */
+function handleTogglePublished(published: boolean): void {
+    emit('togglePublished', published);
+}
+
+/**
+ * Copies the live URL of the page and shows a toast with the result.
+ */
+async function handleCopyUrl(): Promise<void> {
+    const copied = await copyLiveUrl();
+
+    if (copied) {
+        showToast(t('bricks.publish.dashboard.details.toasts.urlCopied'), 'success');
+    } else {
+        showToast(t('bricks.publish.dashboard.details.toasts.copyFailed'), 'error');
+    }
+}
+
+/**
  * Emits close event for parent handler.
  */
 function handleClose(): void {
@@ -263,6 +316,17 @@ watch(formKey, () => {
                     {{ publishStore.generalError }}
                 </div>
             </Transition>
+
+            <BuilderPublishPublicationCard
+                v-if="savedPage"
+                :class="$style.publication"
+                :published="settings.published === true"
+                :live-url="liveUrl"
+                :live-href="liveHref"
+                :disabled="!canEdit || isSubmitting"
+                @toggle-published="handleTogglePublished"
+                @copy-url="handleCopyUrl"
+            />
 
             <div :class="$style.formGroup">
                 <label :class="$style.label">{{ t('bricks.publish.layout') }}</label>
@@ -483,6 +547,10 @@ watch(formKey, () => {
 }
 
 .seoFields {
+    margin-bottom: 1.6rem;
+}
+
+.publication {
     margin-bottom: 1.6rem;
 }
 

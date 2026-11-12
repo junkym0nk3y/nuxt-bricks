@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * @description A page row of the dashboard list: the status dot, the thumbnail, the
- * title with the live address, the date of the last change and the actions.
+ * title, the live address and the description, the date of the last change and the
+ * actions.
  *
  * Decisions held by the markup: the status of a page used to rest on one color alone
  * — the "Draft" pill stands next to the name, while a published page announced its
@@ -22,7 +23,12 @@
  * does to its content on hover. The flex basis of the main cell is 18rem — the
  * wrapping threshold at which the date and the actions leave for the second line
  * without tearing the block away from the status dot (an auto basis would blow up to
- * max-content).
+ * max-content). The text cell is always three lines — the title, the address, the
+ * description — and the description line keeps its height when the page has none: the
+ * address used to share a wrapping line with the title, so it sat next to a short title
+ * and under a long one, and the rows of one list did not line up with each other. The
+ * title line is as tall as the "Draft" pill with or without one, for the same reason:
+ * the address of a draft otherwise sat lower than the address of a published page.
  */
 
 // #region Imports
@@ -185,14 +191,12 @@ function handleDelete(): void {
         <div :class="$style.main">
             <div :class="$style.titleRow">
                 <h3 :class="$style.title">{{ props.page.title }}</h3>
-                <span :class="$style.pagename">{{ pageAddressPath }}</span>
                 <BricksBadge v-if="!props.page.published" tone="muted">
                     {{ t('bricks.publish.dashboard.row.draft') }}
                 </BricksBadge>
             </div>
-            <p v-if="props.page.description" :class="$style.description">
-                {{ props.page.description }}
-            </p>
+            <span :class="$style.pagename">{{ pageAddressPath }}</span>
+            <p :class="$style.description">{{ props.page.description }}</p>
         </div>
 
         <span :class="$style.date">
@@ -306,9 +310,9 @@ function handleDelete(): void {
 .titleRow {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.4rem 0.8rem;
+    gap: 0.8rem;
     min-width: 0;
+    min-height: 2.4rem;
 }
 
 .title {
@@ -321,19 +325,19 @@ function handleDelete(): void {
     color: var(--bricks-base-900);
 }
 
-.pagename {
-    flex-shrink: 0;
-    font-size: 1.2rem;
-    color: var(--bricks-base-500);
-}
-
+.pagename,
 .description {
     overflow: hidden;
     margin: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 1.2rem;
+    line-height: 1.6rem;
     color: var(--bricks-base-500);
+}
+
+.description {
+    min-height: 1.6rem;
 }
 
 .date {

@@ -267,3 +267,26 @@ export interface IUseBuilderTemplateSaveReturn {
     handleSaved: (template: TBricksTemplateSummary) => void;
 }
 // #endregion
+
+// #region useBuilderPublishToggle
+/**
+ * Options of the useBuilderPublishToggle composable.
+ */
+export interface IUseBuilderPublishToggleOptions {
+    /**
+     * The session token: the toggle outlives a move onto another builder page, and its
+     * rollback must not write into the form of the page open by then, while its refusal
+     * has to name the page it is about.
+     */
+    sessionToken: IBuilderSessionToken;
+    showToast: TShowToast;
+}
+
+/**
+ * Return value of the useBuilderPublishToggle composable.
+ */
+export interface IUseBuilderPublishToggleReturn {
+    /** Writes the publication flag of the open page to the server at once. */
+    handleTogglePublished: (published: boolean) => Promise<void>;
+}
+// #endregion

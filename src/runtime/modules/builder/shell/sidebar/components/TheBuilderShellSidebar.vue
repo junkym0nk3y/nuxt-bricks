@@ -104,6 +104,15 @@ function handleRetryLibrary(): void {
     emit('retryLibrary');
 }
 
+/**
+ * Forwards the publication switch upwards: the write needs the session of the page.
+ *
+ * @param published - The new publication flag.
+ */
+function handleTogglePublished(published: boolean): void {
+    emit('togglePublished', published);
+}
+
 // Expose method for parent to call when media is selected from gallery
 defineExpose({
     handleMediaSelect,
@@ -144,6 +153,7 @@ watch(isVisible, (visible) => {
                     ref="publishViewRef"
                     @close="handleClosePublish"
                     @open-media-gallery="handleOpenMediaGallery"
+                    @toggle-published="handleTogglePublished"
                 />
 
                 <BuilderShellSidebarSchemaTreeView

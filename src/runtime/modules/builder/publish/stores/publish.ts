@@ -67,6 +67,23 @@ export const usePublishStore = defineStore('bricksPublish', {
         },
 
         /**
+         * The publication flag of the page being edited as the server holds it — out of
+         * its row in the list; `null` for a page that has never been saved. The flag is
+         * never an unsaved edit (the switch writes it at once), so this, not the value
+         * the form held before a failed write, is what the form goes back to.
+         */
+        editingPageSavedPublished(state): boolean | null {
+            if (state.editingPageId === null) {
+                return null;
+            }
+
+            const id = state.editingPageId;
+            const page = state.publishedPages.find((item) => String(item.id) === String(id));
+
+            return page?.published ?? null;
+        },
+
+        /**
          * Finds a page by its address. By the address rather than by the name: a
          * name is unique only within its own prefix, and a search by it would
          * return an arbitrary one of the pages sharing that name.

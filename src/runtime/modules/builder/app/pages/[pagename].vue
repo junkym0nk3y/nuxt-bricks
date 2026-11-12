@@ -25,6 +25,7 @@ import { useBuilderPageChrome } from '../composables/useBuilderPageChrome';
 import { useBuilderDraftPersistence } from '../composables/useBuilderDraftPersistence';
 import { useBuilderSessionAddressSync } from '../composables/useBuilderSessionAddressSync';
 import { useBuilderTemplateSave } from '../composables/useBuilderTemplateSave';
+import { useBuilderPublishToggle } from '../composables/useBuilderPublishToggle';
 import { useBuilderToast } from '../../core/composables/useBuilderToast';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { usePropertiesPanelAvailability } from '../../core/composables/usePropertiesPanelAvailability';
@@ -272,6 +273,10 @@ useBuilderSessionAddressSync({ renameSession, isSessionReady });
 // A template out of the canvas: the source, the session guard and the form
 const templateSave = useBuilderTemplateSave({ isSessionReady, showToast });
 
+// The publication switch of the publish settings: it writes at once, and its outcome
+// belongs to the session it started in
+const { handleTogglePublished } = useBuilderPublishToggle({ sessionToken, showToast });
+
 // The properties panel on the right is mounted below by `canEdit`: an editing
 // surface is taken away from an observer whole rather than dimmed field by field.
 // The selection of a block goes on working — it is the highlight on the canvas
@@ -370,6 +375,7 @@ onBeforeUnmount(() => {
                     :is-library-loading="isComponentLibraryLoading"
                     @open-media-gallery="handleOpenMediaGallery"
                     @retry-library="handleRetryComponentLibrary"
+                    @toggle-published="handleTogglePublished"
                 />
 
                 <TheBuilderShellSidebarPropertiesPanel
