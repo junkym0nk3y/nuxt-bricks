@@ -48,7 +48,6 @@ const { runtimeConfig, authAdapterMock, publishAdapterMock, bodyMock, formParts,
 
 vi.mock('nitropack/runtime', () => ({
     useRuntimeConfig: () => runtimeConfig,
-    useAppConfig: () => ({}),
 }));
 
 vi.mock('../../src/runtime/modules/persistence/server/registry', () => ({

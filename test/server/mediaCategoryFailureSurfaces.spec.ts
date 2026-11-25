@@ -34,7 +34,6 @@ const {
 }));
 
 vi.mock('nitropack/runtime', () => ({
-    useAppConfig: () => ({}),
     useRuntimeConfig: () => ({}),
 }));
 

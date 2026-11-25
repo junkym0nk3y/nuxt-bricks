@@ -52,7 +52,6 @@ const { runtimeConfig, authAdapterMock, bodyMock, gateMock, calls } = vi.hoisted
 
 vi.mock('nitropack/runtime', () => ({
     useRuntimeConfig: () => runtimeConfig,
-    useAppConfig: () => ({}),
 }));
 
 vi.mock('../../src/runtime/modules/persistence/server/registry', () => ({

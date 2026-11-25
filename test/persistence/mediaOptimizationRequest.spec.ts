@@ -18,7 +18,7 @@ import type { IBricksMediaOptimization } from '../../src/runtime/modules/common/
 // #region Mocks
 const { appConfig } = vi.hoisted(() => ({ appConfig: { value: {} as Record<string, unknown> } }));
 
-vi.mock('nitropack/runtime', () => ({ useAppConfig: () => appConfig.value }));
+vi.mock('#imports', () => ({ useAppConfig: () => appConfig.value }));
 // #endregion
 
 import {

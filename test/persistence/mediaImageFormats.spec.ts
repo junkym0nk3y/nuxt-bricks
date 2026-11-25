@@ -2,12 +2,9 @@
 // Vitest
 import { describe, expect, it, vi } from 'vitest';
 
-// imageProcessing тянет nitropack/runtime (useAppConfig) — в node-тестах стабим
-// (тот же паттерн, что test/persistence/mediaUploadSvg.spec.ts)
-vi.mock('nitropack/runtime', () => ({
-    useAppConfig: () => ({}),
-    useRuntimeConfig: () => ({}),
-}));
+// The chain under test pulls useRuntimeConfig out of nitropack/runtime, which a node
+// test has no Nitro for
+vi.mock('nitropack/runtime', () => ({ useRuntimeConfig: () => ({}) }));
 
 // Utils
 import {

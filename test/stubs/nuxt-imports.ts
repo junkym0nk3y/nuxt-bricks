@@ -82,6 +82,14 @@ export function useRequestEvent(): undefined {
 }
 
 /**
+ * Stubs useAppConfig with an empty config, so the defaults apply. A spec that needs
+ * configured values mocks `#imports` over this stub.
+ */
+export function useAppConfig(): Record<string, unknown> {
+    return {};
+}
+
+/**
  * Стаб useRuntimeConfig: пустая публичная конфигурация.
  */
 export function useRuntimeConfig(): { public: Record<string, unknown> } {

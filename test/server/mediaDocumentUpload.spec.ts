@@ -26,9 +26,11 @@ const { createMediaMock, uploadFileMock, appConfig } = vi.hoisted(() => ({
     appConfig: { value: {} as Record<string, unknown> },
 }));
 
-vi.mock('nitropack/runtime', () => ({
+vi.mock('nitropack/runtime', () => ({ useRuntimeConfig: () => ({}) }));
+
+vi.mock('#imports', async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
     useAppConfig: () => appConfig.value,
-    useRuntimeConfig: () => ({}),
 }));
 
 vi.mock('../../src/runtime/modules/persistence/server/defaultStorage', () => ({

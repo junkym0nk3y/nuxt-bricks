@@ -7,11 +7,18 @@
  * with pixels (sharp, the semaphore, the signatures), this one reads the configuration
  * and bounds UNTRUSTED input. Different reasons to change and different dependencies:
  * this module needs `useAppConfig`, that one needs sharp.
+ *
+ * `useAppConfig` comes through `#imports`, not straight from `nitropack/runtime`: the
+ * Nitro one sees only what reaches `nitro.appConfig`/`appConfigFiles`. Nuxt 3 put the
+ * consumer's `app.config.ts` there; Nuxt 4 does not, and hands it to the server through
+ * an auto-import of its own instead. Imported from Nitro directly, the limits of the
+ * consumer never reached the server under Nuxt 4: uploads were cut at the default
+ * ceilings while the builder, reading the same config, promised the configured ones.
  */
 import type { IMediaOptimizationRequestFields, IResolvedMediaConfig } from '../../types/media';
-import { useAppConfig } from 'nitropack/runtime';
+import { useAppConfig } from '#imports';
 import type { IBricksMediaOptimization } from '../../../common/types/media';
-import type { TBricksMediaImageFormat } from '../../../common/types/config';
+import type { IAppConfig, TBricksMediaImageFormat } from '../../../common/types/config';
 import {
     DEFAULT_MEDIA_MAX_DOCUMENT_UPLOAD_SIZE_MB,
     DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB,
@@ -134,7 +141,7 @@ export function resolveRequestedOptimization(
  * config, with defaults.
  */
 export function resolveMediaConfig(): IResolvedMediaConfig {
-    const appConfig = useAppConfig();
+    const appConfig = useAppConfig() as IAppConfig;
     const mediaConfig = appConfig.bricks?.media ?? {};
     const optimization = mediaConfig.optimization ?? {};
     const maxUploadSizeMb = resolveNumber(

@@ -14,12 +14,9 @@ import type {
 // Vitest
 import { describe, expect, it, vi } from 'vitest';
 
-// mediaProcessing → imageProcessing тянет nitropack/runtime (useAppConfig) —
-// в node-тестах стабим (тот же паттерн, что test/persistence/mediaImport.spec.ts)
-vi.mock('nitropack/runtime', () => ({
-    useAppConfig: () => ({}),
-    useRuntimeConfig: () => ({}),
-}));
+// The upload handler pulls useRuntimeConfig out of nitropack/runtime, which a node
+// test has no Nitro for
+vi.mock('nitropack/runtime', () => ({ useRuntimeConfig: () => ({}) }));
 
 // Utils
 import { prepareUpload } from '../../src/runtime/server/api/bricks/media/upload.post';

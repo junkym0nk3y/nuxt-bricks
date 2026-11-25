@@ -35,9 +35,11 @@ const { createMediaMock, listMediaCategoriesMock, uploadFileMock, deleteFileMock
 /** What the streaming upload received, gathered chunk by chunk. */
 const streamedUploads: { key: string; mimeType: string; chunks: number; bytes: number }[] = [];
 
-vi.mock('nitropack/runtime', () => ({
+vi.mock('nitropack/runtime', () => ({ useRuntimeConfig: () => ({}) }));
+
+vi.mock('#imports', async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
     useAppConfig: () => appConfig.value,
-    useRuntimeConfig: () => ({}),
 }));
 
 vi.mock('../../src/runtime/modules/persistence/server/defaultStorage', () => ({
