@@ -355,3 +355,25 @@ export interface ISidebarSchemaTreeDrop {
     handleDrop: (event: DragEvent) => void;
 }
 // #endregion
+
+// #region useSidebarLibraryCollapse
+/**
+ * Options of the `useSidebarLibraryCollapse` composable: the filters of the library.
+ */
+export interface IUseSidebarLibraryCollapseOptions {
+    /** The search query of the library */
+    searchQuery: Ref<string>;
+    /** Whether only the favorite components are shown */
+    showFavoritesOnly: Ref<boolean>;
+}
+
+/**
+ * Return value of the `useSidebarLibraryCollapse` composable.
+ */
+export interface IUseSidebarLibraryCollapseReturn {
+    /** Whether the group of a category is expanded */
+    isCategoryOpen: (category: string) => boolean;
+    /** Expands or collapses the group of a category */
+    setCategoryOpen: (category: string, isOpen: boolean) => void;
+}
+// #endregion

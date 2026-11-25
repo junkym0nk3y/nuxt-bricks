@@ -8,6 +8,14 @@
  * the library filter as an unnamed button. The pressed state is announced by the kit
  * through `aria-pressed`.
  *
+ * Every category is a kit disclosure, collapsible on its own rather than one open at a
+ * time: a library is collapsed to get past the layout blocks to the bricks of the
+ * project, and closing the group that was open would undo exactly that. A collapsed
+ * group also unmounts its cards, and with them their live previews. The toggle sits in
+ * an `h3` under the `h2` of the panel, so a screen reader jumps between the categories
+ * by heading. What stays collapsed, and how the filters override it, is
+ * `useSidebarLibraryCollapse`.
+ *
  * Two decisions held by the style section: an empty state takes the whole free height
  * of the panel — it is narrow and tall, and a message in its center reads as the
  * answer about an empty list rather than as one more line of text; and the names of
@@ -28,10 +36,14 @@ import { useI18n } from 'vue-i18n';
 import { loadFavoritesFromStorage } from '../../../core/stores/actions/favorites';
 import { groupComponentsByCategory } from '../utils/componentCategories';
 
+// Composables
+import { useSidebarLibraryCollapse } from '../composables/useSidebarLibraryCollapse';
+
 // Components
 import BuilderShellSidebarComponentCard from './BuilderShellSidebarComponentCard.vue';
 import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksCloseButton from '../../../../ui/base/modal/BricksCloseButton.vue';
+import BricksDisclosure from '../../../../ui/base/disclosure/BricksDisclosure.vue';
 import BricksEmptyState from '../../../../ui/feedback/BricksEmptyState.vue';
 import BricksIconButton from '../../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksSearchInput from '../../../../ui/inputs/BricksSearchInput.vue';
@@ -49,6 +61,10 @@ const emit = defineEmits<ISidebarComponentsViewEmits>();
 const { t, te } = useI18n();
 const searchQuery = ref('');
 const showFavoritesOnly = ref(false);
+const { isCategoryOpen, setCategoryOpen } = useSidebarLibraryCollapse({
+    searchQuery,
+    showFavoritesOnly,
+});
 // #endregion
 
 // #region Computed
@@ -205,15 +221,15 @@ function handleRetry(): void {
                 </p>
             </div>
 
-            <div
+            <BricksDisclosure
                 v-for="[category, groupedComponents] in categorizedComponents"
                 :key="category"
                 :class="$style.category"
+                :label="resolveCategoryLabel(category)"
+                :heading-level="3"
+                :value="isCategoryOpen(category)"
+                @update:value="(isOpen: boolean) => setCategoryOpen(category, isOpen)"
             >
-                <h3 :class="$style.categoryTitle">
-                    {{ resolveCategoryLabel(category) }}
-                </h3>
-
                 <div
                     :class="[
                         $style.componentList,
@@ -229,7 +245,7 @@ function handleRetry(): void {
                         :is-layout="category === 'Layout'"
                     />
                 </div>
-            </div>
+            </BricksDisclosure>
 
             <BricksEmptyState
                 v-if="hasAvailableComponents && !hasFilteredResults"
@@ -298,15 +314,6 @@ function handleRetry(): void {
     &:last-child {
         margin-bottom: 0;
     }
-}
-
-.categoryTitle {
-    margin: 0 0 1.2rem 0;
-    text-transform: uppercase;
-    font-size: 1.2rem;
-    font-weight: 600;
-    letter-spacing: 0.05rem;
-    color: var(--bricks-base-600);
 }
 
 .componentList {

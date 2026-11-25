@@ -15,6 +15,11 @@
  * that it expands anything. `aria-controls` is bound only in the open state:
  * while closed there is no content in the markup, and the reference would point
  * into nothing.
+ *
+ * `headingLevel` puts the toggle inside a heading, the way the WAI-ARIA accordion
+ * pattern does: a section that titles a part of the page — a category of the component
+ * library — keeps its place in the heading navigation of a screen reader. The toggle
+ * stays the button inside it, so its name and state are announced as before.
  */
 
 // #region Imports
@@ -22,7 +27,7 @@
 import type { IBricksDisclosureProps, IBricksDisclosureEmits } from './types.d.ts';
 
 // Vue
-import { useId } from 'vue';
+import { computed, useId } from 'vue';
 // #endregion
 
 // #region Props
@@ -42,6 +47,11 @@ const emit = defineEmits<IBricksDisclosureEmits>();
 const contentId = useId();
 // #endregion
 
+// #region Computed
+/** Element around the toggle: a heading of the requested level, or a neutral wrapper */
+const titleTag = computed<string>(() => (props.headingLevel ? `h${props.headingLevel}` : 'div'));
+// #endregion
+
 // #region Methods
 /**
  * Asks the owner of the state to flip openness.
@@ -55,19 +65,21 @@ function handleToggle(): void {
 <template>
     <div :class="$style.BricksDisclosure">
         <div :class="$style.head">
-            <button
-                type="button"
-                :class="$style.toggle"
-                :aria-expanded="props.value"
-                :aria-controls="props.value ? contentId : undefined"
-                @click="handleToggle"
-            >
-                <BricksIcon
-                    icon="ta:outline-chevron-right"
-                    :class="[$style.caret, props.value && $style._open]"
-                />
-                {{ props.label }}
-            </button>
+            <component :is="titleTag" :class="$style.title">
+                <button
+                    type="button"
+                    :class="$style.toggle"
+                    :aria-expanded="props.value"
+                    :aria-controls="props.value ? contentId : undefined"
+                    @click="handleToggle"
+                >
+                    <BricksIcon
+                        icon="ta:outline-chevron-right"
+                        :class="[$style.caret, props.value && $style._open]"
+                    />
+                    {{ props.label }}
+                </button>
+            </component>
 
             <slot name="actions" />
         </div>
@@ -90,6 +102,13 @@ function handleToggle(): void {
     align-items: center;
     justify-content: space-between;
     gap: 0.8rem;
+}
+
+.title {
+    display: flex;
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
 }
 
 .toggle {
