@@ -16,6 +16,8 @@ import {
     validateAndOptimizeImage,
     validateVideoUpload,
 } from '../../../../modules/persistence/server/utils/mediaProcessing';
+import { uploadMediaDocument } from '../../../../modules/persistence/server/utils/mediaDocumentUpload';
+import { isMediaDocumentFile } from '../../../../modules/common/utils/mediaKind';
 import {
     discardUnregisteredMediaFile,
     registerUploadedMedia,
@@ -294,7 +296,8 @@ async function uploadVideoStream(
 
 /**
  * Reads the form and gets the file into storage: a video as a stream while the
- * request is still arriving, everything else as bytes through sharp.
+ * request is still arriving, a document as bytes stored as they are, an image as
+ * bytes through sharp.
  *
  * The parts are taken in the order they came on the wire, and the fields are
  * whatever came with them — the order is not dictated. A field ahead of the file
@@ -341,15 +344,21 @@ async function readMediaUploadForm(
                 });
             }
 
-            if (!isVideoFile(part.type, getFileExtension(part.filename))) {
+            const extension = getFileExtension(part.filename);
+
+            if (!isVideoFile(part.type, extension)) {
                 collected = {
                     name: part.name,
                     filename: part.filename,
                     type: part.type,
-                    // The image ceiling rather than the endpoint's: a picture is
-                    // refused at its own limit instead of being received up to the
-                    // video one and thrown away afterwards
-                    data: await part.collect(config.maxUploadSizeBytes),
+                    // The ceiling of the file's own kind rather than the endpoint's: a
+                    // picture or a document is refused at its own limit instead of
+                    // being received up to the video one and thrown away afterwards
+                    data: await part.collect(
+                        isMediaDocumentFile(part.type, extension)
+                            ? config.maxDocumentUploadSizeBytes
+                            : config.maxUploadSizeBytes
+                    ),
                 };
                 continue;
             }
@@ -382,6 +391,12 @@ async function readMediaUploadForm(
         // that one is caught by the database FK after the upload
         if (category) {
             await assertKnownMediaCategory(storage, category);
+        }
+
+        if (isMediaDocumentFile(collected.type, getFileExtension(collected.filename))) {
+            const document = await uploadMediaDocument(collected, config, { storage, publish });
+
+            return { ...document, category };
         }
 
         const prepared = await prepareUpload(
@@ -441,10 +456,11 @@ async function readMediaUploadForm(
  * of forms read at the same time — the per-minute limit does not bound the number
  * of SIMULTANEOUS uploads. A video goes to storage in pieces: it needs no
  * processing, so buffering it served nothing but the memory peak. An image is
- * collected in memory, because sharp works over bytes anyway. The content of the
- * file is confirmed by magic bytes — for a video by the head, before the upload
- * starts; for an image by the `validate*` helpers, which also check the size
- * ceiling of each type.
+ * collected in memory, because sharp works over bytes anyway; so is a document,
+ * because the zip directory of DOCX/XLSX lies at the end of the file. The content of
+ * the file is confirmed by magic bytes — for a video by the head, before the upload
+ * starts; for an image and a document by the `validate*` helpers, which also check
+ * the size ceiling of each type.
  *
  * Multipart fields: `file` (mandatory), `category` (optional — an absent field
  * and an empty value both mean a file with no category, `null`),
@@ -456,7 +472,11 @@ export default defineEventHandler(async (event) => {
         assertWithinRateLimit(event, uploadRateLimiter, 'Too many media uploads');
 
         const config = resolveMediaConfig();
-        const maxFileBytes = Math.max(config.maxUploadSizeBytes, config.maxVideoUploadSizeBytes);
+        const maxFileBytes = Math.max(
+            config.maxUploadSizeBytes,
+            config.maxVideoUploadSizeBytes,
+            config.maxDocumentUploadSizeBytes
+        );
         const storage = useBricksStorageAdapter();
         const publish = useBricksPublishAdapter();
         // Reading the form and getting the file into storage happens INSIDE the

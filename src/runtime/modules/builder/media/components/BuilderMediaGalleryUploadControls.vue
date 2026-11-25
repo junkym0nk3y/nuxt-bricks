@@ -36,6 +36,9 @@ import type {
     IMediaGalleryUploadControlsEmits,
 } from '../types/media';
 
+// Constants
+import { MEDIA_UPLOAD_ACCEPT } from '../../../common/constants/mediaDocuments';
+
 // Vue
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -87,6 +90,7 @@ const tooltipText = computed<string>(() => {
     const sizeHint = t('bricks.media.sizeHint', {
         image: props.maxImageSizeMb,
         video: props.maxVideoSizeMb,
+        document: props.maxDocumentSizeMb,
     });
 
     return `${dropHint} · ${sizeHint}`;
@@ -140,7 +144,7 @@ defineExpose({ openFilePicker: handleOpenFilePicker });
         <input
             ref="fileInputRef"
             type="file"
-            accept="image/*,video/*"
+            :accept="MEDIA_UPLOAD_ACCEPT"
             multiple
             :aria-label="t('bricks.media.fileInputLabel')"
             :class="$style.fileInput"

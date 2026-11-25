@@ -42,6 +42,11 @@ export interface ITextEditorLinkModalEmits {
     apply: [value: ITextEditorLinkValue];
     remove: [];
     close: [];
+    /**
+     * Asks for a file of the media library as the address. Carries the form as it stands,
+     * so the new-tab flag survives the trip through the gallery
+     */
+    pickFile: [value: ITextEditorLinkValue];
 }
 
 /**

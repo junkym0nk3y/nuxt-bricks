@@ -5,6 +5,8 @@
 /* CSS Variables */
 :root {
     --bricks-font-family-base: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+    /* Code editors and `code` in rich text; the family ships with the package (common/fonts) */
+    --bricks-font-family-mono: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
     --bricks-font-size-sm: 1.2rem;
     --bricks-font-size-base: 1.4rem;
     --bricks-font-size-lg: 1.6rem;

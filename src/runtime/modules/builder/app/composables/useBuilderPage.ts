@@ -1,6 +1,10 @@
 // #region Imports
 // Types
-import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
+import type {
+    IMediaGalleryPickFilter,
+    IMediaItem,
+    TMediaGalleryContext,
+} from '../../../common/types/media';
 import type { ISidebarExpose } from '../types/builder';
 import type { IBuilderPageOptions, IUseBuilderPageReturn } from '../types/composables';
 
@@ -138,6 +142,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     const shouldMountMediaGallery = ref(false);
     const isMediaGalleryModalOpen = ref(false);
     const mediaGalleryContext = ref<TMediaGalleryContext>('manager');
+    const mediaGalleryPickFilter = ref<IMediaGalleryPickFilter | null>(null);
     const sidebarRef = ref<ISidebarExpose | null>(null);
     const propertiesPanelRef = ref<ISidebarExpose | null>(null);
 
@@ -300,9 +305,16 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     // #region Media gallery
     /**
      * Opens the window of the media gallery.
+     *
+     * @param context - Who opens it: the manager or a picker.
+     * @param pickFilter - Which files a picker offers; null — the default of the context.
      */
-    function handleOpenMediaGallery(context: TMediaGalleryContext = 'manager'): void {
+    function handleOpenMediaGallery(
+        context: TMediaGalleryContext = 'manager',
+        pickFilter: IMediaGalleryPickFilter | null = null
+    ): void {
         mediaGalleryContext.value = context;
+        mediaGalleryPickFilter.value = pickFilter;
         mediaGalleryToken = sessionToken.capture();
         shouldMountMediaGallery.value = true;
         isMediaGalleryModalOpen.value = true;
@@ -314,6 +326,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
     function handleCloseMediaGallery(): void {
         isMediaGalleryModalOpen.value = false;
         mediaGalleryContext.value = 'manager';
+        mediaGalleryPickFilter.value = null;
         mediaGalleryToken = null;
         inlineMediaBridge.cancelMediaRequest();
     }
@@ -339,6 +352,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
             inlineMediaBridge.resolveMediaRequest(item);
             isMediaGalleryModalOpen.value = false;
             mediaGalleryContext.value = 'manager';
+            mediaGalleryPickFilter.value = null;
             mediaGalleryToken = null;
             return;
         }
@@ -350,13 +364,14 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         }
         isMediaGalleryModalOpen.value = false;
         mediaGalleryContext.value = 'manager';
+        mediaGalleryPickFilter.value = null;
         mediaGalleryToken = null;
     }
 
     // The MediaGallery is opened when the inline editor asks for an image
     watch(inlineMediaBridge.isRequestingMedia, (requesting) => {
         if (requesting) {
-            handleOpenMediaGallery('properties');
+            handleOpenMediaGallery('properties', inlineMediaBridge.mediaRequestFilter.value);
         }
     });
     // #endregion
@@ -456,6 +471,7 @@ export async function useBuilderPage(options: IBuilderPageOptions): Promise<IUse
         shouldMountMediaGallery,
         isMediaGalleryModalOpen,
         mediaGalleryContext,
+        mediaGalleryPickFilter,
         sidebarRef,
         propertiesPanelRef,
         toast,

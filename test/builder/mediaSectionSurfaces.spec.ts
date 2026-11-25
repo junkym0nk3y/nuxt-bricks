@@ -86,6 +86,7 @@ vi.mock('../../src/runtime/modules/builder/media/composables/useMediaUpload', ()
         return {
             maxImageSizeMb: 10,
             maxVideoSizeMb: 50,
+            maxDocumentSizeMb: 25,
             defaultOptimization: { format: 'webp', quality: 80, maxWidth: 1920 },
             uploadProgress: ref<IMediaUploadProgress | null>(null),
             uploadFiles: uploadFilesMock,

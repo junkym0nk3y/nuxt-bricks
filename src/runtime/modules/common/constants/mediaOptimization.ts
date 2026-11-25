@@ -21,6 +21,13 @@ export const DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB = 10;
 /** Default size ceiling of a video (MB) — videos are not optimized */
 export const DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB = 100;
 
+/**
+ * Default size ceiling of a document (MB). A document is held in memory whole while it
+ * is checked — the zip directory of DOCX/XLSX sits at the end of the file — so the
+ * ceiling is a memory bound as much as a product one
+ */
+export const DEFAULT_MEDIA_MAX_DOCUMENT_UPLOAD_SIZE_MB = 25;
+
 /** Default optimization parameters; overridden by `bricks.media.optimization` */
 export const DEFAULT_MEDIA_OPTIMIZATION: IBricksMediaOptimization = {
     format: 'webp',

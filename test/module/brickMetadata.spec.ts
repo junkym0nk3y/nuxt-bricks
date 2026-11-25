@@ -78,6 +78,18 @@ describe('метаданные brick-файла: разбор литералов
         expect(metadata.category).toBe('Data');
     });
 
+    it('thumbnail читается из пути от public/ и из http(s)-адреса', () => {
+        const fromPublic = extract(
+            `export const brick = { thumbnail: '/brick-previews/Card.webp', values: {} };`
+        );
+        const fromUrl = extract(
+            `export const brick = { thumbnail: 'https://cdn.example.com/Card.webp', values: {} };`
+        );
+
+        expect(fromPublic.thumbnail).toBe('/brick-previews/Card.webp');
+        expect(fromUrl.thumbnail).toBe('https://cdn.example.com/Card.webp');
+    });
+
     it('категория без значения — дефолтная', () => {
         expect(extract(`export const brick = { values: {} };`).category).toBe('Common');
     });
@@ -111,6 +123,19 @@ describe('метаданные brick-файла: разбор литералов
         ['values не запись объектов', `export const brick = { values: { a: 'input' } };`],
         ['нет объявления brick', `export default {};`],
         ['нет values', `export const brick = { category: 'A' };`],
+        // A relative path has nothing to resolve against: the builder lives under any
+        // route. `//host` is a foreign host rather than a path, and so is `/\host`,
+        // which browsers read the same way
+        ['относительный thumbnail', `export const brick = { thumbnail: 'a.webp', values: {} };`],
+        [
+            'thumbnail на чужой хост',
+            `export const brick = { thumbnail: '//x.io/a.webp', values: {} };`,
+        ],
+        [
+            'thumbnail на чужой хост через обратный слэш',
+            `export const brick = { thumbnail: '/\\\\x.io/a.webp', values: {} };`,
+        ],
+        ['thumbnail не строка', `export const brick = { thumbnail: 1, values: {} };`],
     ])('%s роняет сборку с указанием файла', (_case, source) => {
         expect(() => extract(source)).toThrowError(new RegExp(FILE));
     });

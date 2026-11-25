@@ -65,6 +65,7 @@ export const PROPERTY_EDITOR_ORDER = [
     'accordion-items',
     'image',
     'video',
+    'file',
 ] as const;
 
 export type TPropertyEditorType = (typeof PROPERTY_EDITOR_ORDER)[number];
@@ -119,7 +120,7 @@ export interface IPropertyImageGalleryEditorEmits {
 export interface IPropertyMediaPickerProps {
     modelValue?: string;
     label?: string;
-    type?: 'image' | 'video';
+    type?: 'image' | 'video' | 'file';
     /**
      * The picker is shown but takes no action. Set on a device tab for a property the
      * blocks do not adapt: an address of a file cannot differ per device — a media

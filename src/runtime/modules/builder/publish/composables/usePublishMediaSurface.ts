@@ -74,12 +74,18 @@ export function usePublishMediaSurface(
     /** The list read in flight; `null` — no read is running. See `ensureMedia` */
     let pendingLoad: Promise<void> | null = null;
 
-    const { maxImageSizeMb, maxVideoSizeMb, defaultOptimization, uploadProgress, uploadFiles } =
-        useMediaUpload({
-            resolveCategory: resolveUploadCategory,
-            resolveOptimization: () => uploadOptimization.value,
-            onError: (message: string) => options.onNotify(message, 'error'),
-        });
+    const {
+        maxImageSizeMb,
+        maxVideoSizeMb,
+        maxDocumentSizeMb,
+        defaultOptimization,
+        uploadProgress,
+        uploadFiles,
+    } = useMediaUpload({
+        resolveCategory: resolveUploadCategory,
+        resolveOptimization: () => uploadOptimization.value,
+        onError: (message: string) => options.onNotify(message, 'error'),
+    });
 
     uploadOptimization.value = { ...defaultOptimization };
     // #endregion
@@ -330,6 +336,7 @@ export function usePublishMediaSurface(
         categoryFilter,
         maxImageSizeMb,
         maxVideoSizeMb,
+        maxDocumentSizeMb,
         defaultOptimization,
         uploadOptimization,
         uploadProgress,

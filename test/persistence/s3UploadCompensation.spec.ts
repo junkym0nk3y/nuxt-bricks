@@ -84,6 +84,24 @@ describe('s3PublishAdapter.uploadFile: неподтверждённая запи
         expect(sentCommands()).toEqual(['put:bricks-media/uuid.webp']);
     });
 
+    it('Content-Disposition документа уходит в объект', async () => {
+        sendMock.mockResolvedValueOnce({});
+
+        await createS3PublishAdapter().uploadFile({
+            buffer: Buffer.from('%PDF-1.7'),
+            mimeType: 'application/pdf',
+            key: 'bricks-media/uuid.pdf',
+            contentDisposition: 'attachment; filename="a.pdf"',
+        });
+
+        const command = sendMock.mock.calls[0][0] as { input: Record<string, unknown> };
+
+        expect(command.input).toMatchObject({
+            ContentType: 'application/pdf',
+            ContentDisposition: 'attachment; filename="a.pdf"',
+        });
+    });
+
     it('отказ записи убирает объект по тому же ключу и пробрасывает исходную ошибку', async () => {
         const putError = Object.assign(new Error('socket timed out'), { name: 'TimeoutError' });
         sendMock.mockRejectedValueOnce(putError).mockResolvedValueOnce({});

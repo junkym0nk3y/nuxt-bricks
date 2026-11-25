@@ -3,6 +3,11 @@
  * @description Media picker of a property: a preview of the picked image or video, the
  * buttons that open the gallery and clear the choice, and the address of the file.
  *
+ * A `file` property shows a card of the file instead of a preview: an icon of its type
+ * and its format, both read off the extension of the address. Not the name of the file:
+ * the address carries the `<uuid>.pdf` of the storage key, while the name the person
+ * knows lives in the library record the picker does not hold.
+ *
  * Under the media itself the preview lays a checkerboard rather than a flat ground.
  * The picker holds nothing but a URL — it knows neither the MIME type nor whether the
  * picture has an alpha channel — and the library accepts transparent PNG, WebP and
@@ -17,6 +22,12 @@
 // #region Imports
 // Types
 import type { IPropertyMediaPickerProps, IPropertyMediaPickerEmits } from './types';
+
+// Utils
+import { isMediaDocumentExtension, readFileExtension } from '../../../../../common/utils/mediaKind';
+
+// Constants
+import { MEDIA_DOCUMENT_ICONS } from '../../../../../common/constants/mediaDocuments';
 
 // Vue
 import { computed } from 'vue';
@@ -48,13 +59,39 @@ const { t } = useI18n();
 
 // #region Computed
 /** Caption of the field: the one passed in, or the generic name of the editor */
-const resolvedLabel = computed(() => props.label || t('bricks.properties.mediaPicker.label'));
-
-const hasMedia = computed(() => Boolean(props.modelValue));
-const mediaType = computed(() => props.type);
-const previewIcon = computed(() =>
-    props.type === 'video' ? 'ta:outline-video' : 'ta:outline-photo'
+const resolvedLabel = computed<string>(
+    () =>
+        props.label ||
+        t(
+            props.type === 'file'
+                ? 'bricks.properties.mediaPicker.fileLabel'
+                : 'bricks.properties.mediaPicker.label'
+        )
 );
+
+const hasMedia = computed<boolean>(() => Boolean(props.modelValue));
+const mediaType = computed(() => props.type);
+
+/** Extension of the picked file, for the card of a `file` property */
+const fileExtension = computed<string>(() => readFileExtension(props.modelValue));
+
+/** Icon of the empty preview, or of the card of a picked file */
+const previewIcon = computed<string>(() => {
+    if (props.type === 'video') {
+        return 'ta:outline-video';
+    }
+
+    if (props.type !== 'file') {
+        return 'ta:outline-photo';
+    }
+
+    return isMediaDocumentExtension(fileExtension.value)
+        ? MEDIA_DOCUMENT_ICONS[fileExtension.value]
+        : 'ta:outline-file';
+});
+
+/** The checkerboard is a ground for pictures; a file card stays on the plain one */
+const isCheckered = computed<boolean>(() => hasMedia.value && props.type !== 'file');
 // #endregion
 
 // #region Methods
@@ -78,7 +115,7 @@ function handleRemove(): void {
     <div :class="$style.BuilderShellSidebarPropertyMediaPicker">
         <label :class="$style.label">{{ resolvedLabel }}</label>
 
-        <div :class="[$style.preview, { [$style._checkered]: hasMedia }]">
+        <div :class="[$style.preview, { [$style._checkered]: isCheckered }]">
             <img
                 v-if="hasMedia && mediaType === 'image'"
                 :src="props.modelValue"
@@ -95,6 +132,13 @@ function handleRemove(): void {
                 muted
                 playsinline
             />
+
+            <div v-else-if="hasMedia && mediaType === 'file'" :class="$style.fileCard">
+                <BricksIcon :class="$style.fileIcon" :icon="previewIcon" />
+                <span v-if="fileExtension" :class="$style.fileFormat">
+                    {{ fileExtension.toUpperCase() }}
+                </span>
+            </div>
 
             <div v-else :class="$style.previewEmpty">
                 <BricksIcon :class="$style.previewIcon" :icon="previewIcon" />
@@ -205,6 +249,28 @@ function handleRemove(): void {
     color: var(--bricks-base-300);
 }
 
+.fileCard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.8rem;
+    width: 100%;
+    height: 100%;
+}
+
+.fileIcon {
+    font-size: 4.8rem;
+    color: var(--bricks-base-600);
+}
+
+.fileFormat {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.05rem;
+    color: var(--bricks-base-600);
+}
+
 .actions {
     display: flex;
     gap: 0.8rem;
@@ -226,7 +292,7 @@ function handleRemove(): void {
     display: block;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: monospace;
+    font-family: var(--bricks-font-family-mono);
     font-size: 1.2rem;
     color: var(--bricks-base-600);
 }

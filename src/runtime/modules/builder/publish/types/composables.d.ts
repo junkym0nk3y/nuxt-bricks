@@ -107,6 +107,8 @@ export interface IUsePublishMediaSurfaceReturn {
     maxImageSizeMb: number;
     /** The video size ceiling from the module config */
     maxVideoSizeMb: number;
+    /** The document size ceiling from the module config */
+    maxDocumentSizeMb: number;
     /** The optimization parameters from the config — what the popover returns to */
     defaultOptimization: IBricksMediaOptimization;
     uploadOptimization: Ref<IBricksMediaOptimization>;

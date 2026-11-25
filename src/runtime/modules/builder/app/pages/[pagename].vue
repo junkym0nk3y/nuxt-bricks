@@ -172,6 +172,7 @@ const inlineEditingStore = useInlineEditingStore();
 const builder = await useBuilderPage({
     inlineMediaBridge: {
         isRequestingMedia: computed(() => inlineEditingStore.isRequestingMedia),
+        mediaRequestFilter: computed(() => inlineEditingStore.mediaRequestFilter),
         resolveMediaRequest: (item) => inlineEditingStore.resolveMediaRequest(item),
         cancelMediaRequest: () => inlineEditingStore.cancelMediaRequest(),
         cancelInlineEditing: () => inlineEditingStore.stopEditing(),
@@ -194,6 +195,7 @@ const {
     shouldMountMediaGallery,
     isMediaGalleryModalOpen,
     mediaGalleryContext,
+    mediaGalleryPickFilter,
     sidebarRef,
     propertiesPanelRef,
     toast,
@@ -381,7 +383,7 @@ onBeforeUnmount(() => {
                 <TheBuilderShellSidebarPropertiesPanel
                     v-if="canEdit"
                     ref="propertiesPanelRef"
-                    @open-media-gallery="handleOpenMediaGallery('properties')"
+                    @open-media-gallery="handleOpenMediaGallery('properties', $event)"
                 />
 
                 <div :class="$style.canvasWrapper">
@@ -418,6 +420,7 @@ onBeforeUnmount(() => {
             v-if="shouldMountMediaGallery"
             :visible="isMediaGalleryModalOpen"
             :context="mediaGalleryContext"
+            :pick-filter="mediaGalleryPickFilter"
             @close="handleCloseMediaGallery"
             @error="handleMediaError"
             @select="handleMediaSelect"

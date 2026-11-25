@@ -3,15 +3,15 @@
 import type { IUseBricksAssetUrlReturn } from '../types/composables';
 
 // Utils
-import { resolveBricksAssetUrl } from '../utils/bricks/assetPaths';
+import { resolveAppPublicUrl, resolveBricksAssetUrl } from '../utils/bricks/assetPaths';
 
 // Nuxt
 import { useRuntimeConfig } from '#imports';
 // #endregion
 
 /**
- * URLs of the public assets of the module, honoring `app.baseURL` (the same pattern
- * as `useBricksRoutePaths.withBase`).
+ * URLs of the public assets of the module and of the application, honoring
+ * `app.baseURL` (the same pattern as `useBricksRoutePaths.withBase`).
  */
 export function useBricksAssetUrl(): IUseBricksAssetUrlReturn {
     const config = useRuntimeConfig();
@@ -20,5 +20,6 @@ export function useBricksAssetUrl(): IUseBricksAssetUrlReturn {
     return {
         baseURL,
         resolveAssetUrl: (assetPath: string) => resolveBricksAssetUrl(baseURL, assetPath),
+        resolvePublicUrl: (publicPath: string) => resolveAppPublicUrl(baseURL, publicPath),
     };
 }

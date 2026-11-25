@@ -1,18 +1,18 @@
 /**
- * Build-time parsing of brick-file metadata: `category`, `description`, `values`
- * and `slots` are read straight from the `export const brick` declaration,
- * without executing the module.
+ * Build-time parsing of brick-file metadata: `category`, `description`,
+ * `thumbnail`, `values` and `slots` are read straight from the `export const brick`
+ * declaration, without executing the module.
  *
  * Why parsing and not an import: the manifest is produced in the Nuxt process (the
  * `build:before` hook and the dev watcher), outside the Vite module graph, and a
  * brick file drags a `.vue` component along — executing it there would mean
- * standing up a compile pipeline of our own just to read four fields. Parsing the
+ * standing up a compile pipeline of our own just to read five fields. Parsing the
  * source yields the same values more cheaply —
  * but only for literals, which is why computed forms are rejected with an
  * explicit build error: a silently substituted "default value" would diverge
  * from what the developer sees in the file.
  *
- * Exactly four fields are read. The rest (`dataSources` with their functions
+ * Exactly five fields are read. The rest (`dataSources` with their functions
  * first of all) are not parsed at all: they are needed by the runtime, which
  * imports the module anyway.
  */
@@ -39,8 +39,19 @@ const DEFAULT_CATEGORY = 'Common';
 /** The metadata fields that travel into the manifest */
 const CATEGORY_FIELD = 'category';
 const DESCRIPTION_FIELD = 'description';
+const THUMBNAIL_FIELD = 'thumbnail';
 const VALUES_FIELD = 'values';
 const SLOTS_FIELD = 'slots';
+
+/**
+ * Accepted spellings of a library thumbnail: a path from the root of the consumer
+ * `public/` (`/brick-previews/Card.webp`, a single leading slash) or an absolute
+ * http(s) URL. A relative path has no base to resolve against — the builder runs
+ * under arbitrary routes — and `//host` would read as a path while being a
+ * protocol-relative URL to a foreign host. A backslash in the second place is turned
+ * away the same way: browsers read `/\host` as `//host`.
+ */
+const THUMBNAIL_PATTERN = /^(?:\/(?![/\\])|https?:\/\/)\S+$/i;
 // #endregion
 
 // #region Methods
@@ -164,6 +175,35 @@ function readStringField(
     }
 
     return value;
+}
+
+/**
+ * Reads the library thumbnail of the brick.
+ *
+ * Checked here rather than in the card: a path the card cannot resolve would show
+ * up as a broken picture in the library with nothing pointing at the brick file,
+ * while a build error names the file and the field.
+ *
+ * @param source - File being parsed.
+ * @param properties - Top-level properties by name.
+ * @returns The thumbnail path or URL, or `undefined` when the field is absent.
+ */
+function readThumbnail(
+    source: IBrickSourceFile,
+    properties: Map<string, ObjectProperty>
+): string | undefined {
+    const value = readStringField(source, properties, THUMBNAIL_FIELD);
+
+    if (value === undefined || THUMBNAIL_PATTERN.test(value)) {
+        return value;
+    }
+
+    throw createBrickSourceError(
+        source,
+        properties.get(THUMBNAIL_FIELD)?.start ?? 0,
+        `${BRICK_EXPORT_NAME}.${THUMBNAIL_FIELD}`,
+        'a path from the root of public/ ("/previews/Card.webp") or an http(s) URL is expected'
+    );
 }
 
 /**
@@ -341,6 +381,7 @@ export function extractBrickMetadata(filePath: string, content: string): IBrickM
         // neither a heading in the library nor an address in the category filter
         category: readStringField(source, properties, CATEGORY_FIELD) || DEFAULT_CATEGORY,
         description: readStringField(source, properties, DESCRIPTION_FIELD),
+        thumbnail: readThumbnail(source, properties),
         values,
         slots: readSlots(source, properties),
     };

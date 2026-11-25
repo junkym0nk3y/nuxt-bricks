@@ -195,6 +195,7 @@ async function mountBuilderPage(
         useBuilderPage({
             inlineMediaBridge: {
                 isRequestingMedia: computed(() => false),
+                mediaRequestFilter: computed(() => null),
                 resolveMediaRequest: vi.fn(),
                 cancelMediaRequest: vi.fn(),
                 cancelInlineEditing: vi.fn(),

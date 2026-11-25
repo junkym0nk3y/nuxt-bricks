@@ -8,6 +8,10 @@ import { ref, toValue, type MaybeRefOrGetter } from 'vue';
 
 // Utils
 import { NEW_TAB_LINK_REL, normalizeLinkHref } from '../utils/linkHref';
+import { MEDIA_PICK_FILTER_ANY } from '../../common/constants/mediaDocuments';
+
+// Pinia
+import { useInlineEditingStore } from '../stores/inlineEditing';
 // #endregion
 
 /**
@@ -111,6 +115,37 @@ export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): I
         isLinkModalOpen.value = false;
     }
 
+    /**
+     * Picks the address out of the media library: a presentation or a price list behind
+     * a word of the text. Any file is offered — a link may point at a picture as well.
+     *
+     * The form closes for the time of the pick rather than staying under the gallery:
+     * two modals of different surfaces stacked one over the other fight over the focus.
+     * The selection is not lost on the way — ProseMirror keeps it in the state of the
+     * editor, and Apply marks up the very text it was opened for. A gallery closed with
+     * no pick leaves the form closed, the same as a dismissed form.
+     *
+     * The store is reached here rather than at the call of the composable: the gallery is
+     * a builder surface, and an editor that never asks for a file does not need it.
+     *
+     * @param value - The form as it stands: the flag of a new tab goes back into it.
+     */
+    function pickLinkFile(value: ITextEditorLinkValue): void {
+        const openInNewTab = value.openInNewTab;
+
+        isLinkModalOpen.value = false;
+        useInlineEditingStore().requestMedia((item) => {
+            // The editor may be gone by the time of the pick (inline editing was left):
+            // a form reopened then would apply the link to nowhere
+            if (!toValue(editorRef)) {
+                return;
+            }
+
+            linkValue.value = { href: item.url, openInNewTab };
+            isLinkModalOpen.value = true;
+        }, MEDIA_PICK_FILTER_ANY);
+    }
+
     return {
         isLinkModalOpen,
         linkValue,
@@ -119,5 +154,6 @@ export function useTextEditorLink(editorRef: MaybeRefOrGetter<Editor | null>): I
         closeLinkModal,
         applyLink,
         removeLink,
+        pickLinkFile,
     };
 }

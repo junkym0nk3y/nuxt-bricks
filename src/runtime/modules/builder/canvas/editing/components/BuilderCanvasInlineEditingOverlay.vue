@@ -60,6 +60,7 @@ const {
     applyLink,
     removeLink,
     closeLinkModal,
+    pickLinkFile,
 } = useTextEditorLink(() => inlineEditingStore.editor);
 
 /**
@@ -307,6 +308,7 @@ function handleRequestImage(): void {
             @apply="applyLink"
             @remove="removeLink"
             @close="closeLinkModal"
+            @pick-file="pickLinkFile"
         />
     </Teleport>
 </template>

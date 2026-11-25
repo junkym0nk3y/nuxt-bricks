@@ -36,8 +36,15 @@ import {
     TaOutlineDragDrop,
     TaOutlineEye,
     TaOutlineEyeOff,
+    TaOutlineFile,
     TaOutlineFilePencil,
+    TaOutlineFileSpreadsheet,
+    TaOutlineFileTypeDoc,
+    TaOutlineFileTypeDocx,
+    TaOutlineFileTypePdf,
+    TaOutlineFileTypeXls,
     TaOutlineFiles,
+    TaOutlinePaperclip,
     TaOutlineFilter,
     TaOutlineFolderOpen,
     TaOutlineKey,
@@ -174,6 +181,13 @@ export const BUILDER_ICONS: Record<string, Component> = {
 
     // Publish
     'ta:outline-file-pencil': TaOutlineFilePencil,
+    'ta:outline-file': TaOutlineFile,
+    'ta:outline-file-type-pdf': TaOutlineFileTypePdf,
+    'ta:outline-file-type-doc': TaOutlineFileTypeDoc,
+    'ta:outline-file-type-docx': TaOutlineFileTypeDocx,
+    'ta:outline-file-type-xls': TaOutlineFileTypeXls,
+    'ta:outline-file-spreadsheet': TaOutlineFileSpreadsheet,
+    'ta:outline-paperclip': TaOutlinePaperclip,
 
     // Export / Import
     'ta:outline-download': TaOutlineDownload,

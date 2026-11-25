@@ -48,6 +48,8 @@ export interface IResolvedMediaConfig {
     maxUploadSizeMb: number;
     maxVideoUploadSizeBytes: number;
     maxVideoUploadSizeMb: number;
+    maxDocumentUploadSizeBytes: number;
+    maxDocumentUploadSizeMb: number;
     optimization: IBricksMediaOptimization;
 }
 
@@ -73,6 +75,17 @@ export interface IPreparedUpload {
  * buffer here.
  */
 export interface IValidatedVideoUpload {
+    mimeType: string;
+    targetExtension: string;
+}
+
+/**
+ * What a document upload is stored as: the bytes as they arrived (a document is not
+ * processed), with the MIME and the extension of the format its content was recognized
+ * as.
+ */
+export interface IValidatedDocumentUpload {
+    buffer: Buffer;
     mimeType: string;
     targetExtension: string;
 }

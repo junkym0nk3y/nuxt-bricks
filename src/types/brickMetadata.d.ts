@@ -13,6 +13,8 @@ export interface IBrickMetadata {
     category: string;
     /** Description for the properties panel */
     description?: string;
+    /** Static library picture: a path from the root of the consumer `public/` or an http(s) URL */
+    thumbnail?: string;
     /** Definitions of the editable properties: prop name → value description */
     values: Record<string, IBrickValues>;
     /** Normalized slot definitions; absent when the brick has no slots */

@@ -32,7 +32,9 @@
  * The tail of the row carries the actions of the caller: the dashboard section puts the
  * upload parameters cog there — it belongs not to the track but to what will travel
  * into the selected category. It stands outside the `Transition`, otherwise an opened
- * category field would carry it away along with itself.
+ * category field would carry it away along with itself. In front of everything else in
+ * the tail go the filters of the caller (the kind of file): filtering is reading, so
+ * unlike the rest of the tail they are drawn for a role with no right to edit as well.
  *
  * Decisions held by the style section: everything is aligned to the bottom edge,
  * because the underline of the selected tab has to lie exactly on the line of the
@@ -217,68 +219,74 @@ watch(hasDeletableCategories, (hasDeletable) => {
             @delete-category="handleDeleteCategory"
         />
 
-        <div v-if="canEdit" :class="$style.rowTail">
-            <Transition mode="out-in" name="bricks-fade-fast">
-                <div v-if="isCreateOpen" :class="$style.createRow">
-                    <BricksInput
-                        ref="createInputRef"
-                        :class="$style.createInput"
-                        :value="newCategoryLabel"
-                        type="text"
-                        :placeholder="t('bricks.media.categoryNamePlaceholder')"
-                        :disabled="props.isCreatingCategory"
-                        :error-message="duplicateError"
-                        @update:value="newCategoryLabel = $event"
-                        @keydown.enter.prevent="handleSubmitCategory"
-                        @keydown.esc.prevent="handleCancelCreate"
-                    />
+        <div :class="$style.rowTail">
+            <div v-if="$slots.filters" :class="$style.rowFilters">
+                <slot name="filters" />
+            </div>
 
-                    <BricksButton
-                        size="sm"
-                        variant="primary"
-                        equal
-                        :disabled="!canSubmitCategory || props.isCreatingCategory"
-                        :aria-label="t('bricks.media.categoryCreateConfirm')"
-                        @click="handleSubmitCategory"
-                    >
-                        <BricksIcon icon="ta:outline-plus" />
-                    </BricksButton>
+            <template v-if="canEdit">
+                <Transition mode="out-in" name="bricks-fade-fast">
+                    <div v-if="isCreateOpen" :class="$style.createRow">
+                        <BricksInput
+                            ref="createInputRef"
+                            :class="$style.createInput"
+                            :value="newCategoryLabel"
+                            type="text"
+                            :placeholder="t('bricks.media.categoryNamePlaceholder')"
+                            :disabled="props.isCreatingCategory"
+                            :error-message="duplicateError"
+                            @update:value="newCategoryLabel = $event"
+                            @keydown.enter.prevent="handleSubmitCategory"
+                            @keydown.esc.prevent="handleCancelCreate"
+                        />
 
-                    <BricksButton
-                        size="sm"
-                        variant="secondary"
-                        equal
-                        :aria-label="t('bricks.common.cancel')"
-                        @click="handleCancelCreate"
-                    >
-                        <BricksIcon icon="ta:outline-x" />
-                    </BricksButton>
-                </div>
+                        <BricksButton
+                            size="sm"
+                            variant="primary"
+                            equal
+                            :disabled="!canSubmitCategory || props.isCreatingCategory"
+                            :aria-label="t('bricks.media.categoryCreateConfirm')"
+                            @click="handleSubmitCategory"
+                        >
+                            <BricksIcon icon="ta:outline-plus" />
+                        </BricksButton>
 
-                <span v-else :class="$style.rowActions">
-                    <BricksIconButton
-                        icon="ta:outline-plus"
-                        :label="t('bricks.media.categoryCreate')"
-                        variant="ghost"
-                        size="lg"
-                        tooltip-side="top"
-                        @click="handleOpenCreate"
-                    />
+                        <BricksButton
+                            size="sm"
+                            variant="secondary"
+                            equal
+                            :aria-label="t('bricks.common.cancel')"
+                            @click="handleCancelCreate"
+                        >
+                            <BricksIcon icon="ta:outline-x" />
+                        </BricksButton>
+                    </div>
 
-                    <BricksIconButton
-                        v-if="hasDeletableCategories && canDelete"
-                        :icon="isManaging ? 'ta:outline-check' : 'ta:outline-pencil'"
-                        :label="manageLabel"
-                        :active="isManaging"
-                        variant="ghost"
-                        size="lg"
-                        tooltip-side="top"
-                        @click="handleToggleManaging"
-                    />
-                </span>
-            </Transition>
+                    <span v-else :class="$style.rowActions">
+                        <BricksIconButton
+                            icon="ta:outline-plus"
+                            :label="t('bricks.media.categoryCreate')"
+                            variant="ghost"
+                            size="lg"
+                            tooltip-side="top"
+                            @click="handleOpenCreate"
+                        />
 
-            <slot name="actions" />
+                        <BricksIconButton
+                            v-if="hasDeletableCategories && canDelete"
+                            :icon="isManaging ? 'ta:outline-check' : 'ta:outline-pencil'"
+                            :label="manageLabel"
+                            :active="isManaging"
+                            variant="ghost"
+                            size="lg"
+                            tooltip-side="top"
+                            @click="handleToggleManaging"
+                        />
+                    </span>
+                </Transition>
+
+                <slot name="actions" />
+            </template>
         </div>
     </div>
 </template>
@@ -309,6 +317,12 @@ watch(hasDeletableCategories, (hasDeletable) => {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
+}
+
+.rowFilters {
+    width: 16rem;
+    margin-right: 0.8rem;
+    padding-bottom: 0.4rem;
 }
 
 .createInput {

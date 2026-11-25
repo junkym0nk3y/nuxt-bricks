@@ -41,7 +41,11 @@
 import type { IMediaGalleryMetaPanelProps, IMediaGalleryMetaPanelEmits } from '../types/media';
 
 // Utils
-import { formatMediaTechnicalSummary, isVideoMedia } from '../utils/mediaSummary';
+import { formatMediaTechnicalSummary, isDocumentMedia, isVideoMedia } from '../utils/mediaSummary';
+import { resolveMediaDocumentExtension } from '../../../common/utils/mediaKind';
+
+// Constants
+import { MEDIA_DOCUMENT_ICONS } from '../../../common/constants/mediaDocuments';
 
 // Vue
 import { computed } from 'vue';
@@ -107,6 +111,31 @@ const { categoryOptions, categoryFacets, selectedCategory, handleCategoryChange 
 const isVideo = computed<boolean>(() =>
     props.selectedItem ? isVideoMedia(props.selectedItem) : false
 );
+
+/** A document has no alt either, and no picture for the thumb */
+const isDocument = computed<boolean>(() =>
+    props.selectedItem ? isDocumentMedia(props.selectedItem) : false
+);
+
+/** The alt field is disabled for a video and a document, each with its own reason */
+const altPlaceholder = computed<string>(() => {
+    if (isVideo.value) {
+        return t('bricks.media.altUnusedForVideo');
+    }
+
+    return isDocument.value
+        ? t('bricks.media.altUnusedForDocument')
+        : t('bricks.media.altPlaceholder');
+});
+
+/** The icon of the thumb of a file with no picture */
+const thumbIcon = computed<string>(() => {
+    const extension = props.selectedItem
+        ? resolveMediaDocumentExtension(props.selectedItem.mimeType)
+        : null;
+
+    return extension ? MEDIA_DOCUMENT_ICONS[extension] : 'ta:outline-video';
+});
 const technicalSummary = computed<string>(() =>
     props.selectedItem ? formatMediaTechnicalSummary(props.selectedItem, t) : ''
 );
@@ -127,12 +156,12 @@ function handleRemove(): void {
                 <div :class="$style.fieldsRow" @focusout="handleMetaCommit">
                     <div :class="$style.selectedThumb">
                         <BricksImage
-                            v-if="!isVideoMedia(props.selectedItem)"
+                            v-if="!isVideo && !isDocument"
                             :src="props.selectedItem.previewUrl ?? props.selectedItem.url"
                             :alt="props.selectedItem.alt || props.selectedItem.filename"
                             fit="cover"
                         />
-                        <BricksIcon v-else icon="ta:outline-video" />
+                        <BricksIcon v-else :icon="thumbIcon" />
                     </div>
 
                     <div :class="$style.field">
@@ -152,12 +181,8 @@ function handleRemove(): void {
                         <div :class="[$style.control, $style._alt]">
                             <BricksInput
                                 :value="editableAlt"
-                                :disabled="isVideo || !canEdit"
-                                :placeholder="
-                                    isVideo
-                                        ? t('bricks.media.altUnusedForVideo')
-                                        : t('bricks.media.altPlaceholder')
-                                "
+                                :disabled="isVideo || isDocument || !canEdit"
+                                :placeholder="altPlaceholder"
                                 @update:value="editableAlt = $event"
                             />
                         </div>

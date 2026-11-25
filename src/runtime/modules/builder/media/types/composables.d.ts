@@ -13,8 +13,10 @@ import type { TBrickDemoValues } from '../../../common/types/index';
 import type {
     IBricksMediaOptimization,
     IMediaCategory,
+    IMediaGalleryPickFilter,
     IMediaItem,
     IMediaUpdateMetaRequest,
+    TMediaKind,
 } from '../../../common/types/media';
 import type { IBrickUiCommonProp } from '../../../ui/types/common';
 
@@ -52,6 +54,11 @@ export interface IMediaUploadOptions {
     resolveCategory: () => string | null;
     /** Returns the optimization parameters of the upload */
     resolveOptimization: () => IBricksMediaOptimization;
+    /**
+     * What the surface asking for the upload offers; null or absent — the whole library.
+     * A file outside it is refused rather than stored out of sight of the picker.
+     */
+    resolvePickFilter?: () => IMediaGalleryPickFilter | null;
     /** Callback for the validation errors (the size limit is exceeded) */
     onError: (message: string) => void;
 }
@@ -122,6 +129,31 @@ export interface IMediaCategorySelect {
     handleCategoryChange: (value: TBrickDemoValues | null) => void;
 }
 
+/** Dependencies of the kind filter of a media library surface */
+export interface IMediaKindFilterOptions {
+    /** The kinds the surface offers — those of its pick filter */
+    kinds: () => TMediaKind[];
+}
+
+/**
+ * The kind filter of a surface: its value and the options of the select that sets it.
+ * The empty string is the "every kind" option — the contract of `BricksSelect` for an
+ * empty value.
+ */
+export interface IMediaKindFilter {
+    /** The kind the grid is narrowed to; null — every kind on offer */
+    kindFilter: ComputedRef<TMediaKind | null>;
+    kindOptions: ComputedRef<IBrickUiCommonProp[]>;
+    kindFacets: ComputedRef<TBrickDemoValues[]>;
+    /** Value of the select: the kind, or an empty string for every kind */
+    selectedKind: ComputedRef<string>;
+    /** The select is shown only when there is more than one kind to choose from */
+    hasKindChoice: ComputedRef<boolean>;
+    handleKindChange: (value: TBrickDemoValues | null) => void;
+    /** Puts the filter back to every kind */
+    resetKindFilter: () => void;
+}
+
 /**
  * A file in the upload queue together with the parameters of its own set: the
  * category and the optimization parameters are frozen at the moment of queuing,
@@ -179,6 +211,15 @@ export interface IMediaCategoryActions {
 export interface IMediaGallerySurfaceOptions {
     categoryFilter: () => string;
     searchQuery: () => string;
+    /** The kind the person narrowed the grid to; null — every kind on offer */
+    kindFilter: () => TMediaKind | null;
+    /**
+     * What the surface offers at all: a gallery opened to pick a picture does not show
+     * documents, one opened for a file property shows documents only. Unlike the kind
+     * filter, it is not the person's to drop — it is set by what the pick is for, and the
+     * category counters follow it. Null — the whole library.
+     */
+    pickFilter: () => IMediaGalleryPickFilter | null;
     /**
      * Puts the filter back to "All" — called when the category that was deleted is
      * the one being filtered by. The search string is not the business of this
@@ -198,6 +239,11 @@ export interface IMediaGallerySurfaceOptions {
  */
 export interface IMediaGallerySurface extends IMediaCategoryActions {
     mediaItems: ComputedRef<IMediaItem[]>;
+    /**
+     * The files the surface offers under its pick filter — the counter of the "All"
+     * tab; the summary line counts the whole library instead
+     */
+    offeredItems: ComputedRef<IMediaItem[]>;
     isUploading: ComputedRef<boolean>;
     /**
      * Whether the contents of the media library have been read: until the first

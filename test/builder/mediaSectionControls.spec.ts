@@ -124,6 +124,7 @@ describe('Параметры загрузки: одно место на пове
             props: {
                 maxImageSizeMb: 10,
                 maxVideoSizeMb: 50,
+                maxDocumentSizeMb: 25,
                 optimization: { format: 'webp', quality: 80, maxWidth: 1920 },
                 configuredMaxWidth: 1920,
                 uploadProgress: null,
@@ -155,6 +156,7 @@ describe('Параметры загрузки: одно место на пове
             props: {
                 maxImageSizeMb: 10,
                 maxVideoSizeMb: 50,
+                maxDocumentSizeMb: 25,
                 optimization: { format: 'webp', quality: 80, maxWidth: 1920 },
                 configuredMaxWidth: 1920,
                 uploadProgress: null,

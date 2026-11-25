@@ -245,6 +245,7 @@ export function createS3PublishAdapter(): IPublishAdapter {
                         Key: params.key,
                         Body: params.buffer,
                         ContentType: params.mimeType,
+                        ContentDisposition: params.contentDisposition,
                         ACL: 'public-read',
                     })
                 );

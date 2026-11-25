@@ -284,7 +284,7 @@ body.bricks-page {
             padding: 0.2rem 0.4rem;
             border-radius: 0.4rem;
             border: 1px solid currentcolor;
-            font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+            font-family: var(--bricks-font-family-mono);
         }
 
         pre {

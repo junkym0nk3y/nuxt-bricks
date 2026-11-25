@@ -35,6 +35,7 @@ const DECLARED_TYPE_CASES: Array<[string, TPropertyType]> = [
     ['textarea', 'textarea'],
     ['image', 'image'],
     ['video', 'video'],
+    ['file', 'file'],
     ['inline-content', 'inline-content'],
     ['tags', 'tags'],
     ['image-gallery', 'image-gallery'],
@@ -95,5 +96,18 @@ describe('inferring the type of a property from the declaration of a brick file'
         expect(resolveType({ type: 'constructor' })).toBe('string');
         expect(resolveType({ type: 'toString', default: 2 })).toBe('number');
         expect(resolveType({ type: 'hasOwnProperty', vars: ['a'] })).toBe('select');
+    });
+
+    it('a file property keeps a list of extensions and drops anything else', () => {
+        // The declaration is data of the consumer: a bare string would reach the filter
+        // of the gallery, which walks the list with `.some`
+        const { brickValuesToProperties } = useComponentProperties();
+        const [listed, bare] = brickValuesToProperties({
+            listed: { type: 'file', accept: ['pdf', '', 'docx'] },
+            bare: { type: 'file', accept: 'pdf' as unknown as string[] },
+        });
+
+        expect(listed?.accept).toEqual(['pdf', 'docx']);
+        expect(bare?.accept).toBeUndefined();
     });
 });

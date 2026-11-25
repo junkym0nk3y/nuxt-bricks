@@ -15,7 +15,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Types
-import type { IMediaCategory, IMediaItem } from '../../src/runtime/modules/common/types/media';
+import type {
+    IMediaCategory,
+    IMediaGalleryPickFilter,
+    IMediaItem,
+} from '../../src/runtime/modules/common/types/media';
 import type { IMediaCategoryActionsOptions } from '../../src/runtime/modules/builder/media/types/composables';
 import type { IMediaGallerySurfaceHarness } from './types';
 
@@ -125,9 +129,12 @@ function makeItem(overrides: Partial<IMediaItem> = {}): IMediaItem {
 /**
  * Raises a surface in an effect scope of its own.
  *
+ * @param pickFilter - What the surface offers; null for the whole library.
  * @returns The surface and its inputs.
  */
-function createSurface(): IMediaGallerySurfaceHarness {
+function createSurface(
+    pickFilter: IMediaGalleryPickFilter | null = null
+): IMediaGallerySurfaceHarness {
     const categoryFilter = ref('all');
     const searchQuery = ref('');
     const resetCalls: string[][] = [];
@@ -136,6 +143,8 @@ function createSurface(): IMediaGallerySurfaceHarness {
     const surface = scope.run(() =>
         useMediaGallerySurface({
             categoryFilter: () => categoryFilter.value,
+            kindFilter: () => null,
+            pickFilter: () => pickFilter,
             searchQuery: () => searchQuery.value,
             onCategoryFilterReset: () => resetCalls.push([categoryFilter.value, searchQuery.value]),
             onError: (message: string) => errors.push(message),
@@ -306,6 +315,19 @@ describe('the media surface: a deleted category', () => {
 
         expect(categoryActionsOptions.resolveCategoryCount('promo')).toBe(2);
         expect(categoryActionsOptions.resolveCategoryCount('unknown')).toBe(0);
+    });
+
+    it('a picker counts the files of the whole library for the confirmation, not only its own', () => {
+        setItems([
+            makeItem({ id: 1, category: 'promo' }),
+            makeItem({ id: 2, category: 'promo', mimeType: 'application/pdf', url: 'a.pdf' }),
+        ]);
+
+        const { surface, categoryActionsOptions } = createSurface({ kinds: ['image', 'video'] });
+
+        // The tab counts what the picker offers; the deletion takes the category off both
+        expect(surface.categoryCounts.value.promo).toBe(1);
+        expect(categoryActionsOptions.resolveCategoryCount('promo')).toBe(2);
     });
 
     it('a refusal of the actions over the categories reaches the caller', () => {

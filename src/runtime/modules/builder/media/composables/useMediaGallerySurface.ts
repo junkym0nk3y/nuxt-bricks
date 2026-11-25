@@ -6,6 +6,7 @@ import type { IMediaGallerySurface, IMediaGallerySurfaceOptions } from '../types
 // Utils
 import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
 import { resolveMediaCategoryLabelBySlug } from '../utils/categoryLabels';
+import { matchesMediaPickFilter, resolveMediaKind } from '../../../common/utils/mediaKind';
 
 // Vue
 import { computed } from 'vue';
@@ -43,7 +44,22 @@ export function useMediaGallerySurface(options: IMediaGallerySurfaceOptions): IM
     const mediaItems = computed<IMediaItem[]>(() => mediaStore.items);
     const isUploading = computed<boolean>(() => mediaStore.isUploading);
     const hasLibrarySnapshot = computed<boolean>(() => mediaStore.hasLoadedItemsSnapshot);
-    const hasItems = computed<boolean>(() => mediaItems.value.length > 0);
+
+    /**
+     * The files the surface offers at all. The counters and the "the library is empty"
+     * state are computed off them rather than off the whole library: a gallery opened
+     * for a document over a library of pictures has nothing to offer, and "nothing
+     * found, reset the filter" would send the person to a filter that is not theirs to
+     * reset.
+     */
+    const offeredItems = computed<IMediaItem[]>(() => {
+        const pickFilter = options.pickFilter();
+
+        return pickFilter
+            ? mediaItems.value.filter((item) => matchesMediaPickFilter(item, pickFilter))
+            : mediaItems.value;
+    });
+    const hasItems = computed<boolean>(() => offeredItems.value.length > 0);
 
     /**
      * The counters of the tabs are computed off the list already loaded — there is no
@@ -51,7 +67,7 @@ export function useMediaGallerySurface(options: IMediaGallerySurfaceOptions): IM
      * are seen under "All" only.
      */
     const categoryCounts = computed<Record<string, number>>(() =>
-        mediaItems.value.reduce<Record<string, number>>((counts, item) => {
+        offeredItems.value.reduce<Record<string, number>>((counts, item) => {
             if (item.category) {
                 counts[item.category] = (counts[item.category] ?? 0) + 1;
             }
@@ -65,20 +81,21 @@ export function useMediaGallerySurface(options: IMediaGallerySurfaceOptions): IM
     );
 
     /**
-     * The actions over the categories. Down here among the computeds rather than up
-     * in the data: the composable reads `categoryCounts` for the text of the
-     * confirmation, and reaching for it above its declaration would break the order
-     * even inside a deferred closure.
+     * The actions over the categories. The confirmation of a deletion counts the files
+     * of the whole library, not those on offer like the counters of the tabs: the
+     * deletion takes the category off every file, and a picker of pictures would
+     * understate it by the documents.
      */
     const categoryActions = useMediaCategoryActions({
-        resolveCategoryCount: (slug: string) => categoryCounts.value[slug] ?? 0,
+        resolveCategoryCount: (slug: string) =>
+            mediaItems.value.filter((item) => item.category === slug).length,
         onCategoryDeleted: handleCategoryDeleted,
         onError: options.onError,
     });
 
     /**
-     * The filtered list of the grid: the category out of the track, then the search
-     * string.
+     * The filtered list of the grid: the files on offer, the category out of the track,
+     * the kind, then the search string.
      *
      * Below `useMediaCategoryActions`, because the search matches against the CAPTION
      * of a category, and the list of captions comes from there. Matching against
@@ -87,11 +104,13 @@ export function useMediaGallerySurface(options: IMediaGallerySurfaceOptions): IM
      */
     const filteredMediaItems = computed<IMediaItem[]>(() => {
         const filterValue = options.categoryFilter();
+        const kindFilter = options.kindFilter();
         const query = options.searchQuery().trim().toLowerCase();
 
-        return mediaItems.value.filter((item) => {
+        return offeredItems.value.filter((item) => {
             const matchesCategory =
                 filterValue === ALL_MEDIA_CATEGORIES_FILTER || item.category === filterValue;
+            const matchesKind = !kindFilter || resolveMediaKind(item.mimeType) === kindFilter;
             const matchesSearch =
                 !query ||
                 item.filename.toLowerCase().includes(query) ||
@@ -103,7 +122,7 @@ export function useMediaGallerySurface(options: IMediaGallerySurfaceOptions): IM
                         .includes(query)
                 );
 
-            return matchesCategory && matchesSearch;
+            return matchesCategory && matchesKind && matchesSearch;
         });
     });
 
@@ -131,6 +150,7 @@ export function useMediaGallerySurface(options: IMediaGallerySurfaceOptions): IM
     return {
         ...categoryActions,
         mediaItems,
+        offeredItems,
         isUploading,
         hasLibrarySnapshot,
         hasItems,

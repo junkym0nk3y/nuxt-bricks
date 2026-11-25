@@ -15,12 +15,12 @@
  * The upload parameters stand in the row of filters rather than in the header: they are
  * about what the file will look like when it goes, and their place is next to the track
  * of categories — the thing that decides WHERE it goes. The gate of the role is at the
- * row of filters itself: the tail of the row is drawn only with the right to edit.
+ * row of filters itself: its actions are drawn only with the right to edit.
  *
- * The dissolve of the grid, the key of the transition and the bounds of the drop target
- * are the same here as in `TheBuilderMediaGalleryModal`, where the reasons are written
- * down. The counters, the filtered list and the actions over the categories come out of
- * `useMediaGallerySurface` — the model shared with that modal.
+ * The dissolve of the grid, the key of the transition, the kind select and the bounds of
+ * the drop target are the same here as in `TheBuilderMediaGalleryModal`, where the
+ * reasons are written down. The counters, the filtered list and the actions over the
+ * categories come out of `useMediaGallerySurface` — the model shared with that modal.
  *
  * Decisions held by the style section: the section stretches to the full height of the
  * list area, otherwise the footer with the summary would stand right under the grid,
@@ -40,6 +40,7 @@ import type { IMediaSectionProps, IMediaSectionEmits } from '../types/media';
 
 // Utils
 import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
+import { MEDIA_PICK_FILTER_ANY } from '../../../common/constants/mediaDocuments';
 import { formatFileSize } from '../utils/formatFileSize';
 import { getBricksErrorMessage } from '../../../common/utils/main';
 
@@ -54,11 +55,13 @@ import { useMediaCategoriesStore } from '../stores/mediaCategories';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { useMediaGalleryFileDrop } from '../composables/useMediaGalleryFileDrop';
 import { useMediaGallerySurface } from '../composables/useMediaGallerySurface';
+import { useMediaKindFilter } from '../composables/useMediaKindFilter';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksEmptyState from '../../../ui/feedback/BricksEmptyState.vue';
+import BricksSelect from '../../../ui/inputs/BricksSelect.vue';
 import BuilderMediaGalleryFilters from './BuilderMediaGalleryFilters.vue';
 import BuilderMediaGalleryGrid from './BuilderMediaGalleryGrid.vue';
 import BuilderMediaGalleryDropOverlay from './BuilderMediaGalleryDropOverlay.vue';
@@ -97,9 +100,17 @@ const {
 });
 
 /**
- * The model shared with the gallery modal. The filter and the search string are not
+ * The kind filter is held here, unlike the category: nothing outside the section
+ * depends on it — an upload goes into a category, never into a kind.
+ */
+const { kindFilter, kindOptions, kindFacets, selectedKind, handleKindChange, resetKindFilter } =
+    useMediaKindFilter({ kinds: () => MEDIA_PICK_FILTER_ANY.kinds });
+
+/**
+ * The model shared with the gallery modal. The category and the search string are not
  * held here: the search belongs to the header of the dashboard and the category to
- * the surface of the host, so both arrive as props and travel back as events.
+ * the surface of the host, so both arrive as props and travel back as events. The
+ * manager offers every file, so there is no pick filter.
  */
 const {
     mediaItems,
@@ -122,6 +133,8 @@ const {
     handleConfirmCategoryDelete,
 } = useMediaGallerySurface({
     categoryFilter: () => props.categoryFilter,
+    kindFilter: () => kindFilter.value,
+    pickFilter: () => null,
     searchQuery: () => props.searchQuery,
     onCategoryFilterReset: () => emit('update:categoryFilter', ALL_MEDIA_CATEGORIES_FILTER),
     onError: (message: string) => emit('notify', message, 'error'),
@@ -213,10 +226,12 @@ function handleUploadRequest(): void {
 }
 
 /**
- * An empty result of the filter: the category and the search string are dropped in one
- * go — the search is owned by the header, the category by the surface of the host.
+ * An empty result of the filter: the category, the kind and the search string are
+ * dropped in one go — the search is owned by the header, the category by the surface
+ * of the host, the kind by the section.
  */
 function handleResetFilter(): void {
+    resetKindFilter();
     emit('reset-filters');
 }
 
@@ -268,6 +283,16 @@ onMounted(() => {
             @create-category="handleCreateCategory"
             @delete-category="handleRequestCategoryDelete"
         >
+            <template #filters>
+                <BricksSelect
+                    :value="selectedKind"
+                    :specs="kindOptions"
+                    :facets="kindFacets"
+                    :aria-label="t('bricks.media.kindFilter.label')"
+                    @update:value="handleKindChange"
+                />
+            </template>
+
             <template #actions>
                 <BuilderMediaGalleryUploadOptionsPopover
                     :optimization="props.uploadOptimization"
@@ -282,7 +307,7 @@ onMounted(() => {
             <Transition mode="out-in" name="bricks-fade-fast">
                 <BuilderMediaGalleryGrid
                     v-if="hasFilteredItems || isUploading"
-                    :key="props.categoryFilter"
+                    :key="`${props.categoryFilter}:${selectedKind}`"
                     :items="filteredMediaItems"
                     :selected-item-id="props.selectedItemId"
                     :show-skeleton="isUploading"
@@ -318,6 +343,7 @@ onMounted(() => {
                     :file-count="draggedFileCount"
                     :max-image-size-mb="props.maxImageSizeMb"
                     :max-video-size-mb="props.maxVideoSizeMb"
+                    :max-document-size-mb="props.maxDocumentSizeMb"
                     :optimization="props.uploadOptimization"
                 />
             </Transition>

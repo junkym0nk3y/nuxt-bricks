@@ -238,7 +238,7 @@ function handleKeywordsChange(tags: string[]): void {
 
 .code {
     textarea {
-        font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+        font-family: var(--bricks-font-family-mono);
         font-size: 1.2rem;
     }
 }

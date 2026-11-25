@@ -23,7 +23,7 @@ export function toComponentLibraryItem(entry: IBrickManifestEntry): IComponentLi
         category: entry.category,
         brickPath: entry.brickPath,
         description: entry.description,
-        thumbnail: '',
+        thumbnail: entry.thumbnail ?? '',
         // The prop names come out of a brick file: `acc['__proto__'] = …` would
         // replace the prototype of the accumulator instead of writing a key, and
         // an own `__proto__` key would not survive the Nuxt payload

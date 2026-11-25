@@ -1,5 +1,5 @@
 // Types
-import type { IMediaItem } from '../../../../common/types/media';
+import type { IMediaGalleryPickFilter, IMediaItem } from '../../../../common/types/media';
 import type { IGalleryItem } from '../../../../common/types/content';
 import type { IPropertyDefinition } from '../../../../common/types/brick';
 import type { TInlineGalleryPayload, TMediaContext } from '../types/sidebarProperties';
@@ -8,23 +8,53 @@ import type {
     IUseSidebarMediaSelectionReturn,
 } from '../types/composables';
 
+// Utils
+import {
+    isMediaDocumentExtension,
+    normalizeAcceptedExtension,
+    resolveMediaKind,
+} from '../../../../common/utils/mediaKind';
+import {
+    MEDIA_PICK_FILTER_ANY,
+    MEDIA_PICK_FILTER_DOCUMENTS,
+    MEDIA_PICK_FILTER_VISUAL,
+} from '../../../../common/constants/mediaDocuments';
+
 // Vue
 import { ref } from 'vue';
 
 // Pinia
 import { useComponentsStore } from '../../../core/stores/components';
 
-/** MIME prefix of a video file: the gallery tells the kinds apart by it as well */
-const VIDEO_MIME_PREFIX = 'video/';
-
 /**
- * The kind of a media file, as the blocks name it.
+ * The files the gallery offers for a property.
  *
- * @param item - The picked media item.
- * @returns `video` for a video file, `image` for everything else.
+ * A `file` property takes documents, or exactly the extensions it lists; every other
+ * media property puts the file into an `<img>` or a `<video>`, so a document there
+ * would end up as a broken picture. A list of document extensions alone keeps the
+ * gallery to documents: offering the kind select its "Images" and "Video" would hand
+ * the person two options that are empty by definition.
+ *
+ * @param property - Property whose media is being edited.
+ * @returns The pick filter of the gallery.
  */
-function resolveMediaKind(item: IMediaItem): string {
-    return item.mimeType.startsWith(VIDEO_MIME_PREFIX) ? 'video' : 'image';
+function resolvePropertyPickFilter(property: IPropertyDefinition): IMediaGalleryPickFilter {
+    if (property.type !== 'file') {
+        return MEDIA_PICK_FILTER_VISUAL;
+    }
+
+    if (!property.accept?.length) {
+        return MEDIA_PICK_FILTER_DOCUMENTS;
+    }
+
+    const isDocumentsOnly = property.accept.every((extension) =>
+        isMediaDocumentExtension(normalizeAcceptedExtension(extension))
+    );
+
+    return {
+        kinds: isDocumentsOnly ? MEDIA_PICK_FILTER_DOCUMENTS.kinds : MEDIA_PICK_FILTER_ANY.kinds,
+        extensions: property.accept,
+    };
 }
 
 /**
@@ -69,7 +99,7 @@ export function useSidebarMediaSelection(
             };
         }
 
-        options.onOpenMediaGallery();
+        options.onOpenMediaGallery(resolvePropertyPickFilter(property));
     }
 
     /**
@@ -113,7 +143,7 @@ export function useSidebarMediaSelection(
                 // of the person: the gallery already knows whether this is a video, and
                 // a picture picked while the block still said `video` reaches the page
                 // inside a `<video>` — that is, as an empty frame, silently
-                [context.property.mediaTypeProperty, resolveMediaKind(item)],
+                [context.property.mediaTypeProperty, resolveMediaKind(item.mimeType)],
             ];
 
             for (const [propertyName, value] of companions) {

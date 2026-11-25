@@ -61,8 +61,15 @@ const {
 
 // Unwrap the refs of the link modal: nested inside an object they are not unwrapped
 // in the template, and every access would go through `.value`
-const { isLinkModalOpen, linkValue, hasLinkAtSelection, applyLink, removeLink, closeLinkModal } =
-    link;
+const {
+    isLinkModalOpen,
+    linkValue,
+    hasLinkAtSelection,
+    applyLink,
+    removeLink,
+    closeLinkModal,
+    pickLinkFile,
+} = link;
 // #endregion
 
 // #region Computed
@@ -217,6 +224,7 @@ function handleModalClose(): void {
             @apply="applyLink"
             @remove="removeLink"
             @close="closeLinkModal"
+            @pick-file="pickLinkFile"
         />
     </div>
 </template>
@@ -349,7 +357,7 @@ function handleModalClose(): void {
 
 .codeArea {
     white-space: pre-wrap;
-    font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+    font-family: var(--bricks-font-family-mono);
     line-height: 1.6;
 }
 

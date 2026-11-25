@@ -84,6 +84,8 @@ export interface IUseBricksAssetUrlReturn {
     baseURL: string;
     /** URL of a public asset of the module (`/_bricks/...`) honoring `app.baseURL` */
     resolveAssetUrl: (assetPath: string) => string;
+    /** URL of a file from the consumer `public/` honoring `app.baseURL` */
+    resolvePublicUrl: (publicPath: string) => string;
 }
 // #endregion
 

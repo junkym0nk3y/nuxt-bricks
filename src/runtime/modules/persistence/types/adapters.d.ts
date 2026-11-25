@@ -277,6 +277,13 @@ export interface IUploadFileParams {
     buffer: Buffer;
     mimeType: string;
     key: string;
+    /**
+     * `Content-Disposition` the object is served with. Set for documents (`attachment`
+     * under the original name); absent — storage serves the object without one, and a
+     * browser shows it inline. A custom adapter that cannot store response headers may
+     * ignore it: the document then opens in the browser instead of being downloaded.
+     */
+    contentDisposition?: string;
 }
 
 /**

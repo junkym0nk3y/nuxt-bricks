@@ -317,7 +317,7 @@ watch(
 .input {
     padding: 0.8rem 1.2rem;
     white-space: pre;
-    font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+    font-family: var(--bricks-font-family-mono);
     font-size: 1.2rem;
     font-weight: 400;
     line-height: 1.8rem;

@@ -31,7 +31,10 @@ const resolvedDescription = computed<string>(
     () => resolveBricksLabel(t, te, props.variant?.property?.description) || ''
 );
 const isBooleanEditor = computed<boolean>(() => props.type === 'boolean');
-const isMediaEditor = computed<boolean>(() => props.type === 'image' || props.type === 'video');
+/** The editors that pick a file out of the media library */
+const MEDIA_EDITOR_TYPES: ReadonlySet<string> = new Set(['image', 'video', 'file']);
+
+const isMediaEditor = computed<boolean>(() => MEDIA_EDITOR_TYPES.has(props.type));
 const isImageGalleryEditor = computed<boolean>(() => props.type === 'image-gallery');
 
 /**
@@ -61,6 +64,12 @@ const shouldShowLabel = computed<boolean>(() => {
 const resolvedEditorComponent = computed<Component>(() => {
     return props.componentEditors[props.type] || props.componentEditors.input;
 });
+/**
+ * The props of the editor. The `type` of a text field travels inside them rather than as
+ * an attribute of its own next to `v-bind`: an attribute bound after `v-bind` wins, and
+ * for every editor but the input it bound `undefined` — the media picker of a video or a
+ * file property fell back to its `image` default and drew the address into an `<img>`.
+ */
 const resolvedEditorProps = computed<Record<string, unknown>>(() => {
     if (isMediaEditor.value) {
         // `disabled` travels here by hand: the media editors take a shape of their own
@@ -80,6 +89,7 @@ const resolvedEditorProps = computed<Record<string, unknown>>(() => {
             ...normalized,
             label: '',
             ariaLabel: rowCaption.value,
+            type: props.variant.property.type === 'number' ? 'number' : 'text',
         };
     }
 
@@ -93,12 +103,6 @@ const resolvedEditorProps = computed<Record<string, unknown>>(() => {
     }
 
     return normalized;
-});
-const resolvedInputType = computed<string | undefined>(() => {
-    if (props.type !== 'input') {
-        return undefined;
-    }
-    return props.variant.property.type === 'number' ? 'number' : 'text';
 });
 // #endregion
 
@@ -140,7 +144,7 @@ function handleImageGalleryOpen(payload?: TInlineGalleryPayload): void {
 }
 
 /**
- * Opens the gallery for the media editors (image and video).
+ * Opens the gallery for the media editors (image, video and file).
  */
 function handleMediaOpen(): void {
     if (!isMediaEditor.value) {
@@ -202,7 +206,6 @@ function handleAccordionItemsChange(value: IAccordionItem[]): void {
             <component
                 :is="resolvedEditorComponent"
                 v-bind="resolvedEditorProps"
-                :type="resolvedInputType"
                 :model-value="props.variant.value"
                 @update:model-value="handleValueChange"
                 @update:value="handleValueChange"

@@ -9,6 +9,7 @@
 import type {
     IBricksMediaOptimization,
     IMediaCategory,
+    IMediaGalleryPickFilter,
     IMediaItem,
     IMediaUpdateMetaRequest,
     TMediaGalleryContext,
@@ -22,6 +23,12 @@ import type {
 export interface IMediaGalleryProps {
     visible: boolean;
     context?: TMediaGalleryContext;
+    /**
+     * Which files a picker offers. Unset — a picture or a video for a picking context
+     * (the surfaces that picked before documents existed put the file into an `<img>`
+     * or a `<video>`) and every file for the manager.
+     */
+    pickFilter?: IMediaGalleryPickFilter | null;
 }
 
 /**
@@ -88,6 +95,7 @@ export interface IMediaGalleryCategoryTabsEmits {
 export interface IMediaGalleryUploadControlsProps {
     maxImageSizeMb: number;
     maxVideoSizeMb: number;
+    maxDocumentSizeMb: number;
     optimization: IBricksMediaOptimization;
     /**
      * The width out of the config — the bounds of the field are counted from it, see
@@ -128,6 +136,7 @@ export interface IMediaGalleryDropOverlayProps {
     fileCount: number;
     maxImageSizeMb: number;
     maxVideoSizeMb: number;
+    maxDocumentSizeMb: number;
     optimization: IBricksMediaOptimization;
 }
 
@@ -198,6 +207,7 @@ export interface IMediaSectionProps {
     selectedItemId: number | null;
     maxImageSizeMb: number;
     maxVideoSizeMb: number;
+    maxDocumentSizeMb: number;
     /**
      * The upload parameters: the overlay of the target shows them and the popover of
      * the row edits them.

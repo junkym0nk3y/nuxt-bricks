@@ -1,10 +1,26 @@
-/* Do not rename this font-family: the name `Inter` is referenced as a plain string
-   elsewhere — see the `defaultFont` default in
-   common/composables/useBricksConfig.ts */
+/* The fonts the builder draws itself with ship inside the package: the consumer
+   declares no @font-face for the interface, the canvas chrome or the code editors.
+   A @font-face downloads nothing until some text actually uses the family, so a
+   published page that shows no code never fetches the monospace file.
+
+   Do not rename these font-family values: the names are referenced as plain
+   strings elsewhere — `Inter` in the `defaultFont` default of
+   common/composables/useBricksConfig.ts, both names in `--bricks-font-family-base`
+   and `--bricks-font-family-mono` of shared/_variables.scss */
 @font-face {
     font-family: Inter;
     src: url('../../fonts/InterVariable.woff2') format('woff2-variations');
     font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Upright only: the editors never set code in italics, and an `em` inside rich-text
+   code gets a synthesized oblique instead of a second 110 KB file */
+@font-face {
+    font-family: 'JetBrains Mono';
+    src: url('../../fonts/JetBrainsMonoVariable.woff2') format('woff2-variations');
+    font-weight: 100 800;
     font-style: normal;
     font-display: swap;
 }

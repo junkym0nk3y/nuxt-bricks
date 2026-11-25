@@ -132,6 +132,7 @@ export async function uploadMediaFiles(
         buffer: params.buffer,
         mimeType: params.mimeType,
         key,
+        contentDisposition: params.contentDisposition,
     });
     const previewVariant = params.variants?.preview;
     const mockVariant = params.variants?.mock;

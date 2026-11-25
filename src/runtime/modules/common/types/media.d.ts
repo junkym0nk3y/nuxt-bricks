@@ -39,6 +39,30 @@ export interface IMediaMaxWidthBounds {
     max: number;
 }
 
+/**
+ * Extension of a document the media library accepts. The format and the extension of
+ * the stored file are one value: the stored name is built from the format the content
+ * was recognized as, not from the name the browser sent.
+ */
+export type TMediaDocumentExtension = 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx';
+
+/** Kind of a media library file, decided by its MIME type */
+export type TMediaKind = 'image' | 'video' | 'document';
+
+/**
+ * What a gallery opened for picking shows and lets pick. `null` instead of a filter —
+ * the whole library (the manager mode).
+ */
+export interface IMediaGalleryPickFilter {
+    /** Kinds of files on offer */
+    kinds: TMediaKind[];
+    /**
+     * Narrows the files further by the extension of their address (`['pdf']`); compared
+     * in lower case, without the dot. Absent — every file of the listed kinds.
+     */
+    extensions?: string[];
+}
+
 export interface IMediaItem {
     id: number;
     url: string;

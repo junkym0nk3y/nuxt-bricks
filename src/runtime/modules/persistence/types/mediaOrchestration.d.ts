@@ -27,6 +27,8 @@ export interface IUploadMediaFilesParams {
      * the key.
      */
     storedFilename: string;
+    /** `Content-Disposition` of the full file (documents); absent — none */
+    contentDisposition?: string;
     /**
      * The downscaled variants of progressive loading; an empty object — no variants.
      */

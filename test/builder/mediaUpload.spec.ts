@@ -83,12 +83,33 @@ describe('useMediaUpload: доставка отказа по каждому фа
             onError: (message) => errors.push(message),
         });
 
-        await uploadFiles([buildFile('notes.pdf', 'application/pdf')]);
+        await uploadFiles([buildFile('notes.txt', 'text/plain')]);
 
         expect(errors).toHaveLength(1);
         expect(errors[0]).toContain('fileTypeUnsupported');
-        expect(errors[0]).toContain('notes.pdf');
+        expect(errors[0]).toContain('notes.txt');
         expect(uploadFileMock).not.toHaveBeenCalled();
+    });
+
+    // A browser without an office suite sends .doc/.xls with an empty MIME, and the
+    // document ceiling (25 MB) is above the image one (10 MB): a 20 MB file passes only
+    // when its kind is recognized right
+    it('документ без MIME узнаётся по расширению и меряется своим потолком', async () => {
+        const errors: string[] = [];
+        const { uploadFiles } = useMediaUpload({
+            resolveCategory: () => null,
+            resolveOptimization: () => ({ format: 'webp', quality: 70, maxWidth: 1920 }),
+            onError: (message) => errors.push(message),
+        });
+
+        await uploadFiles([buildFile('price.doc', '', 20), buildFile('huge.pdf', '', 26)]);
+
+        expect(uploadFileMock).toHaveBeenCalledTimes(1);
+        expect(uploadFileMock.mock.calls[0]?.[0]).toMatchObject({ name: 'price.doc' });
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toContain('fileTooLarge');
+        expect(errors[0]).toContain('huge.pdf');
+        expect(errors[0]).toContain('fileTypeDocument');
     });
 
     it('превышение лимита размера сообщается без обращения к серверу', async () => {
@@ -104,5 +125,28 @@ describe('useMediaUpload: доставка отказа по каждому фа
         expect(errors).toHaveLength(1);
         expect(errors[0]).toContain('fileTooLarge');
         expect(uploadFileMock).not.toHaveBeenCalled();
+    });
+
+    // A picker shows only what its caller can use: a file outside that, once stored,
+    // would drop out of the grid at once and read as uploaded into nowhere
+    it('пикер отказывает файлу, которого не предлагает, а свой загружает', async () => {
+        const errors: string[] = [];
+        const { uploadFiles } = useMediaUpload({
+            resolveCategory: () => null,
+            resolveOptimization: () => ({ format: 'webp', quality: 70, maxWidth: 1920 }),
+            resolvePickFilter: () => ({ kinds: ['document'], extensions: ['XLSX'] }),
+            onError: (message) => errors.push(message),
+        });
+
+        await uploadFiles([
+            buildFile('cover.webp', 'image/webp'),
+            buildFile('brief.pdf', 'application/pdf'),
+            buildFile('price.xlsx', ''),
+        ]);
+
+        expect(uploadFileMock).toHaveBeenCalledTimes(1);
+        expect(uploadFileMock.mock.calls[0]?.[0]).toMatchObject({ name: 'price.xlsx' });
+        expect(errors).toHaveLength(2);
+        expect(errors.every((error) => error.includes('fileNotOffered'))).toBe(true);
     });
 });

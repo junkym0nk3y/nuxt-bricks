@@ -243,6 +243,7 @@ export const VARIANT_BUILDERS: Partial<Record<TPropertyType, TVariantBuilder>> =
     color: createDisplayValueBuilder('color'),
     image: createDisplayValueBuilder('image'),
     video: createDisplayValueBuilder('video'),
+    file: createDisplayValueBuilder('file'),
     array: buildArrayVariant,
     object: buildObjectVariant,
 };

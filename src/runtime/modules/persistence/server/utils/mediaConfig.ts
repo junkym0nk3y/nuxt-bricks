@@ -13,6 +13,7 @@ import { useAppConfig } from 'nitropack/runtime';
 import type { IBricksMediaOptimization } from '../../../common/types/media';
 import type { TBricksMediaImageFormat } from '../../../common/types/config';
 import {
+    DEFAULT_MEDIA_MAX_DOCUMENT_UPLOAD_SIZE_MB,
     DEFAULT_MEDIA_MAX_UPLOAD_SIZE_MB,
     DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB,
     DEFAULT_MEDIA_OPTIMIZATION,
@@ -144,12 +145,18 @@ export function resolveMediaConfig(): IResolvedMediaConfig {
         mediaConfig.maxVideoUploadSizeMb,
         DEFAULT_MEDIA_MAX_VIDEO_UPLOAD_SIZE_MB
     );
+    const maxDocumentUploadSizeMb = resolveNumber(
+        mediaConfig.maxDocumentUploadSizeMb,
+        DEFAULT_MEDIA_MAX_DOCUMENT_UPLOAD_SIZE_MB
+    );
 
     return {
         maxUploadSizeBytes: maxUploadSizeMb * BYTES_IN_MB,
         maxUploadSizeMb,
         maxVideoUploadSizeBytes: maxVideoUploadSizeMb * BYTES_IN_MB,
         maxVideoUploadSizeMb,
+        maxDocumentUploadSizeBytes: maxDocumentUploadSizeMb * BYTES_IN_MB,
+        maxDocumentUploadSizeMb,
         optimization: {
             format: resolveImageFormat(optimization.format, DEFAULT_MEDIA_OPTIMIZATION.format),
             quality: clampQuality(

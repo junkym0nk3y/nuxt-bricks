@@ -7,7 +7,7 @@ import type {
     IComponentLibraryItem,
     IDragVisualSize,
 } from '../../../../common/types/brick';
-import type { TMediaGalleryContext } from '../../../../common/types/media';
+import type { IMediaGalleryPickFilter, TMediaGalleryContext } from '../../../../common/types/media';
 import type { ISkippedBrick } from '../../../core/types/componentLibrary';
 import type { ISchemaTreeMoveRequest } from './composables';
 import type { Component, ComputedRef, Ref, ShallowRef } from 'vue';
@@ -77,11 +77,12 @@ export interface IComponentCardPreview {
 
 export interface ISidebarPropertiesViewEmits {
     close: [];
-    openMediaGallery: [];
+    /** Carries which files the property can take: a picture, a video or a document */
+    openMediaGallery: [pickFilter: IMediaGalleryPickFilter];
 }
 
 export interface ISidebarPropertiesPanelEmits {
-    openMediaGallery: [];
+    openMediaGallery: [pickFilter: IMediaGalleryPickFilter];
 }
 
 export interface ISidebarSchemaTreeItemProps {

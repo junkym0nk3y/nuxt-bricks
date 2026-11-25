@@ -3,6 +3,7 @@
 // Types
 import type { TBricksDeviceKey } from '../../../../common/types/brick';
 import type { IBricksTabItem } from '../../../../ui/base/tabs/types.d.ts';
+import type { IMediaGalleryPickFilter } from '../../../../common/types/media';
 import type { ISidebarPropertiesViewEmits } from '../types/components';
 
 // Vue
@@ -91,7 +92,8 @@ const {
     handleDeleteSelectedComponent,
     selectedComponentId,
 } = useSidebarPropertiesPanel({
-    onOpenMediaGallery: () => emit('openMediaGallery'),
+    onOpenMediaGallery: (pickFilter: IMediaGalleryPickFilter) =>
+        emit('openMediaGallery', pickFilter),
 });
 // #endregion
 

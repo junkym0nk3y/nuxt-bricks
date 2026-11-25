@@ -20,7 +20,7 @@ import type {
 } from '../../../../common/types/brick';
 import type { TComponentMoveDestination } from '../../../core/types/componentMove';
 import type { TPublishFormState } from '../../../../common/types/bricks-api';
-import type { IMediaItem } from '../../../../common/types/media';
+import type { IMediaGalleryPickFilter, IMediaItem } from '../../../../common/types/media';
 import type { TMediaContext, TInlineGalleryPayload } from './sidebarProperties';
 import type { ISelectedComponentData } from '../../../core/stores/types';
 import type { TBrickDemoValues } from '../../../../common/types/index';
@@ -92,8 +92,11 @@ export interface IUsePublishValidationSchemaReturn {
  * Options of the `useSidebarMediaSelection` composable.
  */
 export interface IUseSidebarMediaSelectionOptions {
-    /** Opens the media gallery modal (UI outside this domain) */
-    onOpenMediaGallery: () => void;
+    /**
+     * Opens the media gallery modal (UI outside this domain), offering the files the
+     * property can take
+     */
+    onOpenMediaGallery: (pickFilter: IMediaGalleryPickFilter) => void;
     /**
      * Writes a picked value the ordinary way — through the device scope of the panel.
      * Used for a media property the blocks DO adapt (the background of a Section, a
@@ -161,7 +164,7 @@ export interface IUseSidebarResponsiveScopeReturn {
  * Options of the `useSidebarPropertiesPanel` composable.
  */
 export interface IUseSidebarPropertiesPanelOptions {
-    onOpenMediaGallery: () => void;
+    onOpenMediaGallery: (pickFilter: IMediaGalleryPickFilter) => void;
 }
 
 /**

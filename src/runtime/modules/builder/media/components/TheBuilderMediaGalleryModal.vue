@@ -15,13 +15,18 @@
  * counters, the filtered list and the actions over the categories come out of
  * `useMediaGallerySurface` — the model shared with `TheBuilderMediaSection`.
  *
+ * A picker offers only the files its caller can put to use (`pickFilter`): a picture or a
+ * video for an image property, a document for a file property, anything for a link in
+ * text. Within what is offered, the kind select narrows the grid further; it is drawn
+ * only when more than one kind is on offer.
+ *
  * The content of the grid is swapped with a dissolve: switching a category used to
  * replace the grid instantly, and against a layout that did not move (six tiles before,
  * six after) there was no seeing that the list had been refreshed at all. The key is the
- * category alone, without the search query: on the query the grid would be rebuilt letter
- * by letter and would blink at every keystroke. The drop target covers the grid alone:
- * the row of filters has to stay visible, it being what tells which category the files
- * will go into.
+ * category and the kind, without the search query: on the query the grid would be
+ * rebuilt letter by letter and would blink at every keystroke. The drop target covers
+ * the grid alone: the row of filters has to stay visible, it being what tells which
+ * category the files will go into.
  *
  * Decisions held by the style section: the area of the grid is the positioning container
  * of the drop target, so it stretches over the grid's place rather than over the whole
@@ -36,6 +41,7 @@
 // Types
 import type {
     IBricksMediaOptimization,
+    IMediaGalleryPickFilter,
     IMediaItem,
     IMediaUpdateMetaRequest,
 } from '../../../common/types/media';
@@ -44,6 +50,10 @@ import type { IMediaGalleryProps, IMediaGalleryEmits } from '../types/media';
 // Utils
 import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
 import { DEFAULT_MEDIA_OPTIMIZATION } from '../../../common/constants/mediaOptimization';
+import {
+    MEDIA_PICK_FILTER_ANY,
+    MEDIA_PICK_FILTER_VISUAL,
+} from '../../../common/constants/mediaDocuments';
 import { getBricksErrorMessage } from '../../../common/utils/main';
 import { formatFileSize } from '../utils/formatFileSize';
 import { isRequestTimeoutError } from '../../../common/utils/apiRequestPolicy';
@@ -60,6 +70,7 @@ import { useMediaCategoriesStore } from '../stores/mediaCategories';
 import { useMediaUpload } from '../composables/useMediaUpload';
 import { useMediaGalleryFileDrop } from '../composables/useMediaGalleryFileDrop';
 import { useMediaGallerySurface } from '../composables/useMediaGallerySurface';
+import { useMediaKindFilter } from '../composables/useMediaKindFilter';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 
 // Components
@@ -69,6 +80,7 @@ import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
 import BricksToast from '../../../ui/feedback/BricksToast.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
 import BricksSearchInput from '../../../ui/inputs/BricksSearchInput.vue';
+import BricksSelect from '../../../ui/inputs/BricksSelect.vue';
 import BricksEmptyState from '../../../ui/feedback/BricksEmptyState.vue';
 import BuilderMediaGalleryFilters from './BuilderMediaGalleryFilters.vue';
 import BuilderMediaGalleryUploadControls from './BuilderMediaGalleryUploadControls.vue';
@@ -81,6 +93,7 @@ import BuilderMediaGalleryPreviewLightbox from './BuilderMediaGalleryPreviewLigh
 // #region Props
 const props = withDefaults(defineProps<IMediaGalleryProps>(), {
     context: 'manager',
+    pickFilter: null,
 });
 // #endregion
 
@@ -113,12 +126,19 @@ const uploadControlsRef = ref<InstanceType<typeof BuilderMediaGalleryUploadContr
  */
 const uploadOptimization = ref<IBricksMediaOptimization>({ ...DEFAULT_MEDIA_OPTIMIZATION });
 
-const { maxImageSizeMb, maxVideoSizeMb, defaultOptimization, uploadProgress, uploadFiles } =
-    useMediaUpload({
-        resolveCategory: resolveUploadCategory,
-        resolveOptimization: () => uploadOptimization.value,
-        onError: showErrorToast,
-    });
+const {
+    maxImageSizeMb,
+    maxVideoSizeMb,
+    maxDocumentSizeMb,
+    defaultOptimization,
+    uploadProgress,
+    uploadFiles,
+} = useMediaUpload({
+    resolveCategory: resolveUploadCategory,
+    resolveOptimization: () => uploadOptimization.value,
+    resolvePickFilter,
+    onError: showErrorToast,
+});
 
 uploadOptimization.value = { ...defaultOptimization };
 
@@ -132,14 +152,25 @@ const {
     resetFileDrop,
 } = useMediaGalleryFileDrop({ onFiles: handleUpload });
 
+const {
+    kindFilter,
+    kindOptions,
+    kindFacets,
+    selectedKind,
+    hasKindChoice,
+    handleKindChange,
+    resetKindFilter,
+} = useMediaKindFilter({ kinds: () => (resolvePickFilter() ?? MEDIA_PICK_FILTER_ANY).kinds });
+
 /**
  * The model shared with the "Media" section of the dashboard: the counters of the
- * track, the filtered list and the actions over the categories. The filter and the
+ * track, the filtered list and the actions over the categories. The filters and the
  * search string stay local to the modal — it drops them on every opening, and the
  * section must not feel that.
  */
 const {
     mediaItems,
+    offeredItems,
     isUploading,
     hasItems,
     hasLibrarySnapshot,
@@ -160,6 +191,8 @@ const {
     resetCategoryActions,
 } = useMediaGallerySurface({
     categoryFilter: () => categoryFilter.value,
+    kindFilter: () => kindFilter.value,
+    pickFilter: resolvePickFilter,
     searchQuery: () => searchQuery.value,
     onCategoryFilterReset: () => {
         categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
@@ -187,6 +220,21 @@ const librarySummary = computed<string>(() =>
 // #endregion
 
 // #region Methods
+/**
+ * The files this opening offers: the caller's filter, or a picture and a video for a
+ * picking context that names none — every caller that picked before documents existed
+ * puts the file into an `<img>` or a `<video>`.
+ *
+ * @returns The pick filter; null — every file (the manager).
+ */
+function resolvePickFilter(): IMediaGalleryPickFilter | null {
+    if (props.pickFilter) {
+        return props.pickFilter;
+    }
+
+    return props.context === 'manager' ? null : MEDIA_PICK_FILTER_VISUAL;
+}
+
 /**
  * Loads the media and the categories, taking care of the errors.
  *
@@ -303,6 +351,7 @@ function handleInsert(): void {
 function handleResetFilter(): void {
     categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
     searchQuery.value = '';
+    resetKindFilter();
 }
 
 /** Saves the changed metadata of the selected item; a refusal becomes a toast */
@@ -425,6 +474,7 @@ watch(
             selectedItemId.value = null;
             categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
             searchQuery.value = '';
+            resetKindFilter();
             uploadOptimization.value = { ...defaultOptimization };
             loadGalleryData();
             return;
@@ -480,6 +530,7 @@ watch(
                         ref="uploadControlsRef"
                         :max-image-size-mb="maxImageSizeMb"
                         :max-video-size-mb="maxVideoSizeMb"
+                        :max-document-size-mb="maxDocumentSizeMb"
                         :optimization="uploadOptimization"
                         :configured-max-width="defaultOptimization.maxWidth"
                         :upload-progress="uploadProgress"
@@ -494,17 +545,27 @@ watch(
                     v-model:category-filter="categoryFilter"
                     :categories="categories"
                     :category-counts="categoryCounts"
-                    :total-count="hasLibrarySnapshot ? mediaItems.length : null"
+                    :total-count="hasLibrarySnapshot ? offeredItems.length : null"
                     :is-creating-category="isCreatingCategory"
                     @create-category="handleCreateCategory"
                     @delete-category="handleRequestCategoryDelete"
-                />
+                >
+                    <template v-if="hasKindChoice" #filters>
+                        <BricksSelect
+                            :value="selectedKind"
+                            :specs="kindOptions"
+                            :facets="kindFacets"
+                            :aria-label="t('bricks.media.kindFilter.label')"
+                            @update:value="handleKindChange"
+                        />
+                    </template>
+                </BuilderMediaGalleryFilters>
 
                 <div :class="$style.gridArea">
                     <Transition mode="out-in" name="bricks-fade-fast">
                         <BuilderMediaGalleryGrid
                             v-if="hasFilteredItems || isUploading"
-                            :key="categoryFilter"
+                            :key="`${categoryFilter}:${selectedKind}`"
                             :items="filteredMediaItems"
                             :selected-item-id="selectedItemId"
                             :show-skeleton="isUploading"
@@ -540,6 +601,7 @@ watch(
                             :file-count="draggedFileCount"
                             :max-image-size-mb="maxImageSizeMb"
                             :max-video-size-mb="maxVideoSizeMb"
+                            :max-document-size-mb="maxDocumentSizeMb"
                             :optimization="uploadOptimization"
                         />
                     </Transition>

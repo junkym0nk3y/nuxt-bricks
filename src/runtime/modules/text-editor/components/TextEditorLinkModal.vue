@@ -2,6 +2,9 @@
 /**
  * @description Link form for a selection inside the TipTap editor.
  *
+ * The address may come out of the media library — a presentation or a price list behind a
+ * word of the text; the pick itself is the composable's (`pickLinkFile`).
+ *
  * Every editor surface mounts its own copy (the properties panel, the expanded modal,
  * the inline overlay on the canvas) instead of one instance per application: each
  * surface has an editor instance of its own, and a shared modal would apply the link to
@@ -87,6 +90,11 @@ function handleRemove(): void {
 function handleClose(): void {
     emit('close');
 }
+
+/** Asks for a file of the media library, handing over the form as it stands */
+function handlePickFile(): void {
+    emit('pickFile', { href: href.value, openInNewTab: openInNewTab.value });
+}
 // #endregion
 
 // #region Lifecycle
@@ -131,6 +139,17 @@ watch(
                     @update:value="(value: string) => (href = value)"
                 />
 
+                <BricksButton
+                    :class="$style.pickFile"
+                    size="sm"
+                    variant="ghost"
+                    type="button"
+                    @click="handlePickFile"
+                >
+                    <BricksIcon icon="ta:outline-paperclip" />
+                    {{ t('bricks.textEditor.linkModal.pickFile') }}
+                </BricksButton>
+
                 <BricksCheckbox
                     :value="openInNewTab"
                     :label="t('bricks.textEditor.linkModal.newTab')"
@@ -170,6 +189,10 @@ watch(
     border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);
     box-shadow: var(--bricks-shadow-lg);
+}
+
+.pickFile {
+    align-self: flex-start;
 }
 
 .form {

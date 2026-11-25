@@ -6,7 +6,11 @@ import type { IComponentLibraryItem } from '../../../common/types/brick';
 import type { ComputedRef, Ref } from 'vue';
 import type { useSidebarStore } from '../../core/stores/sidebar';
 import type { usePublishStore } from '../../publish/stores/publish';
-import type { IMediaItem, TMediaGalleryContext } from '../../../common/types/media';
+import type {
+    IMediaGalleryPickFilter,
+    IMediaItem,
+    TMediaGalleryContext,
+} from '../../../common/types/media';
 import type { IPublishedPage, TPublishedPageSummary } from '../../../common/types/bricks-api';
 import type { IBricksPageAddress } from '../../../common/types/pageAddress';
 import type { IUsePublishSchemaImportReturn } from '../../publish/types/composables';
@@ -135,6 +139,8 @@ export interface IUseBuilderPageWriteReturn {
  */
 export interface IInlineMediaBridge {
     isRequestingMedia: ComputedRef<boolean>;
+    /** Which files the pending request takes; null — the default of a picking gallery */
+    mediaRequestFilter: ComputedRef<IMediaGalleryPickFilter | null>;
     resolveMediaRequest: (item: IMediaItem) => void;
     cancelMediaRequest: () => void;
     /**
@@ -184,6 +190,8 @@ export interface IUseBuilderPageReturn {
     shouldMountMediaGallery: Ref<boolean>;
     isMediaGalleryModalOpen: Ref<boolean>;
     mediaGalleryContext: Ref<TMediaGalleryContext>;
+    /** Which files the open gallery offers; null — the default of its context */
+    mediaGalleryPickFilter: Ref<IMediaGalleryPickFilter | null>;
     sidebarRef: Ref<ISidebarExpose | null>;
     propertiesPanelRef: Ref<ISidebarExpose | null>;
     toast: IBuilderToastState;
@@ -196,7 +204,10 @@ export interface IUseBuilderPageReturn {
     handleOpenDocs: () => void;
     handleCloseDocs: () => void;
     handleMediaError: (message: string) => void;
-    handleOpenMediaGallery: (context?: TMediaGalleryContext) => void;
+    handleOpenMediaGallery: (
+        context?: TMediaGalleryContext,
+        pickFilter?: IMediaGalleryPickFilter | null
+    ) => void;
     handleCloseMediaGallery: () => void;
     handleMediaSelect: (item: IMediaItem) => void;
     handleSaveDraft: () => Promise<void>;

@@ -1,7 +1,7 @@
 // #region Imports
 // Types
 import type { Editor } from '@tiptap/vue-3';
-import type { IMediaItem } from '../../common/types/media';
+import type { IMediaGalleryPickFilter, IMediaItem } from '../../common/types/media';
 import type { IInlineEditableProp, TInlineEditingPropType } from '../../common/types/inlineEditing';
 
 // Vue
@@ -49,6 +49,13 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
      * Set through requestMedia(), settled through resolveMediaRequest().
      */
     const mediaRequestCallback = ref<((item: IMediaItem) => void) | null>(null);
+
+    /**
+     * Which files the pending request takes. Null — the default of a picking gallery
+     * (a picture or a video): an inserted image goes into an `<img>`, while a link may
+     * point at any file, documents included.
+     */
+    const mediaRequestFilter = ref<IMediaGalleryPickFilter | null>(null);
 
     /** Every inline-editable property of the current component */
     const editableProps = ref<IInlineEditableProp[]>([]);
@@ -182,8 +189,13 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
      * The builder page watches isRequestingMedia and opens the gallery.
      *
      * @param callback - Called with the picked IMediaItem.
+     * @param filter - Which files the gallery offers; null — a picture or a video.
      */
-    function requestMedia(callback: (item: IMediaItem) => void): void {
+    function requestMedia(
+        callback: (item: IMediaItem) => void,
+        filter: IMediaGalleryPickFilter | null = null
+    ): void {
+        mediaRequestFilter.value = filter;
         mediaRequestCallback.value = callback;
     }
 
@@ -195,6 +207,7 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     function resolveMediaRequest(item: IMediaItem): void {
         const cb = mediaRequestCallback.value;
         mediaRequestCallback.value = null;
+        mediaRequestFilter.value = null;
         if (cb) {
             cb(item);
         }
@@ -203,6 +216,7 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
     /** Cancels the media request (the gallery was closed without a pick) */
     function cancelMediaRequest(): void {
         mediaRequestCallback.value = null;
+        mediaRequestFilter.value = null;
     }
     // #endregion
 
@@ -217,6 +231,7 @@ export const useInlineEditingStore = defineStore('bricksInlineEditing', () => {
         currentPropIndex,
         isEditing,
         isRequestingMedia,
+        mediaRequestFilter,
         currentPropLabel,
         editablePropsCount,
         canSwitchPrev,

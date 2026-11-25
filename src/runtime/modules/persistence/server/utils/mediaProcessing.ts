@@ -3,6 +3,7 @@ import { createError } from 'h3';
 import type {
     IOptimizedImage,
     IUploadedFilePart,
+    IValidatedDocumentUpload,
     IValidatedImage,
     IValidatedVideoUpload,
     TMediaVariant,
@@ -10,10 +11,13 @@ import type {
 import type { IBricksMediaOptimization } from '../../../common/types/media';
 import {
     looksLikeSvgMarkup,
+    sniffDocumentFormat,
     sniffImageFormat,
     sniffVideoFormat,
     type TSniffedImageFormat,
 } from './fileSignatures';
+import { MEDIA_DOCUMENT_MIME_TYPES } from '../../../common/constants/mediaDocuments';
+import { isMediaDocumentFile } from '../../../common/utils/mediaKind';
 import { SNIFFED_FORMAT_EXTENSIONS } from './mediaFormats';
 import {
     getFileExtension,
@@ -334,4 +338,54 @@ export function validateVideoUpload(
     const mimeType = resolveVideoMime(targetExtension, file.type);
 
     return { mimeType, targetExtension };
+}
+
+/**
+ * Validates a document upload: the declared type, the size and the content, which
+ * decides the format the file is stored as.
+ *
+ * The format comes from the content, the way an image's does: a DOCX named `brief.doc`
+ * goes into the bucket as `*.docx` with the DOCX MIME type, so the browser that
+ * downloads it opens it with the right application. A document is not processed — no
+ * sharp, no variants — and the bytes are stored as they arrived.
+ *
+ * @param file - The collected file part.
+ * @param maxUploadSizeBytes - The document ceiling in bytes.
+ * @param maxUploadSizeMb - The same ceiling in megabytes (for the message).
+ * @returns The bytes with the MIME type and the extension to store them with.
+ */
+export function validateDocumentUpload(
+    file: IUploadedFilePart,
+    maxUploadSizeBytes: number,
+    maxUploadSizeMb: number
+): IValidatedDocumentUpload {
+    const buffer = toBuffer(file.data);
+
+    assertDeclaredMimeType(file.type);
+
+    if (!isMediaDocumentFile(file.type, getFileExtension(file.filename))) {
+        throw createError({
+            statusCode: 400,
+            message: 'Unsupported document format',
+        });
+    }
+
+    if (buffer.length > maxUploadSizeBytes) {
+        throw createError({
+            statusCode: 413,
+            message: `Document is too large. Maximum allowed size is ${Math.floor(maxUploadSizeMb)}MB`,
+        });
+    }
+
+    const format = sniffDocumentFormat(buffer);
+
+    if (!format) {
+        throw createError({
+            statusCode: 400,
+            message:
+                'File content is not a supported document: PDF, DOC/DOCX or XLS/XLSX without a VBA project',
+        });
+    }
+
+    return { buffer, mimeType: MEDIA_DOCUMENT_MIME_TYPES[format], targetExtension: format };
 }

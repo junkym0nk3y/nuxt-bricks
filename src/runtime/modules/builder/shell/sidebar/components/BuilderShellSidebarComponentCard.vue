@@ -16,6 +16,11 @@
  *
  * The thumbnail is a `.bricks-canvas` as well, so `base-900` here is the light canvas
  * token in both themes: the text of the component stays dark on the white preview.
+ *
+ * A brick that declares `thumbnail` shows that picture instead of the live preview
+ * (`hasBrickThumbnail`). The live instance is still rendered, only out of sight: it is
+ * what the drag placeholder takes its size from, and a picture says nothing about the
+ * height the block will have on the sheet.
  * The (i) glyph is 1.6rem and its hit area is widened by padding to about 2.8rem — it
  * is a hard target to hit with the cursor otherwise.
  */
@@ -25,7 +30,7 @@
 import type { ISidebarComponentCardProps } from '../types/components';
 
 // Vue
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Pinia
@@ -72,7 +77,12 @@ const {
     getDragPreviewSize,
 } = useComponentCardPreview(props);
 const { handleDragStart, handleDragEnd } = useComponentCardDrag(props, getDragPreviewSize);
-const { resolveAssetUrl } = useBricksAssetUrl();
+const { resolveAssetUrl, resolvePublicUrl } = useBricksAssetUrl();
+/**
+ * The brick picture failed to load: the card falls back to the live preview rather
+ * than showing a broken image, and the address goes to the console for the developer
+ */
+const isBrickThumbnailBroken = ref(false);
 // #endregion
 
 // #region Computed
@@ -90,13 +100,26 @@ const resolvedDescription = computed<string>(
 const hasThumbnail = computed(() => props.isLayout && Boolean(props.component.thumbnail));
 
 /**
- * URL of the layout block icon: the definitions keep the asset path of the module
- * ('images/layouts/...'), and the URL is built with the module asset prefix and
- * `app.baseURL` taken into account.
+ * Whether a brick shows its static picture instead of the live preview
  */
-const thumbnailUrl = computed<string>(() =>
-    props.component.thumbnail ? resolveAssetUrl(props.component.thumbnail) : ''
+const hasBrickThumbnail = computed<boolean>(
+    () => !props.isLayout && Boolean(props.component.thumbnail) && !isBrickThumbnailBroken.value
 );
+
+/**
+ * URL of the card picture. A layout block keeps the asset path of the module
+ * ('images/layouts/...') and gets the module asset prefix; a brick keeps a path from the
+ * root of the consumer `public/` and gets `app.baseURL` alone. Both honor `app.baseURL`.
+ */
+const thumbnailUrl = computed<string>(() => {
+    const thumbnail = props.component.thumbnail;
+
+    if (!thumbnail) {
+        return '';
+    }
+
+    return props.isLayout ? resolveAssetUrl(thumbnail) : resolvePublicUrl(thumbnail);
+});
 
 /**
  * Whether the component is a favorite
@@ -117,6 +140,18 @@ const isFavorite = computed<boolean>(() =>
 const previewHostStyle = computed(() => ({
     '--card-preview-width': convertPxToRem(canvasStore.getViewportWidth(BASE_DEVICE_KEY)),
 }));
+// #endregion
+
+// #region Methods
+/**
+ * Falls back to the live preview when the brick picture does not load
+ */
+function onBrickThumbnailError(): void {
+    console.warn(
+        `[nuxt-bricks] Library thumbnail of "${props.component.name}" failed to load: ${thumbnailUrl.value}`
+    );
+    isBrickThumbnailBroken.value = true;
+}
 // #endregion
 </script>
 
@@ -169,8 +204,17 @@ const previewHostStyle = computed(() => ({
 
         <div v-else :class="$style.cardInner">
             <div :class="[$style.thumbnail, 'bricks-canvas']">
+                <img
+                    v-if="hasBrickThumbnail"
+                    :src="thumbnailUrl"
+                    :alt="props.component.name"
+                    :class="$style.thumbnailImage"
+                    loading="lazy"
+                    decoding="async"
+                    @error="onBrickThumbnailError"
+                />
                 <div
-                    v-if="ComponentPreview"
+                    v-else-if="ComponentPreview"
                     ref="previewWrapperRef"
                     :class="$style.previewViewport"
                 >
@@ -188,6 +232,20 @@ const previewHostStyle = computed(() => ({
                     </div>
                 </div>
                 <BricksIcon v-else :class="$style.icon" icon="ta:outline-puzzle" />
+            </div>
+
+            <div
+                v-if="hasBrickThumbnail && ComponentPreview"
+                :class="[$style.measureProbe, 'bricks-canvas']"
+                aria-hidden="true"
+            >
+                <div
+                    ref="componentWrapperRef"
+                    :class="$style.componentWrapper"
+                    :data-bricks-viewport="BASE_DEVICE_KEY"
+                >
+                    <component :is="ComponentPreview" v-bind="componentProps" />
+                </div>
             </div>
 
             <div :class="$style.info">
@@ -335,6 +393,13 @@ const previewHostStyle = computed(() => ({
 .componentWrapper {
     width: var(--card-preview-width);
     min-width: var(--card-preview-width);
+}
+
+.thumbnailImage {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .icon {

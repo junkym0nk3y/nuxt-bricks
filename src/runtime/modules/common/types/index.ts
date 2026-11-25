@@ -37,6 +37,7 @@ export interface IBrickValues {
         | 'readonly'
         | 'image'
         | 'video'
+        | 'file'
         | 'array'
         | 'object'
         | 'modal-select'
@@ -63,6 +64,11 @@ export interface IBrickValues {
     showWhen?: IBrickShowWhen;
     /** Name of the property to store svgContent in when an SVG is picked from the gallery */
     svgContentProperty?: string;
+    /**
+     * Extensions a `file` property takes (`['pdf']`), without the dot. Unset — every
+     * document of the media library (PDF, DOC/DOCX, XLS/XLSX).
+     */
+    accept?: string[];
     /** Unit suffix for the input (for example, 'rem') */
     unit?: string;
     /** Group name that folds the properties into a collapsible accordion */

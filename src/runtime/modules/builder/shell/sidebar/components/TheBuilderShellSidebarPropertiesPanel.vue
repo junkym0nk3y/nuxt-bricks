@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // #region Imports
 // Types
-import type { IMediaItem } from '../../../../common/types/media';
+import type { IMediaGalleryPickFilter, IMediaItem } from '../../../../common/types/media';
 import type { ISidebarPropertiesPanelEmits } from '../types/components';
 
 // Vue
@@ -41,9 +41,11 @@ function handleClose(): void {
 
 /**
  * Forwards the request to open the media gallery upwards.
+ *
+ * @param pickFilter - Which files the property can take.
  */
-function handleOpenMediaGallery(): void {
-    emit('openMediaGallery');
+function handleOpenMediaGallery(pickFilter: IMediaGalleryPickFilter): void {
+    emit('openMediaGallery', pickFilter);
 }
 
 /**

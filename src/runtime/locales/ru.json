@@ -265,7 +265,8 @@
             "valuePlaceholder": "Введите {label}",
             "mediaPicker": {
                 "label": "Медиа",
-                "previewAlt": "Превью"
+                "previewAlt": "Превью",
+                "fileLabel": "Файл"
             },
             "deviceScopeLockedHint": "На вкладке устройства меняются только адаптивные свойства. Остальные одинаковы для всех устройств — переключитесь на базовое, чтобы изменить их."
         },
@@ -509,7 +510,7 @@
             "select": "Выбрать",
             "cancel": "Отменить",
             "emptyFiltered": "Нет файлов, подходящих под фильтр",
-            "emptyNoUploads": "Нет загруженных изображений",
+            "emptyNoUploads": "Нет загруженных файлов",
             "loadFailed": "Не удалось загрузить медиа",
             "loadFailedCheckDb": "Не удалось загрузить медиа. Проверьте подключение к базе.",
             "listResponseInvalid": "Сервер вернул список медиа в неизвестном формате",
@@ -521,16 +522,19 @@
             "deleteImageTitle": "Удалить изображение?",
             "deleteImageDescription": "Это действие нельзя отменить. Изображение будет удалено безвозвратно.",
             "fullscreen": "Полноэкранный просмотр",
+            "download": "Скачать",
             "categoryLabel": "Категория",
             "searchPlaceholder": "Поиск по имени или alt",
             "nameLabel": "Имя",
             "filenamePlaceholder": "Имя файла",
             "altPlaceholder": "Описание изображения",
-            "sizeHint": "изображения до {image} МБ, видео до {video} МБ",
+            "sizeHint": "изображения до {image} МБ, видео до {video} МБ, документы до {document} МБ",
             "fileTypeImage": "Изображение",
             "fileTypeVideo": "Видео",
+            "fileTypeDocument": "Документ",
             "fileTooLarge": "{type} «{name}» превышает лимит {max} МБ",
-            "fileTypeUnsupported": "«{name}»: поддерживаются только изображения и видео",
+            "fileTypeUnsupported": "«{name}»: поддерживаются изображения, видео и документы PDF, Word, Excel",
+            "fileNotOffered": "«{name}» сюда не подходит: здесь выбирают файлы другого типа",
             "categories": {
                 "all": "Все"
             },
@@ -551,6 +555,7 @@
             "selectFileHint": "Выберите файл, чтобы изменить его свойства",
             "librarySummary": "файлов в медиатеке: {count} · {size}",
             "altUnusedForVideo": "у видео alt не используется",
+            "altUnusedForDocument": "у документа alt не используется",
             "categoryLoadFailed": "Не удалось загрузить категории",
             "categoryListResponseInvalid": "Сервер вернул список категорий в неизвестном формате",
             "categoryCreate": "Создать категорию",
@@ -582,6 +587,7 @@
             "summary": {
                 "vector": "вектор",
                 "video": "видео",
+                "document": "документ",
                 "dimensionsUnknown": "размеры неизвестны"
             },
             "librarySummaryShort": "файлов: {count} · {size}",
@@ -604,7 +610,15 @@
                 "copyFailed": "Не удалось скопировать URL"
             },
             "fullscreenFor": "Полноэкранный просмотр файла {filename}",
-            "fileInputLabel": "Выберите файлы для загрузки"
+            "downloadFor": "Скачать файл {filename}",
+            "fileInputLabel": "Выберите файлы для загрузки",
+            "kindFilter": {
+                "label": "Тип файла",
+                "all": "Все типы",
+                "image": "Изображения",
+                "video": "Видео",
+                "document": "Документы"
+            }
         },
         "schema": {
             "title": "Схема страницы",
@@ -688,7 +702,8 @@
                 "hint": "Без протокола адрес дополняется https://. Разрешены http(s), mailto, tel, якорь (#) и путь от корня сайта (/).",
                 "invalidUrl": "Недопустимый адрес ссылки",
                 "apply": "Применить",
-                "remove": "Убрать ссылку"
+                "remove": "Убрать ссылку",
+                "pickFile": "Файл из медиатеки"
             },
             "toolbar": {
                 "bold": "Жирный",

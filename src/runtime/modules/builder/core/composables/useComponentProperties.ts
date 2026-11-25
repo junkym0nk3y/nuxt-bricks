@@ -22,6 +22,7 @@ const PROPERTY_TYPE_BY_BRICK_TYPE = {
     textarea: 'textarea',
     image: 'image',
     video: 'video',
+    file: 'file',
     'inline-content': 'inline-content',
     tags: 'tags',
     'image-gallery': 'image-gallery',
@@ -33,6 +34,28 @@ const PROPERTY_TYPE_BY_BRICK_TYPE = {
     tabs: 'select',
     'modal-select': 'select',
 } as const satisfies Record<string, TPropertyType>;
+
+/**
+ * The extensions of a `file` property as the panel needs them.
+ *
+ * The declaration comes from a `.brick.ts` file of the consumer and is not checked at
+ * build time, so anything that is not a list of strings is dropped rather than trusted:
+ * a bare `accept: 'pdf'` would otherwise break the filter of the gallery on `.some`.
+ *
+ * @param value - Declaration of the property in the brick file.
+ * @returns The extensions, or undefined when none are declared.
+ */
+function readAcceptedExtensions(value: IBrickValues): string[] | undefined {
+    if (!Array.isArray(value.accept)) {
+        return undefined;
+    }
+
+    const extensions = value.accept.filter(
+        (extension): extension is string => typeof extension === 'string' && extension.trim() !== ''
+    );
+
+    return extensions.length > 0 ? extensions : undefined;
+}
 
 /**
  * Infers the property type from a brick value.
@@ -100,6 +123,7 @@ export function useComponentProperties() {
                 step: value.step,
                 showWhen: value.showWhen,
                 svgContentProperty: value.svgContentProperty,
+                accept: readAcceptedExtensions(value),
                 unit: value.unit,
                 group: value.group,
                 responsive: value.responsive,

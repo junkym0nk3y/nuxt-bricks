@@ -108,6 +108,12 @@ export interface IComponentLibraryItem {
     category: string;
     brickPath: string;
     description?: string;
+    /**
+     * Static picture of the card. Two address spaces, told apart by the kind of the
+     * item: a layout block keeps a path among the module assets (`images/layouts/…`,
+     * served under `/_bricks/`), a brick keeps a path from the root of the consumer
+     * `public/` or an absolute URL. Empty — the card has no picture.
+     */
     thumbnail?: string;
     defaultProps?: Record<string, unknown>;
     slots?: IComponentSlotDefinition[];
@@ -172,6 +178,7 @@ export type TPropertyType =
     | 'input'
     | 'image'
     | 'video'
+    | 'file'
     | 'color'
     | 'array'
     | 'object'
@@ -206,6 +213,12 @@ export interface IPropertyDefinition {
     };
     /** Name of the property to store svgContent in when an SVG is picked from the gallery */
     svgContentProperty?: string;
+    /**
+     * Extensions a `file` property takes (`['pdf']`), without the dot. Unset — every
+     * document of the library; set — exactly these extensions, pictures included when
+     * listed.
+     */
+    accept?: string[];
     /**
      * Names of the properties to store the URLs of the downscaled variants in when
      * an image is picked from the gallery (progressive loading).

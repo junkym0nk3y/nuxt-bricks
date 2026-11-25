@@ -2,10 +2,10 @@
  * The technical summaries of a file, for the second row of the meta panel.
  *
  * The line always holds the same three parts — dimensions, weight, format — and it is
- * assembled here rather than in the template because of the first of them: a video and
- * a vector have no pixel dimensions, nor has a raster uploaded before the dimensions
- * started being stored, so each of those gets a caption of its own instead. In a
- * template that would be a nest of `v-if`.
+ * assembled here rather than in the template because of the first of them: a video, a
+ * vector and a document have no pixel dimensions, nor has a raster uploaded before the
+ * dimensions started being stored, so each of those gets a caption of its own instead.
+ * In a template that would be a nest of `v-if`.
  */
 
 // Types
@@ -14,6 +14,7 @@ import type { TTranslateFn } from '../../../common/utils/i18nLabels';
 
 // Utils
 import { formatFileSize } from './formatFileSize';
+import { resolveMediaDocumentExtension } from '../../../common/utils/mediaKind';
 
 /** Separator of the parts of the technical line */
 const SUMMARY_SEPARATOR = ' · ';
@@ -28,6 +29,15 @@ export function isVideoMedia(item: IMediaItem): boolean {
 }
 
 /**
+ * Whether the file is a document (PDF, Word, Excel).
+ *
+ * @param item - The media item.
+ */
+export function isDocumentMedia(item: IMediaItem): boolean {
+    return resolveMediaDocumentExtension(item.mimeType) !== null;
+}
+
+/**
  * Whether the file is a vector (SVG).
  *
  * @param item - The media item.
@@ -38,12 +48,20 @@ function isVectorMedia(item: IMediaItem): boolean {
 
 /**
  * The short name of a format out of its MIME type (`image/webp` → `WebP`,
- * `video/mp4` → `MP4`).
+ * `video/mp4` → `MP4`, the DOCX MIME → `DOCX`).
  *
  * @param mimeType - MIME type of the file.
  * @returns The name of the format in its usual spelling.
  */
 export function formatMediaFormatName(mimeType: string): string {
+    // The MIME subtype of an office document is a sentence
+    // (`vnd.openxmlformats-officedocument…`), and the extension is what people know it by
+    const documentExtension = resolveMediaDocumentExtension(mimeType);
+
+    if (documentExtension) {
+        return documentExtension.toUpperCase();
+    }
+
     const subtype = mimeType.split('/')[1] ?? mimeType;
     const normalized = subtype.replace('svg+xml', 'svg').replace('quicktime', 'mov');
 
@@ -65,6 +83,10 @@ export function formatMediaDimensions(item: IMediaItem, translate: TTranslateFn)
 
     if (isVectorMedia(item)) {
         return translate('bricks.media.summary.vector');
+    }
+
+    if (isDocumentMedia(item)) {
+        return translate('bricks.media.summary.document');
     }
 
     if (item.width && item.height) {

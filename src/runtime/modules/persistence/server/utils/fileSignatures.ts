@@ -1,8 +1,11 @@
 /**
  * Sniffing a file's format by its magic bytes: the MIME and the extension from the
- * multipart are not trusted — the content's class (a raster image / an SVG / a video)
- * is confirmed by its signature before it is passed on to sharp or to storage.
+ * multipart are not trusted — the content's class (a raster image / an SVG / a video /
+ * a document) is confirmed by its signature before it is passed on to sharp or to
+ * storage.
  */
+
+import type { TMediaDocumentExtension } from '../../../common/types/media';
 
 /** The raster and vector formats recognizable by their content. */
 export type TSniffedImageFormat =
@@ -28,6 +31,40 @@ const SVG_SNIFF_BYTES = 4096;
  */
 const SVG_LEAD_PATTERN =
     /^\uFEFF?\s*(?:(?:<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[^>]*>)\s*)*<svg[\s>/]/i;
+
+/** `%PDF-` — the header a PDF opens with. */
+const PDF_HEADER = '%PDF-';
+
+/** The local file header every zip (and so every DOCX/XLSX) opens with. */
+const ZIP_LOCAL_HEADER = [0x50, 0x4b, 0x03, 0x04];
+
+/** The header of an OLE compound file — the container of the legacy DOC and XLS. */
+const COMPOUND_FILE_HEADER = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
+
+/** Signatures and fixed sizes of the zip central directory. */
+const ZIP_END_OF_DIRECTORY_SIGNATURE = 0x06054b50;
+const ZIP_DIRECTORY_ENTRY_SIGNATURE = 0x02014b50;
+const ZIP_END_OF_DIRECTORY_SIZE = 22;
+const ZIP_DIRECTORY_ENTRY_SIZE = 46;
+const ZIP_MAX_COMMENT_SIZE = 0xffff;
+
+/** The part every Office Open XML package carries at its root. */
+const OOXML_CONTENT_TYPES_PART = '[Content_Types].xml';
+
+/**
+ * The name of the VBA project part: its presence means a macro-enabled document
+ * (`docm`/`xlsm`) whatever the file is called.
+ */
+const OOXML_VBA_PROJECT_PART = 'vbaproject.bin';
+
+/**
+ * Stream names of an OLE compound file, as its directory stores them (UTF-16LE). The
+ * main stream tells a Word document from an Excel workbook (`Book` is the Excel 5
+ * spelling); the VBA project is present in a legacy file with macros.
+ */
+const COMPOUND_WORD_STREAM = Buffer.from('WordDocument', 'utf16le');
+const COMPOUND_EXCEL_STREAMS = [Buffer.from('Workbook', 'utf16le'), Buffer.from('Book', 'utf16le')];
+const COMPOUND_VBA_STREAM = Buffer.from('_VBA_PROJECT', 'utf16le');
 
 /**
  * The ISO-BMFF (`ftyp`) brands that mean an image (HEIC/HEIF/AVIF) rather than a
@@ -181,4 +218,165 @@ export function sniffVideoFormat(buffer: Buffer): TSniffedVideoFormat | null {
     }
 
     return null;
+}
+
+/**
+ * Reads the entry names of a zip out of its central directory.
+ *
+ * The directory rather than the local headers: a local header may carry zero sizes
+ * (streamed writers put them into a data descriptor after the data), so walking them
+ * forward is not reliable, while the directory at the end of the file lists every
+ * entry with its name. The end record is looked for from the end backwards — a
+ * comment of up to 64 KB may follow it — and the signature bytes alone do not make a
+ * record: the comment is free text and may contain them. The record is the one whose
+ * own comment length runs exactly to the end of the file, and only that one directory
+ * is walked. ZIP64 is not read (its offsets do not fit here): such a document is
+ * beyond any upload ceiling anyway.
+ *
+ * One walk, not one per candidate: trying every signature until a directory came out
+ * consistent let a tail packed with forged records — each pointing at a directory of
+ * 65 534 entries and promising one more — cost a full walk apiece. A 3 MB upload held
+ * the synchronous check, and with it the whole server, for seconds.
+ *
+ * @param buffer - The whole file.
+ * @returns The entry names, or null when the file has no consistent directory.
+ */
+function readZipEntryNames(buffer: Buffer): string[] | null {
+    const lowestOffset = Math.max(
+        0,
+        buffer.length - ZIP_END_OF_DIRECTORY_SIZE - ZIP_MAX_COMMENT_SIZE
+    );
+
+    for (
+        let endOffset = buffer.length - ZIP_END_OF_DIRECTORY_SIZE;
+        endOffset >= lowestOffset;
+        endOffset -= 1
+    ) {
+        if (buffer.readUInt32LE(endOffset) !== ZIP_END_OF_DIRECTORY_SIGNATURE) {
+            continue;
+        }
+
+        const commentLength = buffer.readUInt16LE(endOffset + 20);
+
+        if (endOffset + ZIP_END_OF_DIRECTORY_SIZE + commentLength === buffer.length) {
+            return readZipDirectory(buffer, endOffset);
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Walks the central directory an end record points at.
+ *
+ * @param buffer - The whole file.
+ * @param endOffset - Offset of the end-of-directory record.
+ * @returns The entry names, or null when the directory is not consistent.
+ */
+function readZipDirectory(buffer: Buffer, endOffset: number): string[] | null {
+    const entryCount = buffer.readUInt16LE(endOffset + 10);
+    const directorySize = buffer.readUInt32LE(endOffset + 12);
+    const directoryOffset = buffer.readUInt32LE(endOffset + 16);
+
+    if (directoryOffset + directorySize > endOffset) {
+        return null;
+    }
+
+    const names: string[] = [];
+    let cursor = directoryOffset;
+
+    for (let index = 0; index < entryCount; index += 1) {
+        if (
+            cursor + ZIP_DIRECTORY_ENTRY_SIZE > endOffset ||
+            buffer.readUInt32LE(cursor) !== ZIP_DIRECTORY_ENTRY_SIGNATURE
+        ) {
+            return null;
+        }
+
+        const nameLength = buffer.readUInt16LE(cursor + 28);
+        const extraLength = buffer.readUInt16LE(cursor + 30);
+        const commentLength = buffer.readUInt16LE(cursor + 32);
+        const nameStart = cursor + ZIP_DIRECTORY_ENTRY_SIZE;
+
+        if (nameStart + nameLength > endOffset) {
+            return null;
+        }
+
+        names.push(buffer.toString('utf8', nameStart, nameStart + nameLength));
+        cursor = nameStart + nameLength + extraLength + commentLength;
+    }
+
+    return names;
+}
+
+/**
+ * Decides an Office Open XML document: a zip whose root carries
+ * `[Content_Types].xml`, told apart by the folder of its main part.
+ *
+ * @param buffer - The whole file.
+ * @returns `docx`, `xlsx`, or null for any other zip — a presentation, an archive, a
+ *   package with a VBA project.
+ */
+function sniffOfficeOpenXmlFormat(buffer: Buffer): 'docx' | 'xlsx' | null {
+    if (!hasBytes(buffer, 0, ZIP_LOCAL_HEADER)) {
+        return null;
+    }
+
+    const names = readZipEntryNames(buffer);
+
+    if (!names?.includes(OOXML_CONTENT_TYPES_PART)) {
+        return null;
+    }
+
+    if (names.some((name) => name.toLowerCase().endsWith(OOXML_VBA_PROJECT_PART))) {
+        return null;
+    }
+
+    if (names.some((name) => name.startsWith('word/'))) {
+        return 'docx';
+    }
+
+    return names.some((name) => name.startsWith('xl/')) ? 'xlsx' : null;
+}
+
+/**
+ * Decides a legacy Office document: an OLE compound file with a Word or an Excel main
+ * stream. The stream names are looked for in the whole file — the directory sectors
+ * may lie anywhere in it — which is a cheap stand-in for parsing the container and is
+ * enough to tell a document from another compound file (an MSI installer, an Outlook
+ * message).
+ *
+ * @param buffer - The whole file.
+ * @returns `doc`, `xls`, or null — not a Word or Excel file, or one carrying a VBA
+ *   project.
+ */
+function sniffCompoundFileFormat(buffer: Buffer): 'doc' | 'xls' | null {
+    if (!hasBytes(buffer, 0, COMPOUND_FILE_HEADER) || buffer.includes(COMPOUND_VBA_STREAM)) {
+        return null;
+    }
+
+    if (buffer.includes(COMPOUND_WORD_STREAM)) {
+        return 'doc';
+    }
+
+    return COMPOUND_EXCEL_STREAMS.some((stream) => buffer.includes(stream)) ? 'xls' : null;
+}
+
+/**
+ * Decides a document's format by its content: PDF by its header, DOCX/XLSX by the zip
+ * directory, DOC/XLS by the streams of the compound file. A document carrying a VBA project is
+ * not recognized at all, whichever extension it was given; Excel 4.0 macro sheets of an
+ * XLS and a template fetched over an external link are not looked for.
+ *
+ * Needs the WHOLE file: the zip directory sits at its end.
+ *
+ * @param buffer - The file's bytes.
+ * @returns The format (which is also the extension to store the file with), or null.
+ */
+export function sniffDocumentFormat(buffer: Buffer): TMediaDocumentExtension | null {
+    if (hasAscii(buffer, 0, PDF_HEADER)) {
+        return 'pdf';
+    }
+
+    return sniffOfficeOpenXmlFormat(buffer) ?? sniffCompoundFileFormat(buffer);
 }

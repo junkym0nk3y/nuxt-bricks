@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
     BRICKS_PUBLIC_ASSETS_BASE,
+    resolveAppPublicUrl,
     resolveBricksAssetUrl,
 } from '../../src/runtime/modules/common/utils/bricks/assetPaths';
 
@@ -41,6 +42,25 @@ describe('resolveBricksAssetUrl', () => {
     it('пустой baseURL эквивалентен корню', () => {
         expect(resolveBricksAssetUrl('', 'images/a.svg')).toBe(
             `${BRICKS_PUBLIC_ASSETS_BASE}images/a.svg`
+        );
+    });
+});
+
+describe('resolveAppPublicUrl', () => {
+    // A brick card preview lies in the application's public/, not among the module
+    // assets: under baseURL '/landings/' it is '/landings/…', with no '/_bricks/'
+    it('кладёт путь из public/ под app.baseURL, не под /_bricks/', () => {
+        expect(resolveAppPublicUrl('/landings/', '/brick-previews/Promo.webp')).toBe(
+            '/landings/brick-previews/Promo.webp'
+        );
+        expect(resolveAppPublicUrl('/', '/brick-previews/Promo.webp')).toBe(
+            '/brick-previews/Promo.webp'
+        );
+    });
+
+    it('не трогает внешний адрес', () => {
+        expect(resolveAppPublicUrl('/landings/', 'https://cdn.example.com/a.webp')).toBe(
+            'https://cdn.example.com/a.webp'
         );
     });
 });

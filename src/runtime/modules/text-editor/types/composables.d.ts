@@ -120,5 +120,10 @@ export interface ITextEditorLink {
     applyLink: (value: ITextEditorLinkValue) => void;
     /** Removes the link from the selection as a whole */
     removeLink: () => void;
+    /**
+     * Swaps the form for the media gallery and comes back with the address of the picked
+     * file in the field
+     */
+    pickLinkFile: (value: ITextEditorLinkValue) => void;
 }
 // #endregion

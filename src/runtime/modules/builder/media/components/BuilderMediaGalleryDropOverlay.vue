@@ -51,6 +51,7 @@ const hint = computed<string>(
         `${t('bricks.media.sizeHint', {
             image: props.maxImageSizeMb,
             video: props.maxVideoSizeMb,
+            document: props.maxDocumentSizeMb,
         })} · ${formatOptimizationSummary(props.optimization, t)}`
 );
 // #endregion

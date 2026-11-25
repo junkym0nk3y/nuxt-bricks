@@ -21,6 +21,12 @@ export interface IBrickManifestEntry {
     /** Description of the component for the properties panel */
     description?: string;
     /**
+     * Static picture of the library card, from `thumbnail` inside the brick file: a path
+     * from the root of the consumer `public/` (without `app.baseURL` — the builder adds
+     * it) or an absolute http(s) URL. Absent — the card renders the live preview.
+     */
+    thumbnail?: string;
+    /**
      * Definitions of the editable properties. They reach the manifest at build time,
      * so the library, the properties panel and inline editing need not import the
      * brick module in the browser — and with it the Vue component and its styles the

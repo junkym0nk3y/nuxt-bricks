@@ -265,7 +265,8 @@
             "valuePlaceholder": "Enter {label}",
             "mediaPicker": {
                 "label": "Media",
-                "previewAlt": "Preview"
+                "previewAlt": "Preview",
+                "fileLabel": "File"
             },
             "deviceScopeLockedHint": "A device tab edits the adaptive properties alone. The rest are the same on every device — switch to the base one to change them."
         },
@@ -509,7 +510,7 @@
             "select": "Select",
             "cancel": "Cancel",
             "emptyFiltered": "No files match the filter",
-            "emptyNoUploads": "No uploaded images",
+            "emptyNoUploads": "No uploaded files",
             "loadFailed": "Failed to load media",
             "loadFailedCheckDb": "Failed to load media. Check the database connection.",
             "listResponseInvalid": "The server returned the media list in an unknown format",
@@ -521,16 +522,19 @@
             "deleteImageTitle": "Delete image?",
             "deleteImageDescription": "This action cannot be undone. The image will be deleted permanently.",
             "fullscreen": "Fullscreen preview",
+            "download": "Download",
             "categoryLabel": "Category",
             "searchPlaceholder": "Search by name or alt",
             "nameLabel": "Name",
             "filenamePlaceholder": "File name",
             "altPlaceholder": "Image description",
-            "sizeHint": "images up to {image} MB, video up to {video} MB",
+            "sizeHint": "images up to {image} MB, video up to {video} MB, documents up to {document} MB",
             "fileTypeImage": "Image",
             "fileTypeVideo": "Video",
+            "fileTypeDocument": "Document",
             "fileTooLarge": "{type} “{name}” exceeds the {max} MB limit",
-            "fileTypeUnsupported": "“{name}”: only images and videos are supported",
+            "fileTypeUnsupported": "“{name}”: only images, videos and PDF, Word, Excel documents are supported",
+            "fileNotOffered": "“{name}” does not fit here: this picker takes files of another type",
             "categories": {
                 "all": "All"
             },
@@ -551,6 +555,7 @@
             "selectFileHint": "Select a file to edit its properties",
             "librarySummary": "files in the library: {count} · {size}",
             "altUnusedForVideo": "alt is not used for video",
+            "altUnusedForDocument": "alt is not used for documents",
             "categoryLoadFailed": "Failed to load categories",
             "categoryListResponseInvalid": "The server returned categories in an unknown format",
             "categoryCreate": "Create category",
@@ -582,6 +587,7 @@
             "summary": {
                 "vector": "vector",
                 "video": "video",
+                "document": "document",
                 "dimensionsUnknown": "unknown size"
             },
             "librarySummaryShort": "{count} files · {size}",
@@ -604,7 +610,15 @@
                 "copyFailed": "Could not copy the URL"
             },
             "fullscreenFor": "Full-screen preview of {filename}",
-            "fileInputLabel": "Choose files to upload"
+            "downloadFor": "Download {filename}",
+            "fileInputLabel": "Choose files to upload",
+            "kindFilter": {
+                "label": "File type",
+                "all": "All types",
+                "image": "Images",
+                "video": "Video",
+                "document": "Documents"
+            }
         },
         "schema": {
             "title": "Page schema",
@@ -688,7 +702,8 @@
                 "hint": "Without a protocol the URL is prefixed with https://. Allowed: http(s), mailto, tel, an anchor (#) and a site-root path (/).",
                 "invalidUrl": "This link address is not allowed",
                 "apply": "Apply",
-                "remove": "Remove link"
+                "remove": "Remove link",
+                "pickFile": "File from the media library"
             },
             "toolbar": {
                 "bold": "Bold",

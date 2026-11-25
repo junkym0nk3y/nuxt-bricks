@@ -58,6 +58,7 @@ const {
     applyLink,
     removeLink,
     closeLinkModal,
+    pickLinkFile,
 } = useTextEditorLink(editor);
 
 const { toolbarGroups } = useToolbarStateSync(editor, { onRequestLink: openLinkModal });
@@ -249,6 +250,7 @@ onBeforeUnmount(() => {
                 @apply="applyLink"
                 @remove="removeLink"
                 @close="closeLinkModal"
+                @pick-file="pickLinkFile"
             />
 
             <BricksModalFooter size="lg">
@@ -347,7 +349,7 @@ onBeforeUnmount(() => {
     background-color: var(--bricks-base-0);
     outline: none;
     white-space: pre-wrap;
-    font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+    font-family: var(--bricks-font-family-mono);
     font-size: 1.4rem;
     line-height: 1.6;
     color: var(--bricks-base-900);

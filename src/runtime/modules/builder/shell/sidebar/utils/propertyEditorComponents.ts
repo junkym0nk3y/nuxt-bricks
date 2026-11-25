@@ -48,4 +48,7 @@ export const componentEditors: Record<TPropertyEditorType, Component> = {
     video: defineAsyncComponent(
         () => import('../components/property-editors/BuilderShellSidebarPropertyMediaPicker.vue')
     ),
+    file: defineAsyncComponent(
+        () => import('../components/property-editors/BuilderShellSidebarPropertyMediaPicker.vue')
+    ),
 };

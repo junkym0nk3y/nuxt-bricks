@@ -39,7 +39,16 @@ import type {
 
 // Utils
 import { formatFileSize } from '../utils/formatFileSize';
-import { formatMediaDimensions, formatMediaFormatName, isVideoMedia } from '../utils/mediaSummary';
+import {
+    formatMediaDimensions,
+    formatMediaFormatName,
+    isDocumentMedia,
+    isVideoMedia,
+} from '../utils/mediaSummary';
+import { resolveMediaDocumentExtension } from '../../../common/utils/mediaKind';
+
+// Constants
+import { MEDIA_DOCUMENT_ICONS } from '../../../common/constants/mediaDocuments';
 import { formatPageDateTime } from '../../../common/utils/bricks/dates';
 import { resolveMediaCategoryLabelBySlug } from '../utils/categoryLabels';
 
@@ -108,6 +117,30 @@ const { categoryOptions, categoryFacets, selectedCategory, handleCategoryChange 
 const isVideo = computed<boolean>(() => isVideoMedia(props.item));
 
 /**
+ * A document has no picture and no alt either: a link to it is a link, not an image.
+ * Its footer action downloads the file — the lightbox has nothing to show for it.
+ */
+const isDocument = computed<boolean>(() => isDocumentMedia(props.item));
+
+/** The alt field is disabled for a video and a document, each with its own reason */
+const altPlaceholder = computed<string>(() => {
+    if (isVideo.value) {
+        return t('bricks.media.altUnusedForVideo');
+    }
+
+    return isDocument.value
+        ? t('bricks.media.altUnusedForDocument')
+        : t('bricks.media.altPlaceholder');
+});
+
+/** The icon of the preview area of a file with no picture */
+const previewIcon = computed<string>(() => {
+    const extension = resolveMediaDocumentExtension(props.item.mimeType);
+
+    return extension ? MEDIA_DOCUMENT_ICONS[extension] : 'ta:outline-video';
+});
+
+/**
  * The subtitle of the panel: where the file is from and when it got into the media
  * library. The category by its caption rather than by its slug: the data holds `promo`,
  * while the person created it under a caption of their own.
@@ -133,11 +166,17 @@ const fileFacts = computed<{ key: string; label: string; value: string }[]>(() =
         label: t('bricks.media.details.size'),
         value: formatFileSize(props.item.size),
     },
-    {
-        key: 'dimensions',
-        label: t('bricks.media.details.dimensions'),
-        value: formatMediaDimensions(props.item, t),
-    },
+    // A document has no dimensions to speak of, and "Dimensions: document" says
+    // nothing the format row below does not
+    ...(isDocument.value
+        ? []
+        : [
+              {
+                  key: 'dimensions',
+                  label: t('bricks.media.details.dimensions'),
+                  value: formatMediaDimensions(props.item, t),
+              },
+          ]),
     {
         key: 'format',
         label: t('bricks.media.details.format'),
@@ -165,9 +204,15 @@ async function handleCopyUrl(): Promise<void> {
 }
 
 /**
- * Asks the host to open the file full screen.
+ * Asks the host to open the file full screen; a document is downloaded instead, in a
+ * new tab for the reason given at the tile of the grid.
  */
 function handlePreview(): void {
+    if (isDocument.value) {
+        window.open(props.item.url, '_blank', 'noopener,noreferrer');
+        return;
+    }
+
     emit('preview');
 }
 
@@ -200,12 +245,12 @@ function handleClose(): void {
         <div :class="[$style.content, 'bricks-scrollbox']">
             <div :class="$style.preview">
                 <BricksImage
-                    v-if="!isVideo"
+                    v-if="!isVideo && !isDocument"
                     :src="props.item.previewUrl ?? props.item.url"
                     :alt="props.item.alt || props.item.filename"
                     fit="contain"
                 />
-                <BricksIcon v-else icon="ta:outline-video" :class="$style.previewIcon" />
+                <BricksIcon v-else :icon="previewIcon" :class="$style.previewIcon" />
             </div>
 
             <div :class="$style.fields" @focusout="handleMetaCommit">
@@ -223,12 +268,8 @@ function handleClose(): void {
                     <span :class="$style.fieldLabel">Alt</span>
                     <BricksInput
                         :value="editableAlt"
-                        :disabled="isVideo || !canEdit"
-                        :placeholder="
-                            isVideo
-                                ? t('bricks.media.altUnusedForVideo')
-                                : t('bricks.media.altPlaceholder')
-                        "
+                        :disabled="isVideo || isDocument || !canEdit"
+                        :placeholder="altPlaceholder"
                         @update:value="editableAlt = $event"
                     />
                 </div>
@@ -279,7 +320,7 @@ function handleClose(): void {
                 variant="secondary"
                 @click="handlePreview"
             >
-                {{ t('bricks.media.fullscreen') }}
+                {{ isDocument ? t('bricks.media.download') : t('bricks.media.fullscreen') }}
             </BricksButton>
 
             <BricksIconButton

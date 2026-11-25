@@ -38,6 +38,8 @@ function makeConfig(): IResolvedMediaConfig {
         maxUploadSizeMb: 5,
         maxVideoUploadSizeBytes: 5 * 1024 * 1024,
         maxVideoUploadSizeMb: 5,
+        maxDocumentUploadSizeBytes: 5 * 1024 * 1024,
+        maxDocumentUploadSizeMb: 5,
         optimization: { format: 'webp', maxWidth: 1920, quality: 80 },
     };
 }

@@ -10,6 +10,10 @@
  * top right one, the badge of the selection in the left one. On a selected tile under
  * the cursor both are visible at once and in one corner they would overlap.
  *
+ * A document has no picture to show: its tile carries the icon of its format and the
+ * format itself, and the corner button downloads the file instead of opening the
+ * full-screen preview — a browser has nothing to put into the lightbox for a DOCX.
+ *
  * Only the window of the preview is forced light — a picture stays on a light ground,
  * the way it does on the canvas. The card itself lives in the tokens of the theme: the
  * whole tile used to be light, and in the dark theme a dozen white cards read as a wall
@@ -88,7 +92,16 @@ import type { IMediaGalleryGridProps, IMediaGalleryGridEmits } from '../types/me
 
 // Utils
 import { formatFileSize } from '../utils/formatFileSize';
-import { formatMediaDimensions, isVideoMedia } from '../utils/mediaSummary';
+import {
+    formatMediaDimensions,
+    formatMediaFormatName,
+    isDocumentMedia,
+    isVideoMedia,
+} from '../utils/mediaSummary';
+import { resolveMediaDocumentExtension } from '../../../common/utils/mediaKind';
+
+// Constants
+import { MEDIA_DOCUMENT_ICONS } from '../../../common/constants/mediaDocuments';
 
 // Vue
 import { useI18n } from 'vue-i18n';
@@ -145,6 +158,29 @@ function handleOpenPreview(item: IMediaItem): void {
 /** Asks the caller to open the file picker */
 function handleUploadRequest(): void {
     emit('upload');
+}
+
+/**
+ * Downloads a document. A new tab rather than the current one: storage serves the
+ * file as an attachment and the tab closes by itself, while a custom storage that
+ * does not set the disposition opens the file there instead of replacing the builder.
+ *
+ * @param item - The document.
+ */
+function onDownloadDocument(item: IMediaItem): void {
+    window.open(item.url, '_blank', 'noopener,noreferrer');
+}
+
+/**
+ * The icon of a document tile, by its format.
+ *
+ * @param item - The document.
+ * @returns The icon name.
+ */
+function resolveDocumentIcon(item: IMediaItem): string {
+    const extension = resolveMediaDocumentExtension(item.mimeType);
+
+    return extension ? MEDIA_DOCUMENT_ICONS[extension] : 'ta:outline-file';
 }
 
 /**
@@ -216,6 +252,15 @@ function resolveThumbSrc(item: IMediaItem): string {
                         <div v-if="isVideoMedia(item)" :class="$style.videoPlaceholder">
                             <BricksIcon :class="$style.placeholderIcon" icon="ta:outline-video" />
                         </div>
+                        <div v-else-if="isDocumentMedia(item)" :class="$style.documentPlaceholder">
+                            <BricksIcon
+                                :class="$style.documentIcon"
+                                :icon="resolveDocumentIcon(item)"
+                            />
+                            <span :class="$style.documentFormat">
+                                {{ formatMediaFormatName(item.mimeType) }}
+                            </span>
+                        </div>
                         <BricksImage
                             v-else
                             :src="resolveThumbSrc(item)"
@@ -235,6 +280,17 @@ function resolveThumbSrc(item: IMediaItem): string {
                         </Transition>
 
                         <BricksIconButton
+                            v-if="isDocumentMedia(item)"
+                            :class="$style.previewBtn"
+                            icon="ta:outline-download"
+                            :label="t('bricks.media.downloadFor', { filename: item.filename })"
+                            variant="overlay"
+                            size="lg"
+                            :tab-index="isActiveItem(item.id) ? 0 : -1"
+                            @click.stop="onDownloadDocument(item)"
+                        />
+                        <BricksIconButton
+                            v-else
                             :class="$style.previewBtn"
                             icon="ta:outline-search"
                             :label="t('bricks.media.fullscreenFor', { filename: item.filename })"
@@ -347,6 +403,28 @@ function resolveThumbSrc(item: IMediaItem): string {
     justify-content: center;
     width: 100%;
     height: 100%;
+}
+
+.documentPlaceholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.documentIcon {
+    font-size: 4rem;
+    color: var(--bricks-base-400);
+}
+
+.documentFormat {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.05rem;
+    color: var(--bricks-base-400);
 }
 
 .selectedBadge {
