@@ -39,6 +39,30 @@ export function useCanvas() {
     const VERTICAL_NAV_WIDTH_PX = convertRemToPx(VERTICAL_NAV_WIDTH_REM);
 
     /**
+     * Free space on each side of the canvas. The fit scale leaves it, and in Figma mode
+     * the row keeps it at both ends of the scroll too: zoomed past the fit, the outer
+     * sheets used to run right up to the sidebars. One value for both, so the row at
+     * the fit scale still fits without a scroll.
+     */
+    const CANVAS_SIDE_PADDING_REM = '4rem';
+    const CANVAS_SIDE_PADDING_PX = convertRemToPx(CANVAS_SIDE_PADDING_REM);
+
+    /**
+     * What the rounding of the row width forgives. The fit scale times the row width
+     * comes back as the free width plus a float error (`832.0000000000001`), and a bare
+     * `Math.ceil` turned that error into a whole pixel of horizontal scroll at the fit.
+     */
+    const ROW_WIDTH_FLOAT_TOLERANCE_PX = 1e-6;
+
+    /**
+     * One pixel the fit keeps in hand. The free width is computed from the whole-pixel
+     * `window.innerWidth`, while the area is `100vw` wide; under a browser zoom of 90% or
+     * 110% the two part by a fraction of a pixel, and with no slack left that fraction
+     * scrolls.
+     */
+    const FIT_SUBPIXEL_SLACK_PX = 1;
+
+    /**
      * Visual width of the Figma mode content at scale = 1: every sheet of the set plus
      * the gaps between them. A sheet is as wide as its device whatever the rem base —
      * the compensation scales the content inside it (`getRemCompensationStyle`).
@@ -59,8 +83,26 @@ export function useCanvas() {
     };
 
     /**
+     * Width the vertical scrollbar of the canvas area takes. The area holds its gutter at
+     * all times (`scrollbar-gutter: stable` of `.bricks-scrollbox`), so with classic
+     * scrollbars the room for the content is narrower than the width the area is given.
+     * The gutter alone is measured, not the client width: the gutter does not change,
+     * while the client width is still the old one when a sidebar watcher asks for a fit.
+     * Before mount there is no area, and the fit after mount measures it.
+     */
+    const measureScrollbarGutter = (): number => {
+        const container = canvasContainer.value;
+
+        return container ? container.offsetWidth - container.clientWidth : 0;
+    };
+
+    /**
      * Picks the fit scale from the width the window leaves free and the state of the
      * sidebars. In Figma mode the whole row of sheets has to fit, not a single sheet.
+     *
+     * The scrollbar gutter is taken out as well. In Figma mode the side padding stands
+     * beside the row rather than inside the fit slack, so a row fitted to the given width
+     * overflowed the client width by the gutter and scrolled at the fit scale.
      *
      * @returns Recommended scale, never above 1.
      */
@@ -71,12 +113,14 @@ export function useCanvas() {
 
         const leftWidth = sidebarStore.left.visible ? sidebarStore.left.width : 0;
         const rightWidth = sidebarStore.right.visible ? sidebarStore.right.width : 0;
-        const padding = 80;
+        const padding = CANVAS_SIDE_PADDING_PX * 2;
         const availableWidth =
             window.innerWidth -
             convertRemToPx(leftWidth) -
             convertRemToPx(rightWidth) -
             VERTICAL_NAV_WIDTH_PX -
+            measureScrollbarGutter() -
+            FIT_SUBPIXEL_SLACK_PX -
             padding;
 
         if (canvasStore.isFigmaMode) {
@@ -144,9 +188,15 @@ export function useCanvas() {
 
     // The same min-width for the Figma mode wrapper, rounded up to a whole pixel: the
     // scroll width is a whole number, and a fractional row cut the last fraction of a
-    // pixel off the right edge of the last sheet at the end of the scroll
+    // pixel off the right edge of the last sheet at the end of the scroll. The side
+    // padding is counted in: the chrome zone is border-box, and a min-width of the row
+    // alone would let the padding eat into the row instead of standing beside it
     const figmaWrapperMinWidth = computed(() => {
-        return convertPxToRem(Math.ceil(getFigmaContentWidth() * canvasStore.scale));
+        const rowWidth = Math.ceil(
+            getFigmaContentWidth() * canvasStore.scale - ROW_WIDTH_FLOAT_TOLERANCE_PX
+        );
+
+        return convertPxToRem(rowWidth + CANVAS_SIDE_PADDING_PX * 2);
     });
 
     /**
@@ -222,6 +272,7 @@ export function useCanvas() {
         figmaWrapperMinWidth,
         figmaWrapperMarginBottom,
         figmaGap: FIGMA_GAP_REM,
+        figmaSidePadding: CANVAS_SIDE_PADDING_REM,
         remCompensation,
         getRemCompensation,
         handleResize,

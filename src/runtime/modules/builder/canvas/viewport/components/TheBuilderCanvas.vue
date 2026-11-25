@@ -74,6 +74,7 @@ const {
     figmaWrapperMinWidth,
     figmaWrapperMarginBottom,
     figmaGap,
+    figmaSidePadding,
     remCompensation,
     getRemCompensation,
     handleResize,
@@ -240,6 +241,21 @@ const rootFlowEntries = computed<TDropFlowEntry[]>(() =>
 );
 
 /**
+ * Styles of the outer Figma mode wrapper: the visual width of the row and the free space
+ * at its sides. The min-width is set only once mounted, the scale being picked from the
+ * window; the side padding is there from the start.
+ */
+const figmaOuterStyle = computed<Record<string, string>>(() => {
+    const style: Record<string, string> = { paddingInline: figmaSidePadding };
+
+    if (isMounted.value) {
+        style.minWidth = figmaWrapperMinWidth.value;
+    }
+
+    return style;
+});
+
+/**
  * Styles of the Figma mode wrapper — the scale of the row; the rem compensation scales
  * the content of every BuilderCanvasViewport for itself.
  *
@@ -389,11 +405,7 @@ onBeforeUnmount(() => {
             tabindex="0"
             @pointerdown="handleCanvasAreaPointerDown"
         >
-            <div
-                v-if="canvasStore.isFigmaMode"
-                :class="$style.figmaOuter"
-                :style="isMounted ? { minWidth: figmaWrapperMinWidth } : undefined"
-            >
+            <div v-if="canvasStore.isFigmaMode" :class="$style.figmaOuter" :style="figmaOuterStyle">
                 <div
                     ref="figmaWrapper"
                     :class="$style.figmaWrapper"
