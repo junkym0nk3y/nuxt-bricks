@@ -22,7 +22,7 @@ export type TBricksMediaLoadMode = 'off' | 'two-step' | 'three-step';
 export interface IBricksMediaConfig {
     maxUploadSizeMb?: number;
     maxVideoUploadSizeMb?: number;
-    /** Size ceiling of a document (PDF, DOC/DOCX, XLS/XLSX), MB. Default: 25 */
+    /** Size ceiling of a document (PDF, DOCX, XLSX), MB. Default: 25 */
     maxDocumentUploadSizeMb?: number;
     optimization?: {
         format?: TBricksMediaImageFormat;

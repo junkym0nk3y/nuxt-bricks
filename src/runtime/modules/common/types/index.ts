@@ -66,7 +66,7 @@ export interface IBrickValues {
     svgContentProperty?: string;
     /**
      * Extensions a `file` property takes (`['pdf']`), without the dot. Unset — every
-     * document of the media library (PDF, DOC/DOCX, XLS/XLSX).
+     * document of the media library (PDF, DOCX, XLSX).
      */
     accept?: string[];
     /** Unit suffix for the input (for example, 'rem') */

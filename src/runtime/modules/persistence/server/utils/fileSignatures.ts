@@ -38,9 +38,6 @@ const PDF_HEADER = '%PDF-';
 /** The local file header every zip (and so every DOCX/XLSX) opens with. */
 const ZIP_LOCAL_HEADER = [0x50, 0x4b, 0x03, 0x04];
 
-/** The header of an OLE compound file — the container of the legacy DOC and XLS. */
-const COMPOUND_FILE_HEADER = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
-
 /** Signatures and fixed sizes of the zip central directory. */
 const ZIP_END_OF_DIRECTORY_SIGNATURE = 0x06054b50;
 const ZIP_DIRECTORY_ENTRY_SIGNATURE = 0x02014b50;
@@ -58,13 +55,10 @@ const OOXML_CONTENT_TYPES_PART = '[Content_Types].xml';
 const OOXML_VBA_PROJECT_PART = 'vbaproject.bin';
 
 /**
- * Stream names of an OLE compound file, as its directory stores them (UTF-16LE). The
- * main stream tells a Word document from an Excel workbook (`Book` is the Excel 5
- * spelling); the VBA project is present in a legacy file with macros.
+ * The folder of Excel 4.0 macro sheets: formulas that run on opening, with no VBA
+ * project anywhere in the package.
  */
-const COMPOUND_WORD_STREAM = Buffer.from('WordDocument', 'utf16le');
-const COMPOUND_EXCEL_STREAMS = [Buffer.from('Workbook', 'utf16le'), Buffer.from('Book', 'utf16le')];
-const COMPOUND_VBA_STREAM = Buffer.from('_VBA_PROJECT', 'utf16le');
+const OOXML_MACRO_SHEETS_FOLDER = 'xl/macrosheets/';
 
 /**
  * The ISO-BMFF (`ftyp`) brands that mean an image (HEIC/HEIF/AVIF) rather than a
@@ -315,7 +309,7 @@ function readZipDirectory(buffer: Buffer, endOffset: number): string[] | null {
  *
  * @param buffer - The whole file.
  * @returns `docx`, `xlsx`, or null for any other zip — a presentation, an archive, a
- *   package with a VBA project.
+ *   package with a VBA project or with Excel 4.0 macro sheets.
  */
 function sniffOfficeOpenXmlFormat(buffer: Buffer): 'docx' | 'xlsx' | null {
     if (!hasBytes(buffer, 0, ZIP_LOCAL_HEADER)) {
@@ -328,7 +322,16 @@ function sniffOfficeOpenXmlFormat(buffer: Buffer): 'docx' | 'xlsx' | null {
         return null;
     }
 
-    if (names.some((name) => name.toLowerCase().endsWith(OOXML_VBA_PROJECT_PART))) {
+    const hasMacros = names.some((name) => {
+        const lowerName = name.toLowerCase();
+
+        return (
+            lowerName.endsWith(OOXML_VBA_PROJECT_PART) ||
+            lowerName.startsWith(OOXML_MACRO_SHEETS_FOLDER)
+        );
+    });
+
+    if (hasMacros) {
         return null;
     }
 
@@ -340,33 +343,12 @@ function sniffOfficeOpenXmlFormat(buffer: Buffer): 'docx' | 'xlsx' | null {
 }
 
 /**
- * Decides a legacy Office document: an OLE compound file with a Word or an Excel main
- * stream. The stream names are looked for in the whole file — the directory sectors
- * may lie anywhere in it — which is a cheap stand-in for parsing the container and is
- * enough to tell a document from another compound file (an MSI installer, an Outlook
- * message).
- *
- * @param buffer - The whole file.
- * @returns `doc`, `xls`, or null — not a Word or Excel file, or one carrying a VBA
- *   project.
- */
-function sniffCompoundFileFormat(buffer: Buffer): 'doc' | 'xls' | null {
-    if (!hasBytes(buffer, 0, COMPOUND_FILE_HEADER) || buffer.includes(COMPOUND_VBA_STREAM)) {
-        return null;
-    }
-
-    if (buffer.includes(COMPOUND_WORD_STREAM)) {
-        return 'doc';
-    }
-
-    return COMPOUND_EXCEL_STREAMS.some((stream) => buffer.includes(stream)) ? 'xls' : null;
-}
-
-/**
  * Decides a document's format by its content: PDF by its header, DOCX/XLSX by the zip
- * directory, DOC/XLS by the streams of the compound file. A document carrying a VBA project is
- * not recognized at all, whichever extension it was given; Excel 4.0 macro sheets of an
- * XLS and a template fetched over an external link are not looked for.
+ * directory. A document carrying a VBA project or Excel 4.0 macro sheets is not
+ * recognized at all, whichever extension it was given; a template fetched over an
+ * external link is not looked for. A legacy DOC or XLS is not recognized either: the
+ * library does not take them, and the header of `common/constants/mediaDocuments.ts`
+ * says why.
  *
  * Needs the WHOLE file: the zip directory sits at its end.
  *
@@ -378,5 +360,5 @@ export function sniffDocumentFormat(buffer: Buffer): TMediaDocumentExtension | n
         return 'pdf';
     }
 
-    return sniffOfficeOpenXmlFormat(buffer) ?? sniffCompoundFileFormat(buffer);
+    return sniffOfficeOpenXmlFormat(buffer);
 }

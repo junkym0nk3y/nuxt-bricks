@@ -126,6 +126,7 @@ function buildCompoundFile(streams: string[]): Buffer {
 const DOCX_ENTRIES = ['[Content_Types].xml', '_rels/.rels', 'word/document.xml'];
 const PDF_BYTES = Buffer.from('%PDF-1.7\n1 0 obj << >> endobj\n%%EOF\n', 'latin1');
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 // #endregion
 
 /** The error the handler threw. */
@@ -194,13 +195,13 @@ describe('POST /media/upload: documents', () => {
         );
     });
 
-    it('takes the format from the content: a DOCX named .doc is stored and downloaded as .docx', async () => {
+    it('takes the format from the content: a DOCX named .xlsx is stored and downloaded as .docx', async () => {
         const { event } = createMultipartEvent(
             buildMultipartBody([
                 {
                     name: 'file',
-                    filename: 'brief.doc',
-                    type: 'application/msword',
+                    filename: 'brief.xlsx',
+                    type: XLSX_MIME,
                     data: buildZip(DOCX_ENTRIES),
                 },
             ])
@@ -217,32 +218,16 @@ describe('POST /media/upload: documents', () => {
         );
     });
 
-    it('recognizes a legacy XLS by its Workbook stream, whatever the name says', async () => {
-        const { event } = createMultipartEvent(
-            buildMultipartBody([
-                {
-                    name: 'file',
-                    filename: 'price.pdf',
-                    type: 'application/pdf',
-                    data: buildCompoundFile(['Root Entry', 'Workbook']),
-                },
-            ])
-        );
-
-        await uploadMediaHandler(event);
-
-        expect(uploadFileMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                key: expect.stringMatching(/\.xls$/),
-                mimeType: 'application/vnd.ms-excel',
-                contentDisposition: expect.stringContaining('filename="price.xls"'),
-            })
-        );
-    });
-
     it.each([
         ['a DOCX carrying a VBA project', buildZip([...DOCX_ENTRIES, 'word/vbaProject.bin'])],
-        ['an XLS carrying a VBA project', buildCompoundFile(['Workbook', '_VBA_PROJECT'])],
+        [
+            'an XLSX carrying an Excel 4.0 macro sheet',
+            buildZip(['[Content_Types].xml', 'xl/workbook.xml', 'xl/macrosheets/sheet1.xml']),
+        ],
+        // The legacy binary formats are not taken at all, a clean file included: the
+        // macro sheets of an XLS live inside the workbook stream itself
+        ['a legacy XLS', buildCompoundFile(['Root Entry', 'Workbook'])],
+        ['a legacy DOC', buildCompoundFile(['Root Entry', 'WordDocument'])],
         ['a zip that is not an Office package', buildZip(['readme.txt', 'word/notes.txt'])],
         // Only the record closing the file is walked: falling back to earlier ones let a
         // tail of forged records cost a full directory walk each, synchronously

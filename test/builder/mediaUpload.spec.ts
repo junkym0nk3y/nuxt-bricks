@@ -83,15 +83,20 @@ describe('useMediaUpload: доставка отказа по каждому фа
             onError: (message) => errors.push(message),
         });
 
-        await uploadFiles([buildFile('notes.txt', 'text/plain')]);
+        // A legacy DOC is turned away on the client already, MIME or no MIME
+        await uploadFiles([
+            buildFile('notes.txt', 'text/plain'),
+            buildFile('brief.doc', 'application/msword'),
+            buildFile('price.xls', ''),
+        ]);
 
-        expect(errors).toHaveLength(1);
-        expect(errors[0]).toContain('fileTypeUnsupported');
+        expect(errors).toHaveLength(3);
+        expect(errors.every((error) => error.includes('fileTypeUnsupported'))).toBe(true);
         expect(errors[0]).toContain('notes.txt');
         expect(uploadFileMock).not.toHaveBeenCalled();
     });
 
-    // A browser without an office suite sends .doc/.xls with an empty MIME, and the
+    // A browser without an office suite may send an Office file with an empty MIME, and the
     // document ceiling (25 MB) is above the image one (10 MB): a 20 MB file passes only
     // when its kind is recognized right
     it('документ без MIME узнаётся по расширению и меряется своим потолком', async () => {
@@ -102,10 +107,10 @@ describe('useMediaUpload: доставка отказа по каждому фа
             onError: (message) => errors.push(message),
         });
 
-        await uploadFiles([buildFile('price.doc', '', 20), buildFile('huge.pdf', '', 26)]);
+        await uploadFiles([buildFile('price.xlsx', '', 20), buildFile('huge.pdf', '', 26)]);
 
         expect(uploadFileMock).toHaveBeenCalledTimes(1);
-        expect(uploadFileMock.mock.calls[0]?.[0]).toMatchObject({ name: 'price.doc' });
+        expect(uploadFileMock.mock.calls[0]?.[0]).toMatchObject({ name: 'price.xlsx' });
         expect(errors).toHaveLength(1);
         expect(errors[0]).toContain('fileTooLarge');
         expect(errors[0]).toContain('huge.pdf');

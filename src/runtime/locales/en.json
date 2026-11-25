@@ -533,7 +533,7 @@
             "fileTypeVideo": "Video",
             "fileTypeDocument": "Document",
             "fileTooLarge": "{type} “{name}” exceeds the {max} MB limit",
-            "fileTypeUnsupported": "“{name}”: only images, videos and PDF, Word, Excel documents are supported",
+            "fileTypeUnsupported": "“{name}”: only images, videos and PDF, DOCX, XLSX documents are supported",
             "fileNotOffered": "“{name}” does not fit here: this picker takes files of another type",
             "categories": {
                 "all": "All"

@@ -344,7 +344,7 @@ export function validateVideoUpload(
  * Validates a document upload: the declared type, the size and the content, which
  * decides the format the file is stored as.
  *
- * The format comes from the content, the way an image's does: a DOCX named `brief.doc`
+ * The format comes from the content, the way an image's does: a DOCX named `brief.xlsx`
  * goes into the bucket as `*.docx` with the DOCX MIME type, so the browser that
  * downloads it opens it with the right application. A document is not processed — no
  * sharp, no variants — and the bytes are stored as they arrived.
@@ -382,8 +382,7 @@ export function validateDocumentUpload(
     if (!format) {
         throw createError({
             statusCode: 400,
-            message:
-                'File content is not a supported document: PDF, DOC/DOCX or XLS/XLSX without a VBA project',
+            message: 'File content is not a supported document: PDF, DOCX or XLSX without macros',
         });
     }
 

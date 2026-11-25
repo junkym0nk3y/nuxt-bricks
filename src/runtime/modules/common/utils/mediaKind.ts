@@ -84,8 +84,8 @@ export function readFileExtension(name: string | undefined): string {
  * Whether an upload claims to be a document — by its declared MIME or by its extension.
  *
  * A claim, not a proof: the content is confirmed by its signature on the server. The
- * extension counts on its own because browsers send no MIME for `.doc`/`.xls` on a
- * machine without an office suite.
+ * extension counts on its own because a browser on a machine without an office suite
+ * may send an Office file with no MIME.
  *
  * @param mimeType - MIME type declared by the browser.
  * @param extension - Extension of the file name in lower case.

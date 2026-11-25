@@ -22,8 +22,8 @@ import { uploadMediaFiles } from './mediaOrchestration';
 
 /**
  * The name a document is downloaded under: the uploaded name with the extension of the
- * format the content was recognized as. A DOCX uploaded as `brief.doc` is stored as
- * DOCX, and downloading it as `.doc` would hand the content to the wrong application.
+ * format the content was recognized as. A DOCX uploaded as `brief.xlsx` is stored as
+ * DOCX, and downloading it as `.xlsx` would hand the content to the wrong application.
  *
  * @param filename - The name from the upload form.
  * @param extension - Extension of the recognized format.

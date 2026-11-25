@@ -533,7 +533,7 @@
             "fileTypeVideo": "Видео",
             "fileTypeDocument": "Документ",
             "fileTooLarge": "{type} «{name}» превышает лимит {max} МБ",
-            "fileTypeUnsupported": "«{name}»: поддерживаются изображения, видео и документы PDF, Word, Excel",
+            "fileTypeUnsupported": "«{name}»: поддерживаются изображения, видео и документы PDF, DOCX, XLSX",
             "fileNotOffered": "«{name}» сюда не подходит: здесь выбирают файлы другого типа",
             "categories": {
                 "all": "Все"

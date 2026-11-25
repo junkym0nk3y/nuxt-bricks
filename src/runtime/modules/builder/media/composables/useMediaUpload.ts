@@ -96,7 +96,7 @@ export function useMediaUpload(options: IMediaUploadOptions): {
      * The kind an upload claims to be, or null for a file the library does not take.
      *
      * A document is recognized by its extension as well: a browser on a machine without
-     * an office suite sends `.doc`/`.xls` with an empty MIME. The claim is only a
+     * an office suite may send an Office file with an empty MIME. The claim is only a
      * pre-check — the server confirms the content by its signature.
      *
      * @param file - The picked file.

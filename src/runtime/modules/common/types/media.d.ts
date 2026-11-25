@@ -44,7 +44,7 @@ export interface IMediaMaxWidthBounds {
  * the stored file are one value: the stored name is built from the format the content
  * was recognized as, not from the name the browser sent.
  */
-export type TMediaDocumentExtension = 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx';
+export type TMediaDocumentExtension = 'pdf' | 'docx' | 'xlsx';
 
 /** Kind of a media library file, decided by its MIME type */
 export type TMediaKind = 'image' | 'video' | 'document';
