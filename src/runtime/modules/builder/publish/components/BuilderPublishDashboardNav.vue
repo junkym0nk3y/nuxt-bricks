@@ -36,14 +36,14 @@ const NAV_SECTIONS: IPublishDashboardNavSection[] = [
         labelKey: 'bricks.publish.dashboard.nav.templates',
     },
     {
-        key: 'users',
-        icon: 'ta:outline-users',
-        labelKey: 'bricks.publish.dashboard.nav.users',
-    },
-    {
         key: 'media',
         icon: 'ta:outline-photo-video',
         labelKey: 'bricks.publish.dashboard.nav.media',
+    },
+    {
+        key: 'users',
+        icon: 'ta:outline-users',
+        labelKey: 'bricks.publish.dashboard.nav.users',
     },
 ];
 // #endregion
