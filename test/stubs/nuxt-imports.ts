@@ -22,6 +22,12 @@ const stateByKey = new Map<string, Ref<unknown>>();
 const nuxtReadyCallbacks: Array<() => unknown> = [];
 
 /**
+ * The page the useRoute stub reports and the router stub stands on: one value, so the
+ * two stubs cannot drift apart
+ */
+const STUB_ROUTE_PATH = '/bricks';
+
+/**
  * Экземпляр приложения Nuxt. Один на «жизнь приложения», как в самом Nuxt: по
  * нему код ключует состояние, привязанное к запросу (например, идущую загрузку в
  * `WeakMap`), и новый объект на каждый вызов ломал бы ровно ту изоляцию, ради
@@ -107,6 +113,7 @@ export function useRouter(): {
     hasRoute: (name: string) => boolean;
     resolve: (path: string) => { matched: Array<{ name: string }> };
     replace: () => Promise<void>;
+    currentRoute: { value: { path: string } };
 } {
     const staticRoutes: Record<string, string> = {
         '/bricks': 'bricks-builder-index',
@@ -115,6 +122,9 @@ export function useRouter(): {
 
     return {
         replace: () => Promise.resolve(),
+        // Code that checks whether the router has already moved on finds it where the
+        // page is
+        currentRoute: { value: { path: STUB_ROUTE_PATH } },
         hasRoute: (name: string) =>
             ['bricks-page', 'bricks-page-prefixed', 'bricks-builder-pagename'].includes(name),
         resolve: (path: string) => {
@@ -177,5 +187,5 @@ export function useRoute(): {
     query: Record<string, string>;
     params: Record<string, string>;
 } {
-    return { path: '/bricks', query: {}, params: {} };
+    return { path: STUB_ROUTE_PATH, query: {}, params: {} };
 }
