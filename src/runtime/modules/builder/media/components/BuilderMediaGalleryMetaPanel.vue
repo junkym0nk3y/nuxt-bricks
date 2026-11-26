@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
  * @description The footer of the gallery: two rows instead of the single line it used
- * to be. The upper one holds the edits (the thumbnail, the name, the alt, the
- * category), the lower one the technical summary and the actions. They are split
- * because the set of actions depends on the type of the file (a video and a vector have
- * no variants), and in one line with the fields it does not fit under any order.
+ * to be. The upper one holds the file itself (the thumbnail, the name, the alt of a
+ * picture or the URL of a video and a document, the copy button, the category and the
+ * deletion), the lower one the technical summary and the picking actions: in one line
+ * with the fields they do not fit under any order.
  *
  * With no file selected the footer folds into a single row with a hint: in that state
  * the component used to draw nothing at all, and an empty band hung there with no
@@ -16,25 +16,39 @@
  *
  * The fields of a file are disabled rather than hidden for a role with no right to
  * edit: the name, the alt and the category are facts about the file, and an observer
- * needs them just as much. The actions over the file — copying its URL and deleting it —
- * stand with the fields of the file and not in the right corner: that corner is left to
- * the confirming action. Copying is for every role and every kind of file, as in the
- * details panel of the section; deleting is a right of the administrator: the endpoint
- * refuses an editor.
+ * needs them just as much. The alt of a video or a document is a different matter: no
+ * renderer reads it, so the field is not drawn, and its place goes to a read-only URL
+ * field — a disabled alt with an explanation cost the row width and still had its hint
+ * cut in a narrower window. A picture gets no URL field: its address is not what is
+ * looked for here, and the row keeps the room for the alt. The copy button is there for
+ * every role and every kind of file; the field, where there is one, lets the address be
+ * selected by hand when the clipboard refuses. The deletion stands at the end of the row
+ * of fields and not in the lower right corner — that corner is left to the confirming
+ * action — and it is a right of the administrator: the endpoint refuses an editor.
  *
  * Decisions held by the style section. The footer changes both its content and its
  * height (one hint row with nothing selected against two rows with a file), so the swap
  * goes through a transition: an instant one reads as the panel jumping under the cursor.
  * The wrapper around the two rows exists for that same transition — it has to have one
- * root. The actions over the file are pressed to the right edge of the row of edits, and
- * the look of the delete button comes from the kit's `danger`, the tone shared by the
- * destructive actions of the product, as in the list rows and in the details panel of the
- * section: the former "gray until hover" made this button the one exception to the rule.
- * The widths of the fields come from the mock-up and do not stretch, because the row has
- * to stay a single line: stretched, "Category" would travel off the edge in a narrow
- * window. The hint row holds its height rather than shrinking to its line of text:
- * otherwise the footer would jump from 47 to the two-row height on the very first file
- * picked and shift the grid under the cursor.
+ * root. The look of the delete button comes from the kit's `danger`, the tone shared by
+ * the destructive actions of the product, as in the list rows and in the details panel
+ * of the section: the former "gray until hover" made this button the one exception to
+ * the rule. The category is always the last field of the row, next to the deletion, and
+ * the copy button, the category and the deletion hold the right end of the row for every
+ * kind of file, so they do not change places from one file to the next. The row has to
+ * stay a single line: the URL field takes whatever the other fields leave and never
+ * drops below a floor of its own (with a picture the leftover goes in front of the copy
+ * button instead); in a narrower window the name and the alt give way down to a floor of
+ * theirs (of one width at full size; while they shrink, the loss is split in proportion
+ * to the whole field, label included, so the inputs part by a few pixels), while the
+ * category keeps its width: the select does not shrink with the wrapper around it and
+ * ran over its neighbors. The floor of the name and the alt sits on the field (a grid
+ * with a bounded track), not on the input: a floor on the input let the field shrink
+ * past it, and the input ran over the label of the next field. An address in a storage
+ * runs past a hundred characters, so the field shows its start, and the rest scrolls
+ * inside the field. The hint row holds its height rather than shrinking to its line of
+ * text: otherwise the footer would jump from 47 to the two-row height on the very first
+ * file picked and shift the grid under the cursor.
  */
 
 // #region Imports
@@ -116,31 +130,22 @@ const { copyUrl: handleCopyUrl } = useMediaUrlCopy({
 // #endregion
 
 // #region Computed
-/**
- * A video does not use the alt: the renderer gives out a `<video>`, not an `<img>`. The
- * right to edit is a separate reason to block the field, and the two are not merged:
- * the placeholder tells the alt of a video from the alt of a picture, and under a role
- * with no right it would otherwise call a picture a video.
- */
+/** A video has no picture for the thumb and no alt: the renderer gives out a `<video>` */
 const isVideo = computed<boolean>(() =>
     props.selectedItem ? isVideoMedia(props.selectedItem) : false
 );
 
-/** A document has no alt either, and no picture for the thumb */
+/** A document has no picture for the thumb and no alt either: a link to it is a link */
 const isDocument = computed<boolean>(() =>
     props.selectedItem ? isDocumentMedia(props.selectedItem) : false
 );
 
-/** The alt field is disabled for a video and a document, each with its own reason */
-const altPlaceholder = computed<string>(() => {
-    if (isVideo.value) {
-        return t('bricks.media.altUnusedForVideo');
-    }
-
-    return isDocument.value
-        ? t('bricks.media.altUnusedForDocument')
-        : t('bricks.media.altPlaceholder');
-});
+/**
+ * A picture gets the thumb and the alt field; a video and a document get an icon and the
+ * URL field in the place of the alt. The right to edit is a separate matter: for a role
+ * without it the alt of a picture stays, disabled.
+ */
+const isPicture = computed<boolean>(() => !isVideo.value && !isDocument.value);
 
 /** The icon of the thumb of a file with no picture */
 const thumbIcon = computed<string>(() => {
@@ -170,7 +175,7 @@ function handleRemove(): void {
                 <div :class="$style.fieldsRow" @focusout="handleMetaCommit">
                     <div :class="$style.selectedThumb">
                         <BricksImage
-                            v-if="!isVideo && !isDocument"
+                            v-if="isPicture"
                             :src="props.selectedItem.previewUrl ?? props.selectedItem.url"
                             :alt="props.selectedItem.alt || props.selectedItem.filename"
                             fit="cover"
@@ -178,9 +183,9 @@ function handleRemove(): void {
                         <BricksIcon v-else :icon="thumbIcon" />
                     </div>
 
-                    <div :class="$style.field">
+                    <div :class="[$style.field, $style._bounded]">
                         <span :class="$style.fieldLabel">{{ t('bricks.media.nameLabel') }}</span>
-                        <div :class="[$style.control, $style._name]">
+                        <div :class="$style.control">
                             <BricksInput
                                 :value="editableFilename"
                                 :max-length="MEDIA_FILENAME_MAX_LENGTH"
@@ -191,20 +196,41 @@ function handleRemove(): void {
                         </div>
                     </div>
 
-                    <div :class="$style.field">
+                    <div v-if="isPicture" :class="[$style.field, $style._bounded]">
                         <span :class="$style.fieldLabel">Alt</span>
-                        <div :class="[$style.control, $style._alt]">
+                        <div :class="$style.control">
                             <BricksInput
                                 :value="editableAlt"
                                 :max-length="MEDIA_ALT_MAX_LENGTH"
-                                :disabled="isVideo || isDocument || !canEdit"
-                                :placeholder="altPlaceholder"
+                                :disabled="!canEdit"
+                                :placeholder="t('bricks.media.altPlaceholder')"
                                 @update:value="editableAlt = $event"
                             />
                         </div>
                     </div>
 
-                    <div :class="$style.field">
+                    <div v-else :class="[$style.field, $style._url]">
+                        <span :class="$style.fieldLabel">{{ t('bricks.media.details.url') }}</span>
+                        <div :class="[$style.control, $style._url]">
+                            <BricksInput
+                                :value="props.selectedItem.url"
+                                :aria-label="t('bricks.media.details.url')"
+                                readonly
+                            />
+                        </div>
+                    </div>
+
+                    <div :class="$style.copySlot">
+                        <BricksIconButton
+                            icon="ta:outline-copy"
+                            :label="t('bricks.media.details.copyUrl')"
+                            size="lg"
+                            tooltip-side="top"
+                            @click="handleCopyUrl"
+                        />
+                    </div>
+
+                    <div :class="[$style.field, $style._category]">
                         <span :class="$style.fieldLabel">{{
                             t('bricks.media.categoryLabel')
                         }}</span>
@@ -220,24 +246,15 @@ function handleRemove(): void {
                         </div>
                     </div>
 
-                    <div :class="$style.fileActions">
-                        <BricksIconButton
-                            icon="ta:outline-copy"
-                            :label="t('bricks.media.details.copyUrl')"
-                            size="lg"
-                            tooltip-side="top"
-                            @click="handleCopyUrl"
-                        />
-                        <BricksIconButton
-                            v-if="canDelete"
-                            icon="ta:outline-trash"
-                            :label="t('bricks.common.delete')"
-                            danger
-                            size="lg"
-                            tooltip-side="top"
-                            @click="handleRemove"
-                        />
-                    </div>
+                    <BricksIconButton
+                        v-if="canDelete"
+                        icon="ta:outline-trash"
+                        :label="t('bricks.common.delete')"
+                        danger
+                        size="lg"
+                        tooltip-side="top"
+                        @click="handleRemove"
+                    />
                 </div>
 
                 <div :class="$style.divider" />
@@ -311,6 +328,26 @@ function handleRemove(): void {
     align-items: center;
     gap: 0.6rem;
     min-width: 0;
+
+    &._bounded {
+        display: grid;
+        grid-template-columns: auto minmax(9rem, 26rem);
+        min-width: auto;
+    }
+
+    &._url {
+        flex: 1 0 18rem;
+    }
+
+    &._category {
+        flex-shrink: 0;
+    }
+}
+
+.copySlot {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 .fieldLabel {
@@ -320,25 +357,14 @@ function handleRemove(): void {
     color: var(--bricks-base-500);
 }
 
-.fileActions {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: 0.8rem;
-    margin-left: auto;
-}
-
 .control {
-    &._name {
-        width: 26rem;
-    }
-
-    &._alt {
-        width: 30rem;
-    }
-
     &._category {
         width: 17rem;
+    }
+
+    &._url {
+        flex: 1;
+        min-width: 0;
     }
 }
 

@@ -116,9 +116,11 @@ function mountPanel(item: IMediaItem) {
 }
 
 /**
- * Значения полей «Имя» и «Alt» из разметки.
+ * Reads the values of the text fields of the panel in their order: the name and the alt
+ * of a picture.
  *
- * @param html - Разметка панели.
+ * @param wrapper - The mounted panel.
+ * @returns The values of the inputs.
  */
 function readInputs(wrapper: ReturnType<typeof mountPanel>): string[] {
     return wrapper.findAll('input').map((input) => (input.element as HTMLInputElement).value);

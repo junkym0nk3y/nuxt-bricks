@@ -19,6 +19,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TBricksUserRole } from '../../src/runtime/modules/common/types/auth';
 import type { IMediaItem } from '../../src/runtime/modules/common/types/media';
 
+// Constants
+import { MEDIA_ALT_MAX_LENGTH } from '../../src/runtime/modules/common/constants/mediaFields';
+
 // Vue
 import { defineComponent, effectScope, h } from 'vue';
 import { mount, type VueWrapper } from '@vue/test-utils';
@@ -286,13 +289,18 @@ function makeItem(mimeType: string): IMediaItem {
 }
 
 /**
- * Pulls the alt field out of the meta panel: it comes second in the row of edits.
+ * Pulls the alt and the URL fields out of the meta panel, each by a sign of its own:
+ * the alt by its length limit, the URL by being read-only. The placeholder is not such
+ * a sign: a disabled alt with a hint of its own would slip past it.
  *
  * @param role - Role of the session.
  * @param mimeType - MIME type of the selected file.
- * @returns Props of the alt field.
+ * @returns Props of each field, or null where the row has no such field.
  */
-function altFieldProps(role: TBricksUserRole, mimeType: string): Record<string, unknown> {
+function metaPanelTextFields(
+    role: TBricksUserRole,
+    mimeType: string
+): Record<'alt' | 'url', Record<string, unknown> | null> {
     requestContext.role = role;
 
     const wrapper = mount(BuilderMediaGalleryMetaPanel, {
@@ -306,37 +314,43 @@ function altFieldProps(role: TBricksUserRole, mimeType: string): Record<string, 
             stubs: { BricksInput: true, BricksSelect: true, BricksImage: true },
         },
     });
+    const inputs = wrapper.findAllComponents({ name: 'BricksInput' }).map((input) => input.props());
 
-    return wrapper.findAllComponents({ name: 'BricksInput' })[1]!.props();
+    return {
+        alt: inputs.find((input) => input.maxLength === MEDIA_ALT_MAX_LENGTH) ?? null,
+        url: inputs.find((input) => input.readonly === true) ?? null,
+    };
 }
 
-// The reason the field is blocked is seen in the placeholder, and the two reasons
-// differ: the alt of a video is unused by the renderer, while a viewer has no right
-// to edit. Merged into one sign, they would call a viewer's picture a video
-describe('медиатека: поле alt по типу файла и роли', () => {
+// The alt of a video or a document is read by no renderer, so the row has no such field
+// and shows the read-only URL in its place; a picture keeps the alt and has no URL field.
+// The right to edit is a separate matter: it disables the alt of a picture, never hides it
+describe('медиатека: поле alt или URL по типу файла и роли', () => {
     beforeEach(() => {
         requestContext.role = 'admin';
         resetNuxtStateStub();
     });
 
-    it('у видео поле закрыто и объясняет почему', () => {
-        const props = altFieldProps('editor', 'video/mp4');
+    it('у видео и документа вместо alt — URL только для чтения', () => {
+        for (const mimeType of ['video/mp4', 'application/pdf']) {
+            const fields = metaPanelTextFields('editor', mimeType);
 
-        expect(props.disabled).toBe(true);
-        expect(props.placeholder).toBe('bricks.media.altUnusedForVideo:');
+            expect(fields.alt).toBeNull();
+            expect(fields.url?.value).toBe('https://cdn.example.com/a.webp');
+        }
     });
 
-    it('у картинки редактору поле открыто', () => {
-        const props = altFieldProps('editor', 'image/webp');
+    it('у картинки редактору поле alt открыто, а поля URL нет', () => {
+        const fields = metaPanelTextFields('editor', 'image/webp');
 
-        expect(props.disabled).toBe(false);
-        expect(props.placeholder).toBe('bricks.media.altPlaceholder:');
+        expect(fields.alt?.disabled).toBe(false);
+        expect(fields.url).toBeNull();
     });
 
-    it('наблюдателю поле закрыто, но картинка видео не становится', () => {
-        const props = altFieldProps('viewer', 'image/webp');
+    it('наблюдателю поле alt картинки закрыто, но не спрятано', () => {
+        const fields = metaPanelTextFields('viewer', 'image/webp');
 
-        expect(props.disabled).toBe(true);
-        expect(props.placeholder).toBe('bricks.media.altPlaceholder:');
+        expect(fields.alt?.disabled).toBe(true);
+        expect(fields.url).toBeNull();
     });
 });
