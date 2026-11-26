@@ -25,7 +25,11 @@
 // #region Imports
 // Types
 import type { IGalleryItem } from '../../../../../common/types/content';
-import type { IPropertyImageGalleryEditorProps, IPropertyImageGalleryEditorEmits } from './types';
+import {
+    PROPERTY_TEXT_MAX_LENGTH,
+    type IPropertyImageGalleryEditorProps,
+    type IPropertyImageGalleryEditorEmits,
+} from './types';
 
 // Vue
 import { computed, useCssModule } from 'vue';
@@ -162,6 +166,7 @@ function handleReplaceImage(index: number): void {
                         :aria-label="
                             t('bricks.properties.gallery.titleLabel', { number: index + 1 })
                         "
+                        :max-length="PROPERTY_TEXT_MAX_LENGTH"
                         size="small"
                         :disabled="props.disabled"
                         @update:value="updateField(index, 'title', $event as string)"
@@ -174,6 +179,7 @@ function handleReplaceImage(index: number): void {
                         :aria-label="
                             t('bricks.properties.gallery.captionLabel', { number: index + 1 })
                         "
+                        :max-length="PROPERTY_TEXT_MAX_LENGTH"
                         size="small"
                         :disabled="props.disabled"
                         @update:value="updateField(index, 'caption', $event as string)"

@@ -41,6 +41,7 @@ export interface IBricksInputProps {
      * but not what the field is (a file address rather than just a string).
      */
     ariaLabel?: string;
+    /** The field is locked; like a read-only one, it is not validated */
     disabled?: boolean;
     placeholder?: string;
     type?: 'text' | 'number' | 'slug' | 'password';
@@ -52,6 +53,9 @@ export interface IBricksInputProps {
      * dims the field to half opacity, while read-only says "this value can be
      * read and copied, but not changed". The login in the profile is exactly
      * that: it is shown so that a person can see it.
+     *
+     * Neither is validated: the person cannot change the value, so an error on it
+     * could not be fixed, and `required` or `maxLength` on such a field shows nothing.
      */
     readonly?: boolean;
     required?: boolean;

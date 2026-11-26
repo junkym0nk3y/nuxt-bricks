@@ -52,13 +52,21 @@ export function useBricksInput(
 
     const placeholderText = computed(() => props.placeholder ?? '');
 
+    /**
+     * Whether the person can change the value. A locked field (read-only or disabled) is
+     * not validated at all, by any rule, and carries no native `maxlength`: it shows a
+     * value that came from elsewhere, like the address of a file in the media library,
+     * and an error on it could never be fixed. An external `errorMessage` still shows.
+     */
+    const isLocked = computed<boolean>(() => Boolean(props.readonly || props.disabled));
+
     const inputAttributes = computed(() => ({
         type: nativeType.value,
         autocomplete: props.autocomplete ?? 'off',
         placeholder: placeholderText.value,
         disabled: Boolean(props.disabled),
         readonly: Boolean(props.readonly),
-        maxlength: nativeType.value !== 'number' ? props.maxLength : undefined,
+        maxlength: nativeType.value !== 'number' && !isLocked.value ? props.maxLength : undefined,
         inputmode: props.type === 'number' ? ('decimal' as const) : ('text' as const),
         min: props.type === 'number' ? props.min : undefined,
         max: props.type === 'number' ? props.max : undefined,
@@ -113,6 +121,15 @@ export function useBricksInput(
      * @param value - Value to validate.
      */
     async function runValidation(value: string): Promise<void> {
+        // The media library flagged the address of every file longer than the default 120
+        // characters, and the locked name of a file for a person without the right to edit
+        // it (see `isLocked`)
+        if (isLocked.value) {
+            errorMessage.value = null;
+            emit('validation-state', { valid: true, message: null });
+            return;
+        }
+
         const intermediateNumberValues = ['', '-', '.', '-.'];
         if (
             !props.required &&

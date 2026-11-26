@@ -13,6 +13,9 @@ import type {
 import { computed, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Constants
+import { PROPERTY_TEXT_MAX_LENGTH } from './property-editors/types';
+
 // Utils
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 import { normalizeVariantProps } from '../utils/normalizeVariantProps';
@@ -90,6 +93,7 @@ const resolvedEditorProps = computed<Record<string, unknown>>(() => {
             label: '',
             ariaLabel: rowCaption.value,
             type: props.variant.property.type === 'number' ? 'number' : 'text',
+            maxLength: PROPERTY_TEXT_MAX_LENGTH,
         };
     }
 

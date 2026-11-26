@@ -49,6 +49,10 @@ import { resolveMediaDocumentExtension } from '../../../common/utils/mediaKind';
 
 // Constants
 import { MEDIA_DOCUMENT_ICONS } from '../../../common/constants/mediaDocuments';
+import {
+    MEDIA_ALT_MAX_LENGTH,
+    MEDIA_FILENAME_MAX_LENGTH,
+} from '../../../common/constants/mediaFields';
 import { formatPageDateTime } from '../../../common/utils/bricks/dates';
 import { resolveMediaCategoryLabelBySlug } from '../utils/categoryLabels';
 
@@ -258,6 +262,7 @@ function handleClose(): void {
                     <span :class="$style.fieldLabel">{{ t('bricks.media.nameLabel') }}</span>
                     <BricksInput
                         :value="editableFilename"
+                        :max-length="MEDIA_FILENAME_MAX_LENGTH"
                         :disabled="!canEdit"
                         :placeholder="t('bricks.media.filenamePlaceholder')"
                         @update:value="editableFilename = $event"
@@ -268,6 +273,7 @@ function handleClose(): void {
                     <span :class="$style.fieldLabel">Alt</span>
                     <BricksInput
                         :value="editableAlt"
+                        :max-length="MEDIA_ALT_MAX_LENGTH"
                         :disabled="isVideo || isDocument || !canEdit"
                         :placeholder="altPlaceholder"
                         @update:value="editableAlt = $event"

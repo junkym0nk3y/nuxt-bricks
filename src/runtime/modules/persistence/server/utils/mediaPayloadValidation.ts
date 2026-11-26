@@ -13,11 +13,12 @@ import {
     MEDIA_CATEGORY_SLUG_MAX_LENGTH,
     mediaCategoryLabelToSlug,
 } from '../../../common/constants/mediaCategories';
+import {
+    MEDIA_ALT_MAX_LENGTH,
+    MEDIA_FILENAME_MAX_LENGTH,
+} from '../../../common/constants/mediaFields';
 
 // #region Constants
-const FILENAME_MAX_LENGTH = 255;
-const ALT_MAX_LENGTH = 512;
-
 const UPDATE_MEDIA_KEYS = new Set(['filename', 'alt', 'category']);
 const CREATE_MEDIA_CATEGORY_KEYS = new Set(['label']);
 // #endregion
@@ -37,12 +38,12 @@ export function validateUpdateMediaPayload(body: Record<string, unknown>): TUpda
     if (body.filename !== undefined) {
         result.filename = requireString(body.filename, 'filename', {
             min: 1,
-            max: FILENAME_MAX_LENGTH,
+            max: MEDIA_FILENAME_MAX_LENGTH,
         });
     }
 
     if (body.alt !== undefined) {
-        result.alt = requireString(body.alt, 'alt', { max: ALT_MAX_LENGTH });
+        result.alt = requireString(body.alt, 'alt', { max: MEDIA_ALT_MAX_LENGTH });
     }
 
     // null is a deliberate clearing of the category off the file, which is why it

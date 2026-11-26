@@ -46,6 +46,10 @@ import { resolveMediaDocumentExtension } from '../../../common/utils/mediaKind';
 
 // Constants
 import { MEDIA_DOCUMENT_ICONS } from '../../../common/constants/mediaDocuments';
+import {
+    MEDIA_ALT_MAX_LENGTH,
+    MEDIA_FILENAME_MAX_LENGTH,
+} from '../../../common/constants/mediaFields';
 
 // Vue
 import { computed } from 'vue';
@@ -169,6 +173,7 @@ function handleRemove(): void {
                         <div :class="[$style.control, $style._name]">
                             <BricksInput
                                 :value="editableFilename"
+                                :max-length="MEDIA_FILENAME_MAX_LENGTH"
                                 :disabled="!canEdit"
                                 :placeholder="t('bricks.media.filenamePlaceholder')"
                                 @update:value="editableFilename = $event"
@@ -181,6 +186,7 @@ function handleRemove(): void {
                         <div :class="[$style.control, $style._alt]">
                             <BricksInput
                                 :value="editableAlt"
+                                :max-length="MEDIA_ALT_MAX_LENGTH"
                                 :disabled="isVideo || isDocument || !canEdit"
                                 :placeholder="altPlaceholder"
                                 @update:value="editableAlt = $event"

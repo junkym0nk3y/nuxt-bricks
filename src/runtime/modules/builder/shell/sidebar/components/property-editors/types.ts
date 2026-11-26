@@ -24,6 +24,17 @@ export interface IComponentVariant {
 }
 
 /**
+ * Length ceiling of a text field in the properties panel: a text property of a block and
+ * the title and caption of a gallery item.
+ *
+ * Above the 120 of the kit field: such fields take links as well (a button link with UTM
+ * parameters, a document link in a gallery caption), and a media library address alone
+ * runs past 120 characters. The native `maxlength` cut a pasted address at 120 without a
+ * word, and the block went on to link to a file that does not exist.
+ */
+export const PROPERTY_TEXT_MAX_LENGTH = 300;
+
+/**
  * Allow-list of the numeric spacing properties: a group made up entirely of them is
  * rendered by the composite box-model editor instead of flat inputs.
  */
