@@ -11,7 +11,10 @@
  * Decisions held by the style section: the 0.8rem gap between the header, the rows
  * and the add button comes from the design — pressed together the rows read as one
  * block. The column labels are lifted into a header row so that the values are read
- * top to bottom down a column instead of being hunted for anew in every row.
+ * top to bottom down a column instead of being hunted for anew in every row. The modal
+ * is 86rem wide because the table is exactly 82rem — seven columns with six 1.2rem gaps —
+ * inside the 2rem padding of the body; at the former 76rem the rem base column did not
+ * fit.
  */
 
 // #region Imports
@@ -36,6 +39,7 @@ import { countDeviceOverrides, describeAbsorbedRange } from '../utils/deviceImpa
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
 import BricksConfirmModal from '../../../ui/feedback/BricksConfirmModal.vue';
+import BricksFieldHint from '../../../ui/inputs/BricksFieldHint.vue';
 import BricksModal from '../../../ui/base/modal/BricksModal.vue';
 import BricksModalFooter from '../../../ui/base/modal/BricksModalFooter.vue';
 import BricksModalHeader from '../../../ui/base/modal/BricksModalHeader.vue';
@@ -249,6 +253,7 @@ function handleSave(): void {
                         <span>{{ t('bricks.devices.columns.aside') }}</span>
                         <span>{{ t('bricks.devices.columns.maxWidth') }}</span>
                         <span>{{ t('bricks.devices.columns.minWidth') }}</span>
+                        <span>{{ t('bricks.devices.columns.remBase') }}</span>
                         <span />
                     </div>
 
@@ -267,6 +272,8 @@ function handleSave(): void {
                         :disabled="!canAdd"
                         @select="addDevice"
                     />
+
+                    <BricksFieldHint>{{ t('bricks.devices.remBaseHint') }}</BricksFieldHint>
                 </div>
 
                 <BuilderPublishDeviceRanges :ranges="ranges" />
@@ -308,7 +315,7 @@ function handleSave(): void {
 .BuilderPublishDevicesModal {
     display: flex;
     flex-direction: column;
-    width: 76rem;
+    width: 86rem;
     max-width: 100%;
     border-radius: var(--bricks-border-radius-md);
     background: var(--bricks-base-0);
@@ -363,7 +370,7 @@ function handleSave(): void {
     font-weight: 600;
     letter-spacing: 0.05rem;
     color: var(--bricks-base-500);
-    grid-template-columns: 23.6rem 9.6rem 9.6rem 9.6rem 9.6rem 3.2rem;
+    grid-template-columns: 23.6rem 9.6rem 9.6rem 9.6rem 9.6rem 9.6rem 3.2rem;
     gap: 1.2rem;
 }
 </style>

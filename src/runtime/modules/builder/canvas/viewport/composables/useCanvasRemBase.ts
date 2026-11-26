@@ -15,10 +15,11 @@ const LIBRARY_REM_BASE = 10;
 
 /**
  * Turns a target rem into the compensation factor, with no compensation for a rem that
- * cannot be one. The device validator checks only that `remBase` is a string, so `0px`,
- * `-1px` or `Infinitypx` reach here; the factor multiplies the sheet height and divides
- * the width of its content, and such a value collapsed the sheet to nothing or blew it
- * up to infinity.
+ * cannot be one. The device validator admits only a positive `px` or `vw` amount, yet
+ * the factor multiplies the sheet height and divides the width of its content: back when
+ * the validator checked only for a string, `0px`, `-1px` or `Infinitypx` reached here and
+ * collapsed the sheet to nothing or blew it up to infinity. The guard stays as the last
+ * line in front of the geometry.
  *
  * @param targetRemPx - Target value of 1rem in pixels.
  * @returns Positive finite factor, 1 when the rem is unusable.
@@ -37,10 +38,11 @@ function toCompensation(targetRemPx: number): number {
  * `0.6944vw` is 7.11px at a laptop of 1024px, and the page there is 144rem wide. The
  * compensation used to scale the whole sheet: the sheet shrank, its layout stayed 102.4rem
  * wide, and a layout drawn for 144rem broke on the canvas only — columns squeezed, lines
- * wrapped. Widening the sheet itself to 1440px is no way out: the container queries of the
- * canvas (`bricks-up(laptop)`) measure the sheet in px and would see a desktop. So the
- * sheet keeps the width of its device and stays the query container, and the content
- * inside it gets the width of the page in rem.
+ * wrapped. Widening the sheet itself to 1440px is no way out: the sheet is what the builder
+ * shows at the device width, and the unnamed container queries and `cq*` units of a brick
+ * measure it in px — they would see a desktop. So the sheet keeps the width of its device
+ * and stays the query container, and the content inside it gets the width of the page in
+ * rem.
  *
  * A transform, not CSS `zoom`, which would need no width: Firefox below 126 — inside the
  * browserslist of the module — ignores `zoom`, and the compensation would be lost there.
@@ -64,7 +66,7 @@ export function getRemCompensationStyle(compensation: number): Record<string, st
 }
 
 /**
- * Computes the rem compensation for the canvas when the project uses a
+ * Computes the rem compensation for the canvas when a device is laid out in a
  * non-standard html { font-size } (a vw-based one, for instance).
  *
  * The builder forces html { font-size: 10px } inline, and this composable
@@ -72,10 +74,11 @@ export function getRemCompensationStyle(compensation: number): Record<string, st
  * published page — the sheet itself keeps the width of its device (see
  * `getRemCompensationStyle`).
  *
- * `remBase` is a property of the PROJECT device set (the `bricks.devices` module
- * option), not of a page: one page living in a different rem system from its
- * neighbors is not a setting but a breakage. The device-set resolver mixes it in
- * by matching key.
+ * The `remBase` comes already settled by the device-set resolver: the page device's
+ * own, otherwise the one of the project device with the same key (the
+ * `bricks.devices` module option), otherwise `10px`. A page with a layout of its own
+ * usually lives in a rem system of its own on the consumer side, and its sheet has to
+ * follow that system rather than the project one.
  *
  * @example
  * // nuxt.config.ts
@@ -93,7 +96,7 @@ export function useCanvasRemBase() {
     /**
      * Computes the target rem (in px) for the given viewport from the remBase in the config.
      *
-     * @param viewport - Device key of the project set.
+     * @param viewport - Device key of the active set.
      * @returns Target value of 1rem in pixels.
      */
     function computeTargetRemPx(viewport: TBricksDeviceKey): number {
@@ -133,7 +136,7 @@ export function useCanvasRemBase() {
      * Compensation for a specific viewport (used in Figma mode, where every
      * sheet of the device set is rendered at once).
      *
-     * @param viewport - Device key of the project set.
+     * @param viewport - Device key of the active set.
      * @returns Compensation factor.
      */
     function getRemCompensation(viewport: TBricksDeviceKey): number {

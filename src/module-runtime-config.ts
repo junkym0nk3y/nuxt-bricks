@@ -33,16 +33,13 @@ export function resolveBricksDevices(
         return DEFAULT_BRICKS_DEVICES;
     }
 
-    const validation = validateDeviceSet(configured, 'project');
+    const validation = validateDeviceSet(configured);
 
     if (!validation.ok) {
         throw new Error(`[nuxt-bricks] Invalid bricks.devices: ${validation.errors.join('; ')}`);
     }
 
-    // The validator returns the page fields; it knows nothing of the project-only
-    // remBase, and that must not be dropped — so we take the original entries,
-    // already recognized as valid
-    return configured;
+    return validation.value;
 }
 /**
  * Logs the resolved data backend mode at module start — the mode alone, without

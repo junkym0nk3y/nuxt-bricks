@@ -14,6 +14,7 @@ import { useI18n } from 'vue-i18n';
 // Constants
 import {
     BASE_DEVICE_KEY,
+    DEFAULT_REM_BASE,
     DEVICE_CHOICES,
     DEVICE_MAX_WIDTH,
     DEVICE_MIN_WIDTH,
@@ -25,6 +26,7 @@ import {
 import {
     cloneDeviceSet,
     deviceRanges,
+    isDeviceRemBase,
     validateDeviceSet,
 } from '../../../common/utils/bricks/devices';
 // #endregion
@@ -54,6 +56,11 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     /**
      * The set that is shown: either the own draft or the set of the project in
      * read-only mode.
+     *
+     * The project rem base is dropped from the shown entries on purpose: turning the
+     * switch on copies them into the draft, and a copied base would pin the project
+     * value into the page — a later change of the project base would never reach it.
+     * The row shows that base as the fallback of an empty field instead.
      */
     const shownDevices = computed<TBricksPageDeviceSet>(() =>
         isCustom.value
@@ -83,12 +90,26 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
         };
     });
 
+    /**
+     * The rem base of every project device by key — what a page device without a base
+     * of its own resolves to. The project set arrives resolved, so a project device
+     * without a base already carries the library default here.
+     */
+    const projectRemBases = computed<Map<string, string>>(
+        () => new Map(options.projectDevices().map((device) => [device.key, device.remBase]))
+    );
+
     const rows = computed<IPublishDeviceRow[]>(() =>
         shownDevices.value.map((device, index) => ({
             ...device,
             isLocked: device.key === NARROW_DEVICE_KEY || device.key === BASE_DEVICE_KEY,
             widthError: validateWidth(device, index),
             labelError: device.label.trim() ? '' : t('bricks.devices.errors.labelRequired'),
+            remBaseError:
+                device.remBase === undefined || isDeviceRemBase(device.remBase)
+                    ? ''
+                    : t('bricks.devices.errors.remBase'),
+            remBaseFallback: projectRemBases.value.get(device.key) ?? DEFAULT_REM_BASE,
         }))
     );
 
@@ -155,7 +176,7 @@ export function usePublishDeviceSet(options: IPublishDeviceSetOptions) {
     );
 
     const hasErrors = computed<boolean>(() =>
-        rows.value.some((row) => row.widthError || row.labelError)
+        rows.value.some((row) => row.widthError || row.labelError || row.remBaseError)
     );
 
     /**

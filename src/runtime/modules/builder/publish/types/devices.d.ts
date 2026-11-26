@@ -51,6 +51,14 @@ export interface IPublishDeviceRow extends IBricksPageDevice {
     widthError: string;
     /** The error text of the name field; an empty string means there is no error */
     labelError: string;
+    /** The error text of the rem base field; an empty string means there is no error */
+    remBaseError: string;
+    /**
+     * The rem base the device falls back to while its own field is empty: the one of
+     * the project device with the same key, otherwise the library default. Shown as
+     * the placeholder, so an empty field reads as "inherited", not as "none".
+     */
+    remBaseFallback: string;
 }
 
 /** Props of a device row of the editor table */

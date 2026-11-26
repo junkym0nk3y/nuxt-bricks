@@ -21,9 +21,10 @@ export interface IBricksModuleOptions {
      * happen by construction.
      *
      * The option is build-time and it is the only one: the same resolved map feeds
-     * the SCSS map of the mixins (`#bricks-scss`), so the canvas, the containers,
-     * the published thresholds and the media queries of brick authors all compute
-     * from the same numbers. An invalid value fails the build — the set must never
+     * the SCSS map of the mixins (`#bricks-scss`), so their window branch — the one
+     * a brick takes on a page of the consumer's own, outside the module — computes
+     * from the same numbers as the canvas, the containers and the published
+     * thresholds. An invalid value fails the build — the set must never
      * be substituted silently, that would change the layout of every page.
      *
      * An individual page can get a set of its own in the builder; it is stored in

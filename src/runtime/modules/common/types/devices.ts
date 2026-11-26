@@ -28,31 +28,30 @@ export interface IBricksPageDevice {
     aside: number;
     maxWidth?: number;
     minWidth?: number;
-}
-
-/**
- * A device of the project set: the same thing plus the single knob a page cannot
- * have. `remBase` is a property of the whole project (a non-standard
- * `html { font-size }`), and editing it per page would mean one page living in a
- * different rem system than the rest.
- */
-export interface IBricksProjectDevice extends IBricksPageDevice {
-    /** Rem base of the widget, e.g. `10px` or `0.6944vw` */
+    /**
+     * The rem base the device is laid out in, e.g. `10px` or `0.6944vw`. It describes
+     * the canvas sheet only: the builder forces `html { font-size: 10px }` and scales
+     * the sheet content to this base, while on a published page the rem is set by the
+     * consumer and the module does not touch it. A page device without it falls back
+     * to the project device of the same key, then to `10px`.
+     */
     remBase?: string;
 }
 
 /**
- * A device after resolution: plus the data neither a page nor the project has.
- * `canvasHeight` is the height of the sheet in the builder, a pure property of the
- * interface: on a published page a device has no height at all, and there is no
- * point storing it in the schema.
+ * A device after resolution: plus the data neither a page nor the project has, and
+ * with the rem base settled. `canvasHeight` is the height of the sheet in the builder,
+ * a pure property of the interface: on a published page a device has no height at
+ * all, and there is no point storing it in the schema.
  */
-export interface IBricksResolvedDevice extends IBricksProjectDevice {
+export interface IBricksResolvedDevice extends IBricksPageDevice {
+    remBase: string;
     canvasHeight: number;
 }
 
 export type TBricksPageDeviceSet = IBricksPageDevice[];
-export type TBricksProjectDeviceSet = IBricksProjectDevice[];
+/** The project set has the same shape as a page set; the name keeps the role apart */
+export type TBricksProjectDeviceSet = IBricksPageDevice[];
 export type TBricksResolvedDeviceSet = IBricksResolvedDevice[];
 
 /**

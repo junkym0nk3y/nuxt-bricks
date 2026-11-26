@@ -45,6 +45,7 @@ const props = withDefaults(defineProps<IBricksInputProps>(), {
     revealable: true,
     showCounter: false,
     errorMessage: null,
+    invalid: false,
 });
 // #endregion
 
@@ -77,13 +78,16 @@ const {
  */
 const displayedError = computed<string | null>(() => props.errorMessage || errorMessage.value);
 
+/** The field is invalid: by an error on screen or by the caller's word without a message */
+const isInvalid = computed<boolean>(() => props.invalid || Boolean(displayedError.value));
+
 const showCharCount = computed<boolean>(() => props.showCounter && Boolean(props.maxLength));
 
 const classList = computed(() => [
     {
         [$style._active]: Boolean(innerValue.value),
         [$style._disabled]: Boolean(props.disabled),
-        [$style._invalid]: Boolean(displayedError.value),
+        [$style._invalid]: isInvalid.value,
     },
 ]);
 // #endregion
@@ -108,7 +112,7 @@ const classList = computed(() => [
                 :class="$style.native"
                 :tabindex="0"
                 :value="innerValue"
-                :aria-invalid="Boolean(displayedError)"
+                :aria-invalid="isInvalid"
                 @input="handleInput"
                 @blur="handleBlur"
             />

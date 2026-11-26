@@ -202,6 +202,7 @@
                     "rgb-from-hex",
                     "bricks-device-width",
                     "bricks-device-next",
+                    "-boundary",
                     "get-border-radius",
                     "get-flex-column-width"
                 ]

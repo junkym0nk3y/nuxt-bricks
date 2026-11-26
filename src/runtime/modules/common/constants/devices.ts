@@ -11,8 +11,9 @@
  *
  * Now a device width is both the builder sheet and the `min-width` of its range.
  * The default can be overridden with the build-time module option
- * `bricks.devices`; the same option feeds the SCSS map of the mixins, so the
- * runtime and the brick authors work off the same numbers.
+ * `bricks.devices`; the same option feeds the SCSS map behind the window branch of
+ * the mixins, so a brick on a page outside the module works off the same numbers as
+ * the runtime.
  */
 
 // Types
@@ -63,11 +64,45 @@ export const DEVICE_REM_STEP = 0.2;
 /** Ceiling of the rem fields — certainly above any meaningful padding or max-width */
 export const DEVICE_REM_MAX = 1000;
 
+/**
+ * Prefixes of the container names a device step carries, `<prefix><key>`. They are a
+ * contract with the SCSS mixins (`assets/scss/public/_devices.scss`): `bricks-up(tablet)`
+ * compiles into `@container bricks-up-tablet (min-width: 0)`, and which names are
+ * active is decided by the generated CSS of the device set — the canvas sheet by its
+ * device, a published page by the window ranges. That is how a brick follows the set
+ * of the page rather than the px numbers of the project baked in at build time.
+ */
+export const DEVICE_STEP_CONTAINER_PREFIX = {
+    up: 'bricks-up-',
+    down: 'bricks-down-',
+    only: 'bricks-only-',
+} as const;
+
+/**
+ * Attribute of the root of a page the module renders. The generated CSS turns that
+ * root into the container carrying the step names, and the window branch of the
+ * mixins is fenced off from its descendants. An attribute rather than a class: the
+ * mixins expand inside a consumer `<style module>`, where CSS Modules would hash a
+ * bare class and the guard would never match.
+ */
+export const BRICKS_PAGE_ROOT_ATTRIBUTE = 'data-bricks-page';
+
 /** Canvas sheet height for a device that is not in the catalog */
 export const DEFAULT_CANVAS_HEIGHT = 1080;
 
 /** The library's rem base: the builder forces `html { font-size: 10px }` */
 export const DEFAULT_REM_BASE = '10px';
+
+/**
+ * Shape of a device rem base: a positive number in `px` or `vw`, the two units the
+ * canvas compensation knows how to turn into a sheet scale. Anything else (`62.5%`,
+ * `calc()`) used to pass as "a string" and was then misread by the compensation —
+ * `parseFloat('62.5%')` gave a 62.5px rem and a sheet blown up sixfold.
+ */
+export const DEVICE_REM_BASE_PATTERN = /^(\d+(?:\.\d+)?|\.\d+)(px|vw)$/;
+
+/** Ceiling of the rem base amount: a 100px or 100vw rem is certainly garbage */
+export const DEVICE_REM_BASE_MAX = 100;
 
 /**
  * The device catalog — one table for everything: the default project set, the

@@ -30,7 +30,7 @@
 import type { ISidebarComponentCardProps } from '../types/components';
 
 // Vue
-import { computed, ref } from 'vue';
+import { computed, ref, type CSSProperties } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Pinia
@@ -47,6 +47,10 @@ import { useComponentCardPreview } from '../composables/useComponentCardPreview'
 import { useComponentCardDrag } from '../composables/useComponentCardDrag';
 
 // Utils
+import {
+    CANVAS_CONTAINER_NAME,
+    deviceStepContainerNames,
+} from '../../../../common/utils/bricks/containerCss';
 import { resolveBricksLabel } from '../../../../common/utils/i18nLabels';
 import { convertPxToRem } from '../../../../common/utils/main';
 
@@ -140,6 +144,24 @@ const isFavorite = computed<boolean>(() =>
 const previewHostStyle = computed(() => ({
     '--card-preview-width': convertPxToRem(canvasStore.getViewportWidth(BASE_DEVICE_KEY)),
 }));
+
+/**
+ * Container names of the brick preview and of its measure instance: the canvas name plus
+ * the step names of the base device, the same ones its canvas sheet carries.
+ *
+ * Set inline because the generated CSS names a sheet by `.bricks-canvas` and
+ * `data-bricks-viewport` on one node, while in a brick card the two sit on different
+ * nodes. Moving the attribute onto the `.bricks-canvas` would add one more match to the
+ * document-wide lookups of the base sheet (`useCanvasSnapshot`, `scrollToComponent`).
+ * Without the names a brick on the mixins rendered and was measured in its base styles
+ * only, and the drag placeholder took a height the block does not have on the sheet.
+ */
+const previewContainerStyle = computed<CSSProperties>(() => ({
+    containerName: [
+        CANVAS_CONTAINER_NAME,
+        ...deviceStepContainerNames(canvasStore.devices, BASE_DEVICE_KEY),
+    ].join(' '),
+}));
 // #endregion
 
 // #region Methods
@@ -203,7 +225,7 @@ function onBrickThumbnailError(): void {
         </div>
 
         <div v-else :class="$style.cardInner">
-            <div :class="[$style.thumbnail, 'bricks-canvas']">
+            <div :class="[$style.thumbnail, 'bricks-canvas']" :style="previewContainerStyle">
                 <img
                     v-if="hasBrickThumbnail"
                     :src="thumbnailUrl"
@@ -237,6 +259,7 @@ function onBrickThumbnailError(): void {
             <div
                 v-if="hasBrickThumbnail && ComponentPreview"
                 :class="[$style.measureProbe, 'bricks-canvas']"
+                :style="previewContainerStyle"
                 aria-hidden="true"
             >
                 <div

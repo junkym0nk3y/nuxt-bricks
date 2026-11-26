@@ -80,6 +80,13 @@ export interface IBricksInputProps {
     showCounter?: boolean;
     /** External error (vee-validate, server); wins over internal validation */
     errorMessage?: string | null;
+    /**
+     * Marks the field invalid without a message under it: for a caller that lays the
+     * message out itself. A row of the device table is the case — a message under one
+     * narrow cell wrapped into a column of five lines and pushed only that cell's field
+     * out of line, so the row puts its errors on a line of their own under the cells.
+     */
+    invalid?: boolean;
 }
 
 export interface IBricksInputEmits {

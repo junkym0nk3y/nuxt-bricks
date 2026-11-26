@@ -1149,6 +1149,7 @@
             "rangesTitle": "Window width ranges",
             "rangesHint": "The threshold is the device width. The narrowest always starts at 0, the widest has no upper bound. The outlined segment is the device open on the canvas.",
             "rangeFrom": "from {min}",
+            "remBaseHint": "Rem base is the size of 1rem on this device on your site, e.g. 10px or 0.5208vw. The builder fits the canvas sheet to it; the published page is unaffected. An empty field uses the project base.",
             "settingsGroup": "Devices",
             "settingsAction": "Configure devices",
             "settingsInherited": "Same as project · {count}",
@@ -1158,7 +1159,8 @@
                 "width": "Width, px",
                 "aside": "Padding, rem",
                 "maxWidth": "Max, rem",
-                "minWidth": "Min, rem"
+                "minWidth": "Min, rem",
+                "remBase": "Rem base"
             },
             "errors": {
                 "labelRequired": "A name is required — the device key in the schema is built from it",
@@ -1166,7 +1168,8 @@
                 "widthTaken": "“{label}” already uses this width",
                 "widthBetween": "An intermediate device width must be between {min} (“{minLabel}”) and {max} (“{maxLabel}”)",
                 "widthMax": "Nothing goes above {max}: that is no longer a screen",
-                "edgeOrder": "Mobile must stay the narrowest and desktop the widest"
+                "edgeOrder": "Mobile must stay the narrowest and desktop the widest",
+                "remBase": "Rem base — px or vw only, like 10px or 0.5208vw: a number above 0, up to 100"
             },
             "removeConfirm": {
                 "title": "Remove “{label}”?",

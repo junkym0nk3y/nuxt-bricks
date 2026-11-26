@@ -19,6 +19,7 @@ import {
     resolveDeviceSet,
     validateDeviceSet,
 } from '../../src/runtime/modules/common/utils/bricks/devices';
+import { deviceStepContainerNames } from '../../src/runtime/modules/common/utils/bricks/containerCss';
 // #endregion
 
 // #region Helpers
@@ -194,13 +195,20 @@ describe('validateDeviceSet', () => {
         expect(validateDeviceSet(unsorted).ok).toBe(false);
     });
 
-    it('отклоняет лишнее поле и remBase в наборе страницы', () => {
+    it('отклоняет лишнее поле', () => {
         expect(validateDeviceSet(trio({ canvasHeight: 900 })).ok).toBe(false);
-        expect(validateDeviceSet(trio({ remBase: '0.6944vw' })).ok).toBe(false);
     });
 
-    it('разрешает remBase в наборе проекта', () => {
-        expect(validateDeviceSet(trio({ remBase: '0.6944vw' }), 'project').ok).toBe(true);
+    it('принимает remBase в px и vw и отклоняет то, что компенсация листа не прочтёт', () => {
+        // The canvas compensation parses only px and vw: `62.5%` used to pass as "a
+        // string" and became a 62.5px rem, a sheet blown up sixfold
+        const accepted = validateDeviceSet(trio({ remBase: '0.5208vw' }));
+        expect(accepted.ok && accepted.value[1].remBase).toBe('0.5208vw');
+        expect(validateDeviceSet(trio({ remBase: '10px' })).ok).toBe(true);
+
+        for (const remBase of ['62.5%', '0px', '-1px', '10', 'calc(1vw)', 10]) {
+            expect(validateDeviceSet(trio({ remBase })).ok).toBe(false);
+        }
     });
 
     it('отклоняет строковые CSS-длины в rem-полях: они уезжают в генерируемый style', () => {
@@ -248,9 +256,16 @@ describe('resolveDeviceSet', () => {
         expect(usedFallback).toBe(true);
     });
 
-    it('подмешивает project-only remBase по совпадающему ключу и дефолт остальным', () => {
+    it('remBase: свой у страницы, иначе проектный по ключу, иначе дефолт', () => {
         const project = [
-            { key: 'mobile', label: 'Мобильный', icon: 'device-mobile', width: 375, aside: 0.4 },
+            {
+                key: 'mobile',
+                label: 'Мобильный',
+                icon: 'device-mobile',
+                width: 375,
+                aside: 0.4,
+                remBase: '2.6667vw',
+            },
             {
                 key: 'desktop',
                 label: 'Десктоп',
@@ -260,10 +275,13 @@ describe('resolveDeviceSet', () => {
                 remBase: '0.6944vw',
             },
         ];
-        const { devices } = resolveDeviceSet(trio({ key: 'laptop', width: 1280 }), project);
+        const [narrow, middle, wide] = trio({ key: 'laptop', width: 1280 });
+        const { devices } = resolveDeviceSet(
+            [narrow, middle, { ...wide, width: 1920, remBase: '0.5208vw' }],
+            project
+        );
 
-        expect(devices.find((d) => d.key === 'desktop')?.remBase).toBe('0.6944vw');
-        expect(devices.find((d) => d.key === 'laptop')?.remBase).toBe('10px');
+        expect(devices.map((d) => d.remBase)).toEqual(['2.6667vw', '10px', '0.5208vw']);
     });
 
     it('высота листа канваса не хранится у страницы, а берётся по ключу', () => {
@@ -300,12 +318,49 @@ describe('deviceRanges', () => {
     });
 });
 
+describe('deviceStepContainerNames', () => {
+    const mobile = { key: 'mobile', label: 'M', icon: 'device-mobile', width: 414, aside: 0.4 };
+    const tablet = { key: 'tablet', label: 'T', icon: 'device-tablet', width: 540, aside: 0.8 };
+    const laptop = { key: 'laptop', label: 'L', icon: 'device-laptop', width: 1440, aside: 1.2 };
+    const desktop = { key: 'desktop', label: 'D', icon: 'device-desktop', width: 1920, aside: 2 };
+
+    it('полный набор: пройденные границы — up, остальные — down, свой ключ — only', () => {
+        const set = [mobile, tablet, laptop, desktop];
+
+        expect(deviceStepContainerNames(set, 'laptop')).toEqual([
+            'bricks-up-mobile',
+            'bricks-up-tablet',
+            'bricks-up-laptop',
+            'bricks-down-desktop',
+            'bricks-only-laptop',
+        ]);
+        expect(deviceStepContainerNames(set, 'desktop')).toContain('bricks-up-desktop');
+    });
+
+    it('без tablet: граница tablet совпадает со следующим устройством страницы', () => {
+        const set = [mobile, laptop, desktop];
+        const all = set.flatMap((item) => deviceStepContainerNames(set, item.key));
+
+        expect(deviceStepContainerNames(set, 'mobile')).toContain('bricks-down-tablet');
+        expect(deviceStepContainerNames(set, 'laptop')).toContain('bricks-up-tablet');
+        // A step of zero width: `bricks-only(tablet)` never fires on this page
+        expect(all).not.toContain('bricks-only-tablet');
+    });
+
+    it('без laptop: граница laptop совпадает с desktop', () => {
+        const set = [mobile, tablet, desktop];
+
+        expect(deviceStepContainerNames(set, 'tablet')).toContain('bricks-down-laptop');
+        expect(deviceStepContainerNames(set, 'desktop')).toContain('bricks-up-laptop');
+    });
+});
+
 describe('buildDeviceMediaQuery', () => {
     it.each([
-        [{ key: 'mobile', min: 0, max: 767 }, '@media (max-width: 767px)'],
+        [{ key: 'mobile', min: 0, max: 767 }, '@media (max-width: 767.98px)'],
         [
             { key: 'tablet', min: 768, max: 1279 },
-            '@media (min-width: 768px) and (max-width: 1279px)',
+            '@media (min-width: 768px) and (max-width: 1279.98px)',
         ],
         [
             { key: 'desktop', min: 1600, max: Number.POSITIVE_INFINITY },

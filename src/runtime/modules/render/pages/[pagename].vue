@@ -38,6 +38,7 @@ import { resolvePageAddressFromRoute } from '../../common/utils/bricks/pageAddre
 import { translateBricksKey } from '../../common/utils/globalI18n';
 import { BRICKS_PREVIEW_ROUTE_NAMES } from '../../common/constants/routes';
 import { BRICKS_DEVICES_KEY } from '../../common/constants/injectionKeys';
+import { BRICKS_PAGE_ROOT_ATTRIBUTE } from '../../common/constants/devices';
 
 // Components
 import TheRenderer from '../components/TheRenderer.vue';
@@ -55,6 +56,16 @@ definePageMeta({
 // #endregion
 
 // #region Data
+/**
+ * Marks the root as the page container of the brick mixins: the generated device CSS
+ * gives it `container-type: inline-size` and the step names of the window range, and
+ * `bricks-up(desktop)` inside a brick answers by those names. inline-size containment
+ * leaves the root without an intrinsic width, which is why `.bricksPage` keeps an
+ * explicit `width: 100%`: dropped, the root collapses to zero inside a consumer's flex
+ * row.
+ */
+const pageRootAttrs = { [BRICKS_PAGE_ROOT_ATTRIBUTE]: '' };
+
 const route = useRoute();
 // The address, not the name alone: both the preview and the live render serve a
 // pair of routes (with a prefix and without one), and it is the full address that
@@ -267,7 +278,7 @@ useHead(() => {
 </script>
 
 <template>
-    <div :class="[$style.bricksPage, 'bricks-text', 'page']">
+    <div :class="[$style.bricksPage, 'bricks-text', 'page']" v-bind="pageRootAttrs">
         <div
             v-if="page"
             :class="$style.pageContent"

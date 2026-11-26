@@ -26,9 +26,9 @@ let hasWarnedInvalidPageDevices = false;
  *
  * The project set is fixed at build time (the `bricks.devices` module option on top
  * of the constant) and arrives in `runtimeConfig.public`: the same numbers go into
- * the SCSS map of the mixins, so the canvas, the containers, the published
- * thresholds and the media queries of brick authors are all computed from one
- * source.
+ * the SCSS map behind the window branch of the mixins, so the canvas, the
+ * containers, the published thresholds and a brick on a page outside the module
+ * are all computed from one source.
  *
  * This composable does not read the page set — only whoever loaded the page knows
  * it, and they pass the config into `resolvePageDevices` themselves.
@@ -39,9 +39,9 @@ export function useBricksDevices(): IUseBricksDevicesReturn {
 
     // The option is validated fail-fast when the module is built; the check here is
     // needed in case runtimeConfig was overridden bypassing it
-    const validation = validateDeviceSet(raw, 'project');
+    const validation = validateDeviceSet(raw);
     const projectDevices: TBricksProjectDeviceSet = validation.ok
-        ? (raw as TBricksProjectDeviceSet)
+        ? validation.value
         : DEFAULT_BRICKS_DEVICES;
 
     const project = resolveDeviceSet(null, projectDevices);

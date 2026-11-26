@@ -39,7 +39,7 @@ describe('buildBricksContainerCss', () => {
         const css = buildBricksContainerCss(TRIO);
 
         expect(css).toContain('.bricks-canvas[data-bricks-viewport="mobile"] .bricks-container');
-        expect(css).toContain('@media (max-width: 767px)');
+        expect(css).toContain('@media (max-width: 767.98px)');
         expect(css).toContain('.bricks-container:where(:not(.bricks-canvas *))');
     });
 
@@ -64,12 +64,33 @@ describe('buildBricksContainerCss', () => {
         expect(buildBricksContainerCss(TRIO)).toContain('max-width: 76.8rem;');
     });
 
+    it('страница без своего набора получает имена ступеней проектного набора', () => {
+        // TRIO is what `resolveDeviceSet(null, project)` gives: the page inherits the
+        // project set, and its tablet range carries the tablet step names
+        const css = buildBricksContainerCss(TRIO);
+
+        expect(css).toMatch(
+            /@media \(min-width: 768px\) and \(max-width: 1599\.98px\) \{\s*\[data-bricks-page\] \{\s*container-name: bricks-up-mobile bricks-up-tablet bricks-down-laptop bricks-down-desktop bricks-only-tablet;/
+        );
+    });
+
+    it('имя bricks есть у листа канваса и нет у корня страницы', () => {
+        // The `bricks` name belongs to a canvas sheet: a brick written by hand against
+        // `@container bricks (…)` relies on such a container existing on a sheet only
+        const css = buildBricksContainerCss(TRIO);
+
+        expect(css).toMatch(
+            /\.bricks-canvas\[data-bricks-viewport="tablet"\] \{\s*container-name: bricks bricks-up-mobile/
+        );
+        expect(css).not.toMatch(/\[data-bricks-page\] \{\s*container-name: bricks /);
+    });
+
     it('четвёртое устройство режет диапазон, а не добавляется поверх', () => {
         const css = buildBricksContainerCss(QUARTET);
 
-        expect(css).toContain('@media (min-width: 768px) and (max-width: 1279px)');
-        expect(css).toContain('@media (min-width: 1280px) and (max-width: 1599px)');
-        expect(css).not.toContain('@media (min-width: 768px) and (max-width: 1599px)');
+        expect(css).toContain('@media (min-width: 768px) and (max-width: 1279.98px)');
+        expect(css).toContain('@media (min-width: 1280px) and (max-width: 1599.98px)');
+        expect(css).not.toContain('@media (min-width: 768px) and (max-width: 1599.98px)');
     });
 });
 
@@ -90,8 +111,8 @@ describe('buildDeviceVisibilityCss', () => {
     it('у самого узкого устройства нет нижней границы, у широкого — верхней', () => {
         const css = buildDeviceVisibilityCss(TRIO);
 
-        expect(css).toContain('@media (max-width: 767px)');
-        expect(css).toContain('@media (min-width: 768px) and (max-width: 1599px)');
+        expect(css).toContain('@media (max-width: 767.98px)');
+        expect(css).toContain('@media (min-width: 768px) and (max-width: 1599.98px)');
         expect(css).toContain('@media (min-width: 1600px)');
     });
 });

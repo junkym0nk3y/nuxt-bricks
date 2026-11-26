@@ -1,7 +1,13 @@
 <script setup lang="ts">
 /**
- * @description A device row of the set editor: the glyph, the label, the width and the
- * three rem fields, plus the removal of an intermediate device.
+ * @description A device row of the set editor: the glyph, the label, the width, the
+ * three rem fields and the rem base, plus the removal of an intermediate device.
+ *
+ * The errors of the row stand on a line of their own under the cells, and the fields keep
+ * only the red frame. A message under its own cell did not fit: a 9.6rem column wrapped it
+ * into a column of five lines, and the centered row pushed that one field out of line with
+ * its neighbors. Under the whole row the fields stay in one line and the rows below move
+ * down together.
  *
  * Decisions held by the style section: the cells are centered rather than aligned to
  * the top — they share a height (a 3.6rem field, a 3.6rem icon button, a 3.2rem lock),
@@ -17,10 +23,12 @@
 import type { IPublishDeviceRowEmits, IPublishDeviceRowProps } from '../types/devices';
 
 // Vue
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
 import BricksIconButton from '../../../ui/base/icon-button/BricksIconButton.vue';
+import BricksFieldError from '../../../ui/inputs/BricksFieldError.vue';
 import BricksInput from '../../../ui/inputs/BricksInput.vue';
 import BuilderPublishDeviceIconPopover from './BuilderPublishDeviceIconPopover.vue';
 // #endregion
@@ -35,6 +43,13 @@ const emit = defineEmits<IPublishDeviceRowEmits>();
 
 // #region Data
 const { t } = useI18n();
+// #endregion
+
+// #region Computed
+/** Messages of the row in the order of its cells: name, width, rem base */
+const rowErrors = computed<string[]>(() =>
+    [props.row.labelError, props.row.widthError, props.row.remBaseError].filter(Boolean)
+);
 // #endregion
 
 // #region Methods
@@ -81,6 +96,21 @@ function handleRem(field: 'aside' | 'maxWidth' | 'minWidth', value: string): voi
 }
 
 /**
+ * Passes an edit of the rem base upwards.
+ *
+ * The base is a string (`10px`, `0.5208vw`) rather than a number: its unit decides how
+ * the canvas compensation reads it. An empty field drops the value — the device then
+ * inherits the base of the project device with the same key, shown as the placeholder.
+ *
+ * @param value - The new value of the field.
+ */
+function handleRemBase(value: string): void {
+    const trimmed = value.trim();
+
+    emit('update', props.row.key, { remBase: trimmed || undefined });
+}
+
+/**
  * Asks for the device to be removed.
  */
 function handleRemove(): void {
@@ -91,87 +121,118 @@ function handleRemove(): void {
 
 <template>
     <div :class="$style.BuilderPublishDeviceRow">
-        <div :class="$style.device">
-            <BuilderPublishDeviceIconPopover
-                :icon="props.row.icon"
-                :disabled="props.disabled"
-                @update:icon="(icon: string) => emit('update', props.row.key, { icon })"
-            />
+        <div :class="$style.fields">
+            <div :class="$style.device">
+                <BuilderPublishDeviceIconPopover
+                    :icon="props.row.icon"
+                    :disabled="props.disabled"
+                    @update:icon="(icon: string) => emit('update', props.row.key, { icon })"
+                />
+                <BricksInput
+                    :value="props.row.label"
+                    :disabled="props.disabled"
+                    :invalid="Boolean(props.row.labelError)"
+                    :aria-label="t('bricks.devices.columns.device')"
+                    @update:value="handleLabel"
+                />
+            </div>
+
             <BricksInput
-                :value="props.row.label"
+                :value="props.row.width"
+                type="number"
+                :step="1"
                 :disabled="props.disabled"
-                :error-message="props.row.labelError"
-                :aria-label="t('bricks.devices.columns.device')"
-                @update:value="handleLabel"
+                :invalid="Boolean(props.row.widthError)"
+                :aria-label="t('bricks.devices.columns.width')"
+                @update:value="handleWidth"
+            />
+
+            <BricksInput
+                :value="props.row.aside"
+                type="number"
+                :step="0.2"
+                :disabled="props.disabled"
+                :aria-label="t('bricks.devices.columns.aside')"
+                @update:value="(value: string) => handleRem('aside', value)"
+            />
+
+            <BricksInput
+                :value="props.row.maxWidth ?? ''"
+                type="number"
+                :step="0.2"
+                placeholder="—"
+                :disabled="props.disabled"
+                :aria-label="t('bricks.devices.columns.maxWidth')"
+                @update:value="(value: string) => handleRem('maxWidth', value)"
+            />
+
+            <BricksInput
+                :value="props.row.minWidth ?? ''"
+                type="number"
+                :step="0.2"
+                placeholder="—"
+                :disabled="props.disabled"
+                :aria-label="t('bricks.devices.columns.minWidth')"
+                @update:value="(value: string) => handleRem('minWidth', value)"
+            />
+
+            <BricksInput
+                :value="props.row.remBase ?? ''"
+                :placeholder="props.row.remBaseFallback"
+                :disabled="props.disabled"
+                :invalid="Boolean(props.row.remBaseError)"
+                :aria-label="t('bricks.devices.columns.remBase')"
+                @update:value="handleRemBase"
+            />
+
+            <span
+                v-if="props.row.isLocked"
+                :class="$style.lock"
+                :title="t('bricks.devices.locked')"
+            >
+                <BricksIcon icon="ta:outline-lock" />
+            </span>
+            <BricksIconButton
+                v-else
+                variant="ghost"
+                size="lg"
+                icon="ta:outline-x"
+                :label="t('bricks.devices.remove', { label: props.row.label })"
+                danger
+                :disabled="props.disabled"
+                @click="handleRemove"
             />
         </div>
 
-        <BricksInput
-            :value="props.row.width"
-            type="number"
-            :step="1"
-            :disabled="props.disabled"
-            :error-message="props.row.widthError"
-            :aria-label="t('bricks.devices.columns.width')"
-            @update:value="handleWidth"
-        />
-
-        <BricksInput
-            :value="props.row.aside"
-            type="number"
-            :step="0.2"
-            :disabled="props.disabled"
-            :aria-label="t('bricks.devices.columns.aside')"
-            @update:value="(value: string) => handleRem('aside', value)"
-        />
-
-        <BricksInput
-            :value="props.row.maxWidth ?? ''"
-            type="number"
-            :step="0.2"
-            placeholder="—"
-            :disabled="props.disabled"
-            :aria-label="t('bricks.devices.columns.maxWidth')"
-            @update:value="(value: string) => handleRem('maxWidth', value)"
-        />
-
-        <BricksInput
-            :value="props.row.minWidth ?? ''"
-            type="number"
-            :step="0.2"
-            placeholder="—"
-            :disabled="props.disabled"
-            :aria-label="t('bricks.devices.columns.minWidth')"
-            @update:value="(value: string) => handleRem('minWidth', value)"
-        />
-
-        <span v-if="props.row.isLocked" :class="$style.lock" :title="t('bricks.devices.locked')">
-            <BricksIcon icon="ta:outline-lock" />
-        </span>
-        <BricksIconButton
-            v-else
-            variant="ghost"
-            size="lg"
-            icon="ta:outline-x"
-            :label="t('bricks.devices.remove', { label: props.row.label })"
-            danger
-            :disabled="props.disabled"
-            @click="handleRemove"
-        />
+        <div v-if="rowErrors.length" :class="$style.errors">
+            <BricksFieldError v-for="message in rowErrors" :key="message" :message="message" />
+        </div>
     </div>
 </template>
 
 <style module lang="scss">
 .BuilderPublishDeviceRow {
-    display: grid;
-    grid-template-columns: 23.6rem 9.6rem 9.6rem 9.6rem 9.6rem 3.2rem;
-    align-items: center;
-    gap: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
     padding: 0.8rem 0;
 
     &:hover .remove {
         color: var(--bricks-base-500);
     }
+}
+
+.errors {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.fields {
+    display: grid;
+    grid-template-columns: 23.6rem 9.6rem 9.6rem 9.6rem 9.6rem 9.6rem 3.2rem;
+    align-items: center;
+    gap: 1.2rem;
 }
 
 .device {

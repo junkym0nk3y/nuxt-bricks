@@ -24,6 +24,7 @@ const PROJECT_DEVICES = [
         icon: 'device-mobile',
         width: 375,
         aside: 0.4,
+        remBase: '10px',
         canvasHeight: 812,
     },
     {
@@ -32,6 +33,7 @@ const PROJECT_DEVICES = [
         icon: 'device-tablet',
         width: 768,
         aside: 0.8,
+        remBase: '0.6944vw',
         canvasHeight: 1024,
     },
     {
@@ -40,6 +42,7 @@ const PROJECT_DEVICES = [
         icon: 'device-desktop',
         width: 1600,
         aside: 2,
+        remBase: '10px',
         canvasHeight: 1080,
     },
 ];
@@ -209,6 +212,27 @@ describe('usePublishDeviceSet', () => {
         api.updateDevice('tablet', { aside: 1.3 });
 
         expect(api.canSave.value).toBe(false);
+        scope.stop();
+    });
+
+    it('rem-база: пустое поле показывает проектную, неверная помечает поле и блокирует сохранение', () => {
+        const { scope, api } = mountEditor();
+
+        api.setCustom(true);
+        const tablet = () => api.rows.value.find((row) => row.key === 'tablet');
+
+        expect(tablet()?.remBase).toBeUndefined();
+        expect(tablet()?.remBaseFallback).toBe('0.6944vw');
+
+        api.updateDevice('tablet', { remBase: '62.5%' });
+        expect(tablet()?.remBaseError).toBe('bricks.devices.errors.remBase');
+        expect(api.canSave.value).toBe(false);
+
+        api.updateDevice('tablet', { remBase: '0.5208vw' });
+        expect(tablet()?.remBaseError).toBe('');
+        expect(api.toFormValue()?.find((device) => device.key === 'tablet')?.remBase).toBe(
+            '0.5208vw'
+        );
         scope.stop();
     });
 

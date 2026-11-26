@@ -126,20 +126,20 @@ describe('buildResponsiveLayoutCss', () => {
     });
 
     it('published media queries покрывают 0..∞ без дыр', () => {
-        expect(CSS).toContain('@media (max-width: 767px)');
-        expect(CSS).toContain('@media (min-width: 768px) and (max-width: 1599px)');
+        expect(CSS).toContain('@media (max-width: 767.98px)');
+        expect(CSS).toContain('@media (min-width: 768px) and (max-width: 1599.98px)');
         expect(CSS).toContain('@media (min-width: 1600px)');
     });
 
     it('четвёртое устройство разрезает планшетный диапазон, а не добавляется поверх', () => {
         const css = buildResponsiveLayoutCss(QUARTET);
 
-        expect(css).toContain('@media (max-width: 767px)');
-        expect(css).toContain('@media (min-width: 768px) and (max-width: 1279px)');
-        expect(css).toContain('@media (min-width: 1280px) and (max-width: 1599px)');
+        expect(css).toContain('@media (max-width: 767.98px)');
+        expect(css).toContain('@media (min-width: 768px) and (max-width: 1279.98px)');
+        expect(css).toContain('@media (min-width: 1280px) and (max-width: 1599.98px)');
         expect(css).toContain('@media (min-width: 1600px)');
         // Прежний планшетный диапазон до 1599 исчез: его хвост забрал ноутбук
-        expect(css).not.toContain('@media (min-width: 768px) and (max-width: 1599px)');
+        expect(css).not.toContain('@media (min-width: 768px) and (max-width: 1599.98px)');
     });
 
     it('произвольный ключ устройства попадает и в канвас, и в media query', () => {

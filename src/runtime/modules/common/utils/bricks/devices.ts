@@ -3,7 +3,6 @@
 import type {
     IBricksDeviceRange,
     IBricksPageDevice,
-    IBricksProjectDevice,
     IBricksResolvedDevice,
     TBricksDeviceSetValidation,
     TBricksPageDeviceSet,
@@ -23,6 +22,8 @@ import {
     DEVICE_KEY_PATTERN,
     DEVICE_MAX_WIDTH,
     DEVICE_MIN_WIDTH,
+    DEVICE_REM_BASE_MAX,
+    DEVICE_REM_BASE_PATTERN,
     DEVICE_REM_MAX,
     DEVICE_REM_STEP,
     DEVICE_SET_MAX,
@@ -33,8 +34,16 @@ import {
 // #endregion
 
 // #region Constants
-/** Fields of a device entry a page knows about. Anything else is a rejection */
-const PAGE_DEVICE_KEYS = new Set([
+/**
+ * Fields of a device entry. Anything else is a rejection.
+ *
+ * A page set and the project set share them, `remBase` included. It used to be
+ * project-only, on the grounds that one page in a different rem system than its
+ * neighbors is a breakage. Yet a page with a layout of its own already lives in a
+ * rem system of its own on the consumer side (a scale on `<html>` tuned to that
+ * page), and the ban only kept the canvas sheet from matching the published page.
+ */
+const DEVICE_FIELDS = new Set([
     'key',
     'label',
     'icon',
@@ -42,14 +51,8 @@ const PAGE_DEVICE_KEYS = new Set([
     'aside',
     'maxWidth',
     'minWidth',
+    'remBase',
 ]);
-
-/**
- * Fields of a project device. `remBase` exists here only: a non-standard rem base
- * is a property of the whole project, and editing it per page would mean one page
- * living in a different rem system than its neighbors.
- */
-const PROJECT_DEVICE_KEYS = new Set([...PAGE_DEVICE_KEYS, 'remBase']);
 
 const ICON_CHOICES = new Set<string>(DEVICE_ICON_CHOICES);
 
@@ -91,21 +94,37 @@ function isRemValue(value: unknown): boolean {
 }
 
 /**
+ * Checks a rem base: a positive amount of `px` or `vw` up to the ceiling. Exported for
+ * the set editor, which marks the field with the same contract the server applies.
+ *
+ * @param value - Value being checked.
+ * @returns true if the value fits.
+ */
+export function isDeviceRemBase(value: unknown): boolean {
+    if (typeof value !== 'string') {
+        return false;
+    }
+
+    const match = DEVICE_REM_BASE_PATTERN.exec(value);
+
+    if (!match) {
+        return false;
+    }
+
+    const amount = Number(match[1]);
+    return amount > 0 && amount <= DEVICE_REM_BASE_MAX;
+}
+
+/**
  * Checks a single device entry.
  *
  * @param raw - Raw entry.
  * @param index - Position in the set (for the error text).
  * @param errors - Accumulator of rejection reasons.
- * @param allowedFields - Fields allowed in the entry (page or project).
  * @returns The normalized entry or null.
  */
 // eslint-disable-next-line complexity
-function validateDevice(
-    raw: unknown,
-    index: number,
-    errors: string[],
-    allowedFields: ReadonlySet<string>
-): IBricksPageDevice | null {
+function validateDevice(raw: unknown, index: number, errors: string[]): IBricksPageDevice | null {
     const at = `devices[${index}]`;
 
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -116,18 +135,13 @@ function validateDevice(
     const record = raw as Record<string, unknown>;
 
     for (const key of Object.keys(record)) {
-        if (!allowedFields.has(key)) {
+        if (!DEVICE_FIELDS.has(key)) {
             errors.push(`${at} has unknown field "${key}"`);
             return null;
         }
     }
 
-    if (record.remBase !== undefined && typeof record.remBase !== 'string') {
-        errors.push(`${at}.remBase must be a string`);
-        return null;
-    }
-
-    const { key, label, icon, width, aside, maxWidth, minWidth } = record;
+    const { key, label, icon, width, aside, maxWidth, minWidth, remBase } = record;
 
     if (typeof key !== 'string' || !DEVICE_KEY_PATTERN.test(key)) {
         errors.push(`${at}.key must match ${String(DEVICE_KEY_PATTERN)}`);
@@ -172,6 +186,13 @@ function validateDevice(
         return null;
     }
 
+    if (remBase !== undefined && !isDeviceRemBase(remBase)) {
+        errors.push(
+            `${at}.remBase must be a positive px or vw amount up to ${DEVICE_REM_BASE_MAX}`
+        );
+        return null;
+    }
+
     return {
         key,
         label: label.trim(),
@@ -180,6 +201,7 @@ function validateDevice(
         aside: aside as number,
         ...(maxWidth === undefined ? {} : { maxWidth: maxWidth as number }),
         ...(minWidth === undefined ? {} : { minWidth: minWidth as number }),
+        ...(remBase === undefined ? {} : { remBase: remBase as string }),
     };
 }
 
@@ -250,23 +272,18 @@ export function cloneDeviceSet(
 }
 
 /**
- * Validates the device set of a page.
+ * Validates a device set — of a page or of the project, the contract is one.
  *
  * It deliberately repairs nothing: a corrupted set brought to a "valid" one by
  * sorting and trimming would silently acquire new semantics — it could lose a
  * mandatory device or shift the ranges. A rejection is visible, a quiet
  * substitution is not.
  *
- * @param input - Raw value (request body, database row, imported file).
- * @param scope - Whose set this is: a project one additionally allows `remBase`.
+ * @param input - Raw value (request body, database row, imported file, module option).
  * @returns Success with the normalized set, or the list of rejection reasons.
  */
-export function validateDeviceSet(
-    input: unknown,
-    scope: 'page' | 'project' = 'page'
-): TBricksDeviceSetValidation {
+export function validateDeviceSet(input: unknown): TBricksDeviceSetValidation {
     const errors: string[] = [];
-    const allowedFields = scope === 'project' ? PROJECT_DEVICE_KEYS : PAGE_DEVICE_KEYS;
 
     if (!Array.isArray(input)) {
         return { ok: false, errors: ['viewportConfig must be an array'] };
@@ -282,7 +299,7 @@ export function validateDeviceSet(
     const devices: TBricksPageDeviceSet = [];
 
     input.forEach((raw, index) => {
-        const device = validateDevice(raw, index, errors, allowedFields);
+        const device = validateDevice(raw, index, errors);
         if (device) {
             devices.push(device);
         }
@@ -300,9 +317,9 @@ export function validateDeviceSet(
 
 // #region Resolve
 /**
- * Completes a page entry into a resolved one: `remBase` is taken from the project
- * device of the same key (a project property, a page does not set it), and the
- * sheet height from the canonical key.
+ * Completes a page entry into a resolved one: `remBase` is the page's own, otherwise
+ * that of the project device of the same key, otherwise the library default; the
+ * sheet height comes from the canonical key.
  *
  * @param device - Entry of the page set.
  * @param projectByKey - Project devices by key.
@@ -310,13 +327,13 @@ export function validateDeviceSet(
  */
 function toResolvedDevice(
     device: IBricksPageDevice,
-    projectByKey: Map<string, IBricksProjectDevice>
+    projectByKey: Map<string, IBricksPageDevice>
 ): IBricksResolvedDevice {
     const project = projectByKey.get(device.key);
 
     return {
         ...device,
-        remBase: project?.remBase ?? DEFAULT_REM_BASE,
+        remBase: device.remBase ?? project?.remBase ?? DEFAULT_REM_BASE,
         canvasHeight: DEVICE_CATALOG[device.key]?.canvasHeight ?? DEFAULT_CANVAS_HEIGHT,
     };
 }
@@ -408,6 +425,13 @@ export function deviceRanges(devices: ReadonlyArray<IBricksPageDevice>): IBricks
  * one-entry input, which the validated set never is — falls back to `@media all`:
  * an at-rule with an empty condition is invalid CSS.
  *
+ * The upper bound is written as `<max>.98px` rather than `<max>px`. Under browser zoom
+ * the window width in CSS px is fractional, and a 767.5px window matched neither
+ * `(max-width: 767px)` nor `(min-width: 768px)`: the page root was left without step
+ * names and every brick mixin dropped its rules at once. The range syntax
+ * (`width < 768px`) would close the gap exactly, but Safari before 16.4 does not parse
+ * it, and an unparsed query drops the whole rule.
+ *
  * The braces and the indentation stay with the caller: they belong to its CSS
  * template, not to the query.
  *
@@ -417,7 +441,7 @@ export function deviceRanges(devices: ReadonlyArray<IBricksPageDevice>): IBricks
 export function buildDeviceMediaQuery(range: IBricksDeviceRange): string {
     const conditions = [
         range.min > 0 ? `(min-width: ${range.min}px)` : '',
-        Number.isFinite(range.max) ? `(max-width: ${range.max}px)` : '',
+        Number.isFinite(range.max) ? `(max-width: ${(range.max + 0.98).toFixed(2)}px)` : '',
     ].filter(Boolean);
 
     return conditions.length > 0 ? `@media ${conditions.join(' and ')}` : '@media all';
