@@ -9,6 +9,8 @@
 
 ## Не выпущено
 
+## [0.1.6] — 2026-11-26
+
 ### Изменено
 
 - Миксины `bricks-up`, `bricks-down`, `bricks-between`, `bricks-only` и
