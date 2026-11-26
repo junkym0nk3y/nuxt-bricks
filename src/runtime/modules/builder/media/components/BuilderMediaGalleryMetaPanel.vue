@@ -16,24 +16,25 @@
  *
  * The fields of a file are disabled rather than hidden for a role with no right to
  * edit: the name, the alt and the category are facts about the file, and an observer
- * needs them just as much. The deletion stands with the fields of the file and not in
- * the right corner — that corner is left to the confirming action — and it is a right of
- * the administrator: the endpoint refuses an editor.
+ * needs them just as much. The actions over the file — copying its URL and deleting it —
+ * stand with the fields of the file and not in the right corner: that corner is left to
+ * the confirming action. Copying is for every role and every kind of file, as in the
+ * details panel of the section; deleting is a right of the administrator: the endpoint
+ * refuses an editor.
  *
  * Decisions held by the style section. The footer changes both its content and its
  * height (one hint row with nothing selected against two rows with a file), so the swap
  * goes through a transition: an instant one reads as the panel jumping under the cursor.
  * The wrapper around the two rows exists for that same transition — it has to have one
- * root. The
- * delete button is pressed to the right edge of the row of edits, and its look comes
- * from the kit's `danger`, the tone shared by the destructive actions of the product,
- * as in the list rows and in the details panel of the section: the former "gray until
- * hover" made this button the one exception to the rule. The widths of the fields come
- * from the mock-up and do not stretch, because the row has to stay a single line:
- * stretched, "Category" would travel off the edge in a narrow window. The hint row
- * holds its height rather than shrinking to its line of text: otherwise the footer would
- * jump from 47 to the two-row height on the very first file picked and shift the grid
- * under the cursor.
+ * root. The actions over the file are pressed to the right edge of the row of edits, and
+ * the look of the delete button comes from the kit's `danger`, the tone shared by the
+ * destructive actions of the product, as in the list rows and in the details panel of the
+ * section: the former "gray until hover" made this button the one exception to the rule.
+ * The widths of the fields come from the mock-up and do not stretch, because the row has
+ * to stay a single line: stretched, "Category" would travel off the edge in a narrow
+ * window. The hint row holds its height rather than shrinking to its line of text:
+ * otherwise the footer would jump from 47 to the two-row height on the very first file
+ * picked and shift the grid under the cursor.
  */
 
 // #region Imports
@@ -59,6 +60,7 @@ import { useI18n } from 'vue-i18n';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { useMediaCategorySelect } from '../composables/useMediaCategorySelect';
 import { useMediaMetaDrafts } from '../composables/useMediaMetaDrafts';
+import { useMediaUrlCopy } from '../composables/useMediaUrlCopy';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -103,6 +105,14 @@ const { categoryOptions, categoryFacets, selectedCategory, handleCategoryChange 
         categories: () => props.categories,
         onChange: (category) => emit('update-category', category),
     });
+/**
+ * Copying the URL — a mechanism shared with the details panel of the section: the same
+ * clipboard call and the same messages. The toast is drawn by the modal.
+ */
+const { copyUrl: handleCopyUrl } = useMediaUrlCopy({
+    item: () => props.selectedItem,
+    onNotify: (message, variant) => emit('notify', message, variant),
+});
 // #endregion
 
 // #region Computed
@@ -210,16 +220,24 @@ function handleRemove(): void {
                         </div>
                     </div>
 
-                    <BricksIconButton
-                        v-if="canDelete"
-                        :class="$style.removeButton"
-                        icon="ta:outline-trash"
-                        :label="t('bricks.common.delete')"
-                        danger
-                        size="lg"
-                        tooltip-side="top"
-                        @click="handleRemove"
-                    />
+                    <div :class="$style.fileActions">
+                        <BricksIconButton
+                            icon="ta:outline-copy"
+                            :label="t('bricks.media.details.copyUrl')"
+                            size="lg"
+                            tooltip-side="top"
+                            @click="handleCopyUrl"
+                        />
+                        <BricksIconButton
+                            v-if="canDelete"
+                            icon="ta:outline-trash"
+                            :label="t('bricks.common.delete')"
+                            danger
+                            size="lg"
+                            tooltip-side="top"
+                            @click="handleRemove"
+                        />
+                    </div>
                 </div>
 
                 <div :class="$style.divider" />
@@ -302,7 +320,11 @@ function handleRemove(): void {
     color: var(--bricks-base-500);
 }
 
-.removeButton {
+.fileActions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.8rem;
     margin-left: auto;
 }
 

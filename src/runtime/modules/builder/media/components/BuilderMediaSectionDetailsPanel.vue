@@ -64,6 +64,7 @@ import { useI18n } from 'vue-i18n';
 import { useBuilderPermissions } from '../../core/composables/useBuilderPermissions';
 import { useMediaCategorySelect } from '../composables/useMediaCategorySelect';
 import { useMediaMetaDrafts } from '../composables/useMediaMetaDrafts';
+import { useMediaUrlCopy } from '../composables/useMediaUrlCopy';
 
 // Components
 import BricksButton from '../../../ui/base/button/BricksButton.vue';
@@ -109,6 +110,11 @@ const { categoryOptions, categoryFacets, selectedCategory, handleCategoryChange 
         categories: () => props.categories,
         onChange: (category) => emit('update-category', category),
     });
+/** Copying the URL — the same mechanism and the same messages as in the gallery modal */
+const { copyUrl: handleCopyUrl } = useMediaUrlCopy({
+    item: () => props.item,
+    onNotify: (message, variant) => emit('notify', message, variant),
+});
 // #endregion
 
 // #region Computed
@@ -195,18 +201,6 @@ const fileFacts = computed<{ key: string; label: string; value: string }[]>(() =
 // #endregion
 
 // #region Methods
-/**
- * Copies the address of the file into the clipboard.
- */
-async function handleCopyUrl(): Promise<void> {
-    try {
-        await navigator.clipboard.writeText(props.item.url);
-        emit('notify', t('bricks.media.details.urlCopied'), 'success');
-    } catch {
-        emit('notify', t('bricks.media.details.copyFailed'), 'error');
-    }
-}
-
 /**
  * Asks the host to open the file full screen; a document is downloaded instead, in a
  * new tab for the reason given at the tile of the grid.

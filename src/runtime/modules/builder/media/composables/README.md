@@ -11,3 +11,4 @@
 | `useMediaGallerySurface.ts`     | The model shared by the modal and the dashboard section: the counters of the track, the filtered list, the actions over the categories                  |
 | `useMediaCategorySelect.ts`     | The category selector of a file: the options with "No category" first, the value shown, an empty string turned into "no category"                       |
 | `useMediaKindFilter.ts`         | The kind filter of a surface (images, video, documents): its value, the select options, a picked kind the surface no longer offers read as "every kind" |
+| `useMediaUrlCopy.ts`            | Copying the URL of a file for the details panel and the meta panel: the clipboard, the message of success or of a refusal                               |

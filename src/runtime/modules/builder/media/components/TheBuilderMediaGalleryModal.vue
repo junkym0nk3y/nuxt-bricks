@@ -45,7 +45,7 @@ import type {
     IMediaItem,
     IMediaUpdateMetaRequest,
 } from '../../../common/types/media';
-import type { IMediaGalleryProps, IMediaGalleryEmits } from '../types/media';
+import type { IMediaGalleryProps, IMediaGalleryEmits, TMediaNotifyVariant } from '../types/media';
 
 // Utils
 import { ALL_MEDIA_CATEGORIES_FILTER } from '../../../common/constants/mediaCategories';
@@ -114,6 +114,7 @@ const isDeleteConfirmOpen = ref(false);
 const isDeleting = ref(false);
 const toastVisible = ref(false);
 const toastMessage = ref('');
+const toastVariant = ref<TMediaNotifyVariant>('error');
 const uploadControlsRef = ref<InstanceType<typeof BuilderMediaGalleryUploadControls> | null>(null);
 
 /**
@@ -137,7 +138,7 @@ const {
     resolveCategory: resolveUploadCategory,
     resolveOptimization: () => uploadOptimization.value,
     resolvePickFilter,
-    onError: showErrorToast,
+    onError: showToast,
 });
 
 uploadOptimization.value = { ...defaultOptimization };
@@ -197,7 +198,7 @@ const {
     onCategoryFilterReset: () => {
         categoryFilter.value = ALL_MEDIA_CATEGORIES_FILTER;
     },
-    onError: showErrorToast,
+    onError: showToast,
 });
 // #endregion
 
@@ -258,7 +259,7 @@ async function loadGalleryData(): Promise<void> {
     // without the row of tabs too, so this is a toast and not an error of the whole
     // modal
     if (categoriesResult.status === 'rejected') {
-        showErrorToast(
+        showToast(
             getBricksErrorMessage(categoriesResult.reason, t('bricks.media.categoryLoadFailed'))
         );
     }
@@ -271,10 +272,12 @@ function handleClose(): void {
 }
 
 /**
- * Shows a toast about an error.
+ * Shows a toast; a refusal unless told otherwise. Copying the URL of a file is the one
+ * success the modal reports, and a "copied" in the error tone would read as a failure.
  */
-function showErrorToast(message: string): void {
+function showToast(message: string, variant: TMediaNotifyVariant = 'error'): void {
     toastMessage.value = message;
+    toastVariant.value = variant;
     toastVisible.value = true;
 }
 
@@ -365,7 +368,7 @@ async function handleUpdateMeta(meta: IMediaUpdateMetaRequest): Promise<void> {
     try {
         await mediaStore.updateItemMeta(item.id, meta);
     } catch (error: unknown) {
-        showErrorToast(getBricksErrorMessage(error, t('bricks.media.updateMetaFailed')));
+        showToast(getBricksErrorMessage(error, t('bricks.media.updateMetaFailed')));
     }
 }
 
@@ -388,7 +391,7 @@ async function handleUpdateCategory(category: string | null): Promise<void> {
     try {
         await mediaStore.updateItemCategory(item.id, category);
     } catch (error: unknown) {
-        showErrorToast(getBricksErrorMessage(error, t('bricks.media.updateCategoryFailed')));
+        showToast(getBricksErrorMessage(error, t('bricks.media.updateCategoryFailed')));
     }
 }
 
@@ -419,7 +422,7 @@ async function handleConfirmDelete(): Promise<void> {
         selectedItemId.value = null;
         isDeleteConfirmOpen.value = false;
     } catch (error: unknown) {
-        showErrorToast(getBricksErrorMessage(error, t('bricks.media.deleteFailed')));
+        showToast(getBricksErrorMessage(error, t('bricks.media.deleteFailed')));
 
         if (isRequestTimeoutError(error)) {
             isDeleteConfirmOpen.value = false;
@@ -618,6 +621,7 @@ watch(
                     @remove="handleRemoveItem"
                     @close="handleClose"
                     @insert="handleInsert"
+                    @notify="showToast"
                 />
             </div>
         </div>
@@ -625,7 +629,7 @@ watch(
         <BuilderMediaGalleryPreviewLightbox :item="previewItem" @close="handleClosePreview" />
     </BricksModal>
 
-    <BricksToast v-model:visible="toastVisible" :message="toastMessage" variant="error" />
+    <BricksToast v-model:visible="toastVisible" :message="toastMessage" :variant="toastVariant" />
 
     <BricksConfirmModal
         :is-open="isDeleteConfirmOpen"

@@ -19,6 +19,7 @@ import type {
     TMediaKind,
 } from '../../../common/types/media';
 import type { IBrickUiCommonProp } from '../../../ui/types/common';
+import type { TMediaNotifyVariant } from './media';
 
 /**
  * Dependencies of the file drop target of the gallery.
@@ -127,6 +128,22 @@ export interface IMediaCategorySelect {
     /** The category of the file; an empty string — the file has none */
     selectedCategory: ComputedRef<string>;
     handleCategoryChange: (value: TBrickDemoValues | null) => void;
+}
+
+/**
+ * What copying the URL of a file needs from its caller. The file arrives as a getter
+ * for the same reason as at the category selector: the meta panel holds a nullable
+ * file, the details panel a required one.
+ */
+export interface IMediaUrlCopyOptions {
+    item: () => IMediaItem | null;
+    /** Takes the message of the outcome; where the toast is drawn is the caller's call */
+    onNotify: (message: string, variant: TMediaNotifyVariant) => void;
+}
+
+/** The handler of the "Copy URL" button */
+export interface IMediaUrlCopy {
+    copyUrl: () => Promise<void>;
 }
 
 /** Dependencies of the kind filter of a media library surface */

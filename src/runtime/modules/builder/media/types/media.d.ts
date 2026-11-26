@@ -20,6 +20,12 @@ import type {
     TImageResolveAction,
 } from './schemaImageResolver';
 
+/**
+ * The tone of a message a media surface hands to its host: the outcome of an action
+ * over a file is either done or refused, and the domain has no neutral notices.
+ */
+export type TMediaNotifyVariant = 'success' | 'error';
+
 export interface IMediaGalleryProps {
     visible: boolean;
     context?: TMediaGalleryContext;
@@ -234,7 +240,7 @@ export interface IMediaSectionEmits {
     'request-upload': [];
     /** An empty result: drop the category and the search string in one go */
     'reset-filters': [];
-    notify: [message: string, variant: 'success' | 'error'];
+    notify: [message: string, variant: TMediaNotifyVariant];
 }
 
 /**
@@ -257,7 +263,7 @@ export interface IMediaSectionDetailsPanelEmits {
     remove: [];
     /** "Open full screen": the dashboard has one lightbox, and it lives in the host */
     preview: [];
-    notify: [message: string, variant: 'success' | 'error'];
+    notify: [message: string, variant: TMediaNotifyVariant];
 }
 
 export interface IMediaGalleryMetaPanelProps {
@@ -273,6 +279,8 @@ export interface IMediaGalleryMetaPanelEmits {
     remove: [];
     close: [];
     insert: [];
+    /** The outcome of copying the file's URL: the toast belongs to the modal */
+    notify: [message: string, variant: TMediaNotifyVariant];
 }
 
 /**
