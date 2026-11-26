@@ -17,6 +17,8 @@ export const BRICKS_ROUTE_NAMES = {
     builderPage: 'bricks-builder-pagename',
     /** Page editor with a urlPrefix (`<builderPrefix>/:urlPrefix+/:pagename`) */
     builderPagePrefixed: 'bricks-builder-pagename-prefixed',
+    /** Template editor (`<builderPrefix>/bricks-template/:templateId`) */
+    builderTemplate: 'bricks-builder-template',
     /** Render preview without a prefix (`<previewPrefix>/:pagename`) */
     preview: 'bricks-preview',
     /** Render preview with a urlPrefix (`<previewPrefix>/:urlPrefix+/:pagename`) */
@@ -44,3 +46,10 @@ export const BRICKS_PREVIEW_ROUTE_NAMES: readonly string[] = [
     BRICKS_ROUTE_NAMES.preview,
     BRICKS_ROUTE_NAMES.previewPrefixed,
 ];
+
+/**
+ * The query key of the dashboard that names the section to open it on. The editor of a
+ * template leads back with it to the "Templates" section it was opened from; the
+ * sections themselves live in the dashboard state rather than in the URL.
+ */
+export const BRICKS_DASHBOARD_SECTION_QUERY_KEY = 'section';

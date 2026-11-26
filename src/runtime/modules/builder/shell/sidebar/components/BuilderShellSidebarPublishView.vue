@@ -2,7 +2,10 @@
 /**
  * @description Publish settings inside the sidebar: the publication card of a saved
  * page, the layout, the device set of the page, the SEO fields together with the
- * address, the social image, the background color and the navigation items.
+ * address, the social image, the background color and the navigation items. In the
+ * editor of a template only the styling stays — the layout, the devices, the background
+ * and the navigation: the rest belongs to a page and is set when one is created from
+ * the template.
  *
  * The publication card is the one of the dashboard details panel: the switch writes to
  * the server at once (the write belongs to the page — `useBuilderPublishToggle` — because
@@ -29,7 +32,7 @@
 import type { TPublishFormErrors } from '../../../publish/types/dashboard';
 import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
 import type { TBricksPageDeviceSet } from '../../../../common/types/devices';
-import type { ISidebarPublishViewEmits } from '../types/components';
+import type { ISidebarPublishViewEmits, ISidebarPublishViewProps } from '../types/components';
 
 // Vue
 import { computed, ref, watch } from 'vue';
@@ -67,6 +70,12 @@ import BuilderPublishSeoFields from '../../../publish/components/BuilderPublishS
 import BuilderPublishPublicationCard from '../../../publish/components/BuilderPublishPublicationCard.vue';
 import BuilderShellSidebarNavigationEditor from './BuilderShellSidebarNavigationEditor.vue';
 import BuilderShellSidebarPublishSocialImage from './BuilderShellSidebarPublishSocialImage.vue';
+// #endregion
+
+// #region Props
+const props = withDefaults(defineProps<ISidebarPublishViewProps>(), {
+    isTemplate: false,
+});
 // #endregion
 
 // #region Emits
@@ -114,6 +123,11 @@ const touchedFields = ref<Set<string>>(new Set());
 // #endregion
 
 // #region Computed
+/** Title of the panel: the styling of a template, or the settings of a page */
+const viewTitle = computed<string>(() =>
+    props.isTemplate ? t('bricks.publish.templateSettingsTitle') : panelTitle.value
+);
+
 /**
  * Caption of the group: whether the page inherits the project set, and how many
  * devices it holds.
@@ -300,7 +314,7 @@ watch(formKey, () => {
 <template>
     <div :class="$style.BuilderShellSidebarPublishView">
         <div :class="$style.header">
-            <h2 :class="$style.title">{{ panelTitle }}</h2>
+            <h2 :class="$style.title">{{ viewTitle }}</h2>
             <BricksCloseButton :disabled="isSubmitting" @click="handleClose" />
         </div>
 
@@ -362,9 +376,20 @@ watch(formKey, () => {
                         {{ t('bricks.devices.settingsAction') }}
                     </BricksButton>
                 </div>
+
+                <BuilderPublishDevicesModal
+                    :is-open="isDevicesModalOpen"
+                    :viewport-config="publishStore.currentFormState.viewportConfig ?? null"
+                    :project-devices="projectDevices"
+                    :active-device-key="canvasStore.viewport"
+                    :schema-components="componentsStore.components"
+                    @close="isDevicesModalOpen = false"
+                    @save="handleSaveDevices"
+                />
             </div>
 
             <BuilderPublishSeoFields
+                v-if="!props.isTemplate"
                 :class="$style.seoFields"
                 :title="settings.title || ''"
                 :pagename="settings.pagename || ''"
@@ -439,20 +464,10 @@ watch(formKey, () => {
                             </div>
                         </Transition>
                     </div>
-
-                    <BuilderPublishDevicesModal
-                        :is-open="isDevicesModalOpen"
-                        :viewport-config="publishStore.currentFormState.viewportConfig ?? null"
-                        :project-devices="projectDevices"
-                        :active-device-key="canvasStore.viewport"
-                        :schema-components="componentsStore.components"
-                        @close="isDevicesModalOpen = false"
-                        @save="handleSaveDevices"
-                    />
                 </template>
             </BuilderPublishSeoFields>
 
-            <div :class="$style.formGroup">
+            <div v-if="!props.isTemplate" :class="$style.formGroup">
                 <label :class="$style.label">{{ t('bricks.publish.socialImage') }}</label>
                 <BuilderShellSidebarPublishSocialImage
                     :social-image="settings.socialImage || null"

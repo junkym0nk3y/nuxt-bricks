@@ -33,7 +33,7 @@ const MAX_REQUEST_BODY_BYTES = 16 * 1024;
 
 /**
  * POST /api/bricks/media/s3-proxy — serves a media file of the bucket as a data
- * URL. Needed for the client-side canvas snapshot (usePageThumbnail): an S3
+ * URL. Needed for the client-side canvas snapshot (useCanvasSnapshot): an S3
  * bucket without CORS headers does not let dom-to-image inline the images, while
  * a same-origin handler does.
  *

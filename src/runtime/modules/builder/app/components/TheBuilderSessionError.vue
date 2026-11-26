@@ -17,7 +17,7 @@
 import type { IBuilderSessionErrorProps, IBuilderSessionErrorEmits } from '../types/builder';
 
 // Vue
-import { onMounted, useTemplateRef } from 'vue';
+import { computed, onMounted, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 // Components
@@ -27,6 +27,7 @@ import BricksButton from '../../../ui/base/button/BricksButton.vue';
 // #region Props
 const props = withDefaults(defineProps<IBuilderSessionErrorProps>(), {
     isRetrying: false,
+    isTemplate: false,
 });
 // #endregion
 
@@ -39,6 +40,26 @@ const { t } = useI18n();
 
 /** The retry button — the focus is taken onto it on mount. */
 const retryButtonRef = useTemplateRef<InstanceType<typeof BricksButton>>('retryButton');
+// #endregion
+
+// #region Computed
+/**
+ * Texts of the screen. The editor of a template has no page and leads out to the
+ * templates, so the texts of a page would name the wrong thing and the wrong way out.
+ */
+const texts = computed<Record<'title' | 'description' | 'exit', string>>(() =>
+    props.isTemplate
+        ? {
+              title: t('bricks.templates.editor.errorTitle'),
+              description: t('bricks.templates.editor.errorDescription'),
+              exit: t('bricks.templates.editor.errorOpenTemplates'),
+          }
+        : {
+              title: t('bricks.publish.session.errorTitle'),
+              description: t('bricks.publish.session.errorDescription'),
+              exit: t('bricks.publish.session.errorOpenPages'),
+          }
+);
 // #endregion
 
 // #region Methods
@@ -80,10 +101,10 @@ onMounted(() => {
         </div>
 
         <h2 id="bricks-session-error-title" :class="$style.title">
-            {{ t('bricks.publish.session.errorTitle') }}
+            {{ texts.title }}
         </h2>
         <p id="bricks-session-error-description" :class="$style.description">
-            {{ t('bricks.publish.session.errorDescription') }}
+            {{ texts.description }}
         </p>
         <p :class="$style.reason">{{ props.message }}</p>
 
@@ -99,7 +120,7 @@ onMounted(() => {
             </BricksButton>
 
             <BricksButton size="md" variant="quiet" @click="handleOpenPagesManager">
-                {{ t('bricks.publish.session.errorOpenPages') }}
+                {{ texts.exit }}
             </BricksButton>
         </div>
     </div>

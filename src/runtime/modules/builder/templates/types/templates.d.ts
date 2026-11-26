@@ -230,6 +230,8 @@ export interface ITemplatesGridProps {
 
 export interface ITemplatesGridEmits {
     'create-page': [template: TBricksTemplateSummary];
+    /** Open the template in the editor */
+    edit: [template: TBricksTemplateSummary];
     'preview-thumbnail': [template: TBricksTemplateSummary];
     rename: [template: TBricksTemplateSummary];
     delete: [template: TBricksTemplateSummary];
@@ -244,6 +246,8 @@ export interface ITemplatesCardProps {
 
 export interface ITemplatesCardEmits {
     'create-page': [template: TBricksTemplateSummary];
+    /** Open the template in the editor */
+    edit: [template: TBricksTemplateSummary];
     'preview-thumbnail': [template: TBricksTemplateSummary];
     rename: [template: TBricksTemplateSummary];
     delete: [template: TBricksTemplateSummary];

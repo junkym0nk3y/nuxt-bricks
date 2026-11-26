@@ -43,6 +43,18 @@ export const DEFAULT_BRICKS_ROUTE_PREFIXES: IBricksRoutePrefixes = {
  */
 export const BUILDER_LOGIN_SEGMENT = 'bricks-login';
 
+/**
+ * The segment of the template editor inside the builder prefix
+ * (`<builderPrefix>/bricks-template/<id>`). In the `bricks-` namespace for the same
+ * reason as the login page; the id after it is digits only, so the one page it could
+ * shadow — prefix `bricks-template`, a number for a name — is refused by the address
+ * check (`resolveBricksOwnRouteName` on the server, the router in the browser).
+ */
+export const BUILDER_TEMPLATE_SEGMENT = 'bricks-template';
+
+/** The id of a template in its editor address — the `\d+` of the registered route */
+const TEMPLATE_ID_PATTERN = /^\d+$/;
+
 /** Prefix format: leading `/`, lowercase segments, no trailing slash */
 const ROUTE_PREFIX_PATTERN = /^\/[a-z0-9-]+(?:\/[a-z0-9-]+)*$/;
 
@@ -221,6 +233,34 @@ export function getBricksOwnStaticRoutes(prefixes: IBricksRoutePrefixes): Record
         [prefixes.builderPrefix]: BRICKS_ROUTE_NAMES.builderIndex,
         [getBuilderLoginPath(prefixes)]: BRICKS_ROUTE_NAMES.builderLogin,
     };
+}
+
+/**
+ * The route that wins a path among the module's own routes: the static ones plus the
+ * editor of a template (`<builderPrefix>/bricks-template/<digits>`), which has a
+ * parameter and so is matched rather than listed. Without it the server would accept
+ * the page `bricks-template/123`, whose editor address opens template 123 instead.
+ *
+ * @param prefixes - Active prefixes.
+ * @param path - Path being checked.
+ * @returns The name of the owning route, or undefined when none of ours wins it.
+ */
+export function resolveBricksOwnRouteName(
+    prefixes: IBricksRoutePrefixes,
+    path: string
+): string | undefined {
+    const staticOwner = getBricksOwnStaticRoutes(prefixes)[path];
+
+    if (staticOwner) {
+        return staticOwner;
+    }
+
+    const templateEditorHead = `${prefixes.builderPrefix}/${BUILDER_TEMPLATE_SEGMENT}/`;
+
+    return path.startsWith(templateEditorHead) &&
+        TEMPLATE_ID_PATTERN.test(path.slice(templateEditorHead.length))
+        ? BRICKS_ROUTE_NAMES.builderTemplate
+        : undefined;
 }
 
 /**

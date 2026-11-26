@@ -8,14 +8,14 @@ import {
 import { validateUpdateTemplatePayload } from '../../../../modules/persistence/server/utils/templatePayloadValidation';
 
 /**
- * PATCH /api/bricks/templates/:id — edits the label of a template (its name and
- * description).
+ * PATCH /api/bricks/templates/:id — edits a template: its caption (the name and the
+ * description, out of the rename form) and its content (the schema and the styling, out
+ * of the template's editor).
  *
- * The contents of a template are not updated by this handler: a template is an
- * imprint of a moment, and "refresh it from the current page" would mean a link
- * to the source, template versions and conflict resolution. A typo in the name,
- * on the other hand, could otherwise be fixed by nothing short of deleting and
- * saving it again.
+ * The content is written over the template as is, with no revision check: two people
+ * saving one template at once keep the last save. The preview is not part of the body —
+ * the editor uploads a fresh frame to `POST /api/bricks/templates/:id/thumbnail` after
+ * the content is saved.
  *
  * A taken name is a 409 `TEMPLATE_NAME_CONFLICT` (the same code as on creation).
  */

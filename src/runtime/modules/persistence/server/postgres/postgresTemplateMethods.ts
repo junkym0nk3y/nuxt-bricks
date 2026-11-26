@@ -21,7 +21,7 @@ import type { TDeleteTemplateResult, TStorageTemplateMethods } from '../../types
 import type {
     IBricksTemplateRow,
     ICreateTemplatePayload,
-    IUpdateTemplatePayload,
+    IUpdateTemplateStoragePayload,
     TBricksTemplateSummary,
 } from '../../../common/types/templates';
 
@@ -146,8 +146,8 @@ export function createPostgresTemplateMethods(): TStorageTemplateMethods {
         },
 
         /**
-         * Edits a template's label; null — no such template. A taken name →
-         * BricksTemplateNameConflictError.
+         * Edits a template's caption, content or preview; null — no such template. A taken
+         * name → BricksTemplateNameConflictError.
          *
          * An empty payload never reaches here: "at least one field" is required by the
          * handler's validator — otherwise a PATCH with no fields would assemble an
@@ -155,7 +155,7 @@ export function createPostgresTemplateMethods(): TStorageTemplateMethods {
          */
         async updateTemplate(
             id: number,
-            payload: IUpdateTemplatePayload
+            payload: IUpdateTemplateStoragePayload
         ): Promise<IBricksTemplateRow | null> {
             const { updates, values } = buildUpdateQuery(payload, TEMPLATE_UPDATE_FIELDS);
 
@@ -176,6 +176,16 @@ export function createPostgresTemplateMethods(): TStorageTemplateMethods {
             } catch (error: unknown) {
                 if (isUniqueViolation(error)) {
                     throw new BricksTemplateNameConflictError();
+                }
+
+                // The same marker as on the insert, for the same side effect: the
+                // preview endpoint uploads a new frame before this update and may remove
+                // it only when the row certainly did not take it
+                if (isRejectedPostgresWrite(error)) {
+                    throw new BricksStorageWriteRejectedError(
+                        'Template row was rejected by the database',
+                        error
+                    );
                 }
 
                 throw error;

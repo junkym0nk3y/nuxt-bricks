@@ -143,7 +143,7 @@ describe('validateCreateTemplatePayload: сохранение страницы �
     });
 });
 
-describe('validateUpdateTemplatePayload: правка подписи шаблона', () => {
+describe('validateUpdateTemplatePayload: правка подписи и содержимого шаблона', () => {
     it('принимает любое одно поле', () => {
         expect(validateUpdateTemplatePayload({ name: ' Промо ' })).toEqual({ name: 'Промо' });
         expect(validateUpdateTemplatePayload({ description: '' })).toEqual({ description: null });
@@ -154,14 +154,27 @@ describe('validateUpdateTemplatePayload: правка подписи шабло�
         expect(() => validateUpdateTemplatePayload({})).toThrow(/No fields to update/);
     });
 
-    it('содержимое шаблона этой ручкой не правится', () => {
-        // Шаблон — отпечаток момента: «обновить его текущей страницей» означало бы
-        // связь с источником, версии шаблона и разрешение конфликтов
-        expect(() => validateUpdateTemplatePayload({ schema: SCHEMA })).toThrow(
-            /Unknown fields: schema/
+    it('содержимое из редактора шаблона проверяется так же, как при создании', () => {
+        // An edited template must stay a template a page can be created from
+        expect(
+            validateUpdateTemplatePayload({
+                schema: SCHEMA,
+                pageMeta: { layout: 'wide', backgroundColor: null, viewportConfig: DEVICES },
+            })
+        ).toEqual({
+            schema: SCHEMA,
+            pageMeta: { layout: 'wide', backgroundColor: null, viewportConfig: DEVICES },
+        });
+        expect(() => validateUpdateTemplatePayload({ schema: {} })).toThrow(
+            /"schema.components" must be an array/
         );
-        expect(() => validateUpdateTemplatePayload({ pageMeta: {} })).toThrow(
-            /Unknown fields: pageMeta/
-        );
+    });
+
+    it('готовый URL превью из тела не принимается', () => {
+        // Only the frame upload endpoint writes the preview: otherwise a client could
+        // hang an arbitrary picture on the template
+        expect(() =>
+            validateUpdateTemplatePayload({ thumbnailUrl: 'https://evil.example/x.webp' })
+        ).toThrow(/Unknown fields: thumbnailUrl/);
     });
 });

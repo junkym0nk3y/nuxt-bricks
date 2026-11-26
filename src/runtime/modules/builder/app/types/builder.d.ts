@@ -36,6 +36,11 @@ export interface IBuilderSessionErrorProps {
     message: string;
     /** A retry is under way — the "Retry" button is disabled. */
     isRetrying?: boolean;
+    /**
+     * The editor of a template: the texts speak of the template, and the way out leads to
+     * the templates.
+     */
+    isTemplate?: boolean;
 }
 
 /**

@@ -21,7 +21,7 @@ import type { TDeleteTemplateResult, TStorageTemplateMethods } from '../../types
 import type {
     IBricksTemplateRow,
     ICreateTemplatePayload,
-    IUpdateTemplatePayload,
+    IUpdateTemplateStoragePayload,
     TBricksTemplateSummary,
 } from '../../../common/types/templates';
 
@@ -89,12 +89,13 @@ export function createHttpTemplateMethods(client: IBackendHttpClient): TStorageT
         },
 
         /**
-         * Edits a template's label (`PATCH {base}/templates/:id`); a 404 → null, a 409
+         * Edits a template's caption, content or preview (`PATCH {base}/templates/:id`);
+         * a 404 → null, a 409
          * `TEMPLATE_NAME_CONFLICT` → BricksTemplateNameConflictError.
          */
         async updateTemplate(
             id: number,
-            payload: IUpdateTemplatePayload
+            payload: IUpdateTemplateStoragePayload
         ): Promise<IBricksTemplateRow | null> {
             try {
                 const raw = await client.request('PATCH', `templates/${id}`, payload);

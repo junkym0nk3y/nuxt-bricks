@@ -106,6 +106,7 @@ export function useRuntimeConfig(): { public: Record<string, unknown> } {
 export function useRouter(): {
     hasRoute: (name: string) => boolean;
     resolve: (path: string) => { matched: Array<{ name: string }> };
+    replace: () => Promise<void>;
 } {
     const staticRoutes: Record<string, string> = {
         '/bricks': 'bricks-builder-index',
@@ -113,6 +114,7 @@ export function useRouter(): {
     };
 
     return {
+        replace: () => Promise.resolve(),
         hasRoute: (name: string) =>
             ['bricks-page', 'bricks-page-prefixed', 'bricks-builder-pagename'].includes(name),
         resolve: (path: string) => {
@@ -164,4 +166,16 @@ export function runNuxtReadyCallbacks(): void {
  */
 export function resetNuxtReadyStub(): void {
     nuxtReadyCallbacks.length = 0;
+}
+
+/**
+ * Stubs useRoute with the dashboard root and no query: the code under test starts from
+ * its defaults.
+ */
+export function useRoute(): {
+    path: string;
+    query: Record<string, string>;
+    params: Record<string, string>;
+} {
+    return { path: '/bricks', query: {}, params: {} };
 }

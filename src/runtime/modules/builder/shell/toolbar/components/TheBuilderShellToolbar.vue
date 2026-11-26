@@ -2,7 +2,9 @@
 /**
  * @description Top bar of the builder: the logo, the selector of the open page next
  * to the title, and the actions on the right — media gallery, preview, save and the
- * profile menu.
+ * profile menu. In the editor of a template the title is the name of the template, and
+ * the actions shrink to the media gallery and one "Save template": a template has no
+ * address to preview at and no other way to be saved.
  *
  * The avatar stands behind a vertical rule: it is not an action of the bar but "who
  * is signed in", and without the rule it read as one more button next to Save. The
@@ -18,6 +20,9 @@ import type { IToolbarProps, IToolbarEmits } from '../types/components';
 import type { IBrickUiCommonProp } from '../../../../ui/types/common';
 import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
 
+// Constants
+import { BRICKS_DASHBOARD_SECTION_QUERY_KEY } from '../../../../common/constants/routes';
+
 // Vue
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -27,6 +32,7 @@ import { useBricksRoutePaths } from '../../../../common/composables/useBricksRou
 import { useBuilderPermissions } from '../../../core/composables/useBuilderPermissions';
 
 // Components
+import BricksButton from '../../../../ui/base/button/BricksButton.vue';
 import BricksIconButton from '../../../../ui/base/icon-button/BricksIconButton.vue';
 import BricksActionButton from '../../../../ui/base/action-button/BricksActionButton.vue';
 import BuilderAuthProfileMenu from '../../../auth/components/BuilderAuthProfileMenu.vue';
@@ -36,6 +42,8 @@ import BuilderShellToolbarPageSelector from './BuilderShellToolbarPageSelector.v
 
 // #region Props
 const props = withDefaults(defineProps<IToolbarProps>(), {
+    mode: 'page',
+    templateName: '',
     pages: () => [],
     currentPageId: null,
     isPagesLoaded: false,
@@ -58,10 +66,40 @@ const { canEdit } = useBuilderPermissions();
 // Dashboard href: BuilderLogo renders a plain <a>, which the router leaves alone, so
 // the base has to be prepended here
 const { builderRootPath, withBase } = useBricksRoutePaths();
-const dashboardHref = withBase(builderRootPath);
 // #endregion
 
 // #region Computed
+/**
+ * Where the logo leads. The editor of a template has no page selector, so the logo is
+ * its only way back, and it leads to the templates section the template was opened
+ * from — the dashboard itself opens on the pages.
+ */
+const dashboardHref = computed<string>(() => {
+    const rootHref = withBase(builderRootPath);
+
+    return props.mode === 'template'
+        ? `${rootHref}?${BRICKS_DASHBOARD_SECTION_QUERY_KEY}=templates`
+        : rootHref;
+});
+
+/**
+ * Title of the open template; null until its name is known. The bar is drawn before the
+ * template is read and over the screen of a failed reading, where "Template “”" would
+ * stand in for a name.
+ */
+const templateTitle = computed<string | null>(() =>
+    props.mode === 'template' && props.templateName
+        ? t('bricks.toolbar.templateTitle', { name: props.templateName })
+        : null
+);
+
+/** Accessible name of the logo, matching where it leads */
+const dashboardLinkLabel = computed<string>(() =>
+    props.mode === 'template'
+        ? t('bricks.toolbar.templatesLink')
+        : t('bricks.toolbar.dashboardLink')
+);
+
 /**
  * Title of the open page, empty title read as none.
  *
@@ -175,6 +213,14 @@ function handleSaveAsTemplate(): void {
 }
 
 /**
+ * Asks to write the canvas over the open template. A single action with no menu: a
+ * template has no copy, no draft and no "save as template" of its own.
+ */
+function handleSaveTemplate(): void {
+    emit('saveTemplate');
+}
+
+/**
  * Asks to save the open page. Whether that publishes it is decided by the `published`
  * flag of the publish form, not by this option.
  */
@@ -215,10 +261,14 @@ function handleLogout(): void {
                     <BuilderLogo
                         :class="$style.logo"
                         :to="dashboardHref"
-                        :label="t('bricks.toolbar.dashboardLink')"
+                        :label="dashboardLinkLabel"
                     />
                 </span>
-                <template v-if="currentPageTitle">
+                <template v-if="templateTitle">
+                    <span :class="$style.titleDivider" aria-hidden="true">|</span>
+                    <span :class="$style.templateName">{{ templateTitle }}</span>
+                </template>
+                <template v-else-if="props.mode === 'page' && currentPageTitle">
                     <span :class="$style.titleDivider" aria-hidden="true">|</span>
                     <BuilderShellToolbarPageSelector
                         :page-title="currentPageTitle"
@@ -249,6 +299,7 @@ function handleLogout(): void {
             />
 
             <BricksIconButton
+                v-if="props.mode === 'page'"
                 icon="ta:outline-browser-share"
                 :label="t('bricks.toolbar.preview')"
                 variant="quiet"
@@ -257,8 +308,17 @@ function handleLogout(): void {
                 @click="handlePreview"
             />
 
+            <BricksButton
+                v-if="canEdit && props.mode === 'template'"
+                variant="primary"
+                :disabled="!props.isSessionReady || props.isSubmittingPublish"
+                @click="handleSaveTemplate"
+            >
+                <BricksIcon :class="$style.icon" icon="ta:outline-device-floppy" />
+                {{ t('bricks.toolbar.saveTemplateEdit') }}
+            </BricksButton>
             <BricksActionButton
-                v-if="canEdit"
+                v-else-if="canEdit"
                 :label="publishButtonConfig.label"
                 :options="publishButtonConfig.options"
                 :is-submitting="props.isSubmittingPublish"
@@ -330,6 +390,14 @@ function handleLogout(): void {
 
 .titleDivider {
     color: var(--bricks-base-300);
+}
+
+.templateName {
+    overflow: hidden;
+    max-width: 48rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.6rem;
 }
 
 .icon {

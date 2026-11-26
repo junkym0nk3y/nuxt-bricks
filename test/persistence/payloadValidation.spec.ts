@@ -84,6 +84,22 @@ describe('validateCreatePagePayload: server-first DTO', () => {
         ).not.toThrow();
     });
 
+    it('не отдаёт странице адрес редактора шаблона', () => {
+        // `<builderPrefix>/bricks-template/123` opens the editor of template 123, so a
+        // page with this pair would be left without an editor of its own. A name that
+        // is not a number is not caught by the template route under the same prefix
+        expect(() =>
+            validateCreatePagePayload(
+                makeCreatePageBody({ pagename: '123', urlPrefix: 'bricks-template' })
+            )
+        ).toThrow(/reserved/);
+        expect(() =>
+            validateCreatePagePayload(
+                makeCreatePageBody({ pagename: 'promo', urlPrefix: 'bricks-template' })
+            )
+        ).not.toThrow();
+    });
+
     it('запрещённый адрес редактора ловится и при валидном имени с префиксом', () => {
         // Обратная половина того же: имя валидно, префикс валиден, а пара уводит
         // редактор под чужой статический маршрут

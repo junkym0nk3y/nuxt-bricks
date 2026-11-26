@@ -74,3 +74,22 @@ export function resolveTemplateActionErrorKey(error: unknown): string {
         'bricks.templates.errors.actionFailed'
     );
 }
+
+/**
+ * The message key for a template that could not be opened in the editor. Unlike an
+ * operation, a refused read changes nothing, so a refusal with no known status reads
+ * as "the content could not be read" rather than "the operation failed". An abort by
+ * the waiting ceiling is the caller's: the editor names it the way a page bootstrap
+ * does.
+ *
+ * @param error - Request error.
+ * @returns The i18n key of the message.
+ */
+export function resolveTemplateLoadErrorKey(error: unknown): string {
+    const statusCode = readStatusCode(error);
+
+    return (
+        (statusCode ? TEMPLATE_ACTION_STATUS_KEYS[statusCode] : undefined) ??
+        'bricks.templates.errors.contentReadFailed'
+    );
+}

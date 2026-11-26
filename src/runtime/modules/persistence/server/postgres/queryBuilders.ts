@@ -172,16 +172,23 @@ export const TEMPLATE_SUMMARY_FIELDS = `
 `;
 
 /**
- * The bricks_templates fields allowed to be updated: the template's label only.
- * The captured content is never updated — see IUpdateTemplatePayload.
+ * The bricks_templates fields allowed to be updated: the caption, the content out of the
+ * template's editor and the preview out of its thumbnail endpoint — see
+ * IUpdateTemplateStoragePayload.
  */
-export const TEMPLATE_UPDATE_FIELDS: ReadonlySet<string> = new Set(['name', 'description']);
+export const TEMPLATE_UPDATE_FIELDS: ReadonlySet<string> = new Set([
+    'name',
+    'description',
+    'schema',
+    'pageMeta',
+    'thumbnailUrl',
+]);
 
 /**
- * The page fields that go into JSONB columns: the value is serialized into text
- * before being substituted into the query.
+ * The fields of pages and templates that go into JSONB columns: the value is serialized
+ * into text before being substituted into the query.
  */
-const JSONB_PAGE_FIELDS: ReadonlySet<string> = new Set(['schema', 'viewportConfig']);
+const JSONB_FIELDS: ReadonlySet<string> = new Set(['schema', 'viewportConfig', 'pageMeta']);
 
 /**
  * The bricks_pages fields allowed to be updated (the request body's camelCase
@@ -215,7 +222,7 @@ export const MEDIA_UPDATE_FIELDS: ReadonlySet<string> = new Set(['filename', 'al
 
 /**
  * Assembles a dynamic UPDATE from the passed fields (camelCase → snake_case).
- * The `schema` field is serialized into JSON to be written into a JSONB column.
+ * The JSONB fields (`JSONB_FIELDS`) are serialized into JSON text.
  * Keys outside `allowedFields` are dropped silently — the request body comes from
  * the client, and without the whitelist an arbitrary key would land in SET as a
  * column name.
@@ -245,7 +252,7 @@ export function buildUpdateQuery(
         const paramIndex = values.length + 1;
         updates.push(`${column} = $${paramIndex}`);
 
-        if (JSONB_PAGE_FIELDS.has(key)) {
+        if (JSONB_FIELDS.has(key)) {
             // A JSONB column needs text: otherwise the driver would pass the
             // device set's array as a postgres array, and the column will not
             // take it

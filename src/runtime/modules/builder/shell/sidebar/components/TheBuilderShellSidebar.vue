@@ -151,6 +151,7 @@ watch(isVisible, (visible) => {
                     v-else-if="mountedView === 'publish'"
                     key="publish"
                     ref="publishViewRef"
+                    :is-template="props.isTemplate"
                     @close="handleClosePublish"
                     @open-media-gallery="handleOpenMediaGallery"
                     @toggle-published="handleTogglePublished"

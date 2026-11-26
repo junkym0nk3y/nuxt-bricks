@@ -43,6 +43,7 @@
             "saveDraft": "Save changes",
             "saveCopy": "Save as copy",
             "dashboardLink": "All pages (opens in a new tab)",
+            "templatesLink": "All templates (opens in a new tab)",
             "pageSelector": {
                 "ariaLabel": "{title}, select page",
                 "search": "Search pages...",
@@ -57,7 +58,9 @@
                 "replaced": "The page /{pagename} was replaced elsewhere. Reload the editor to open the new version — unsaved changes to the current one will be gone.",
                 "created": "Page /{pagename} created"
             },
-            "saveTemplate": "Save as template"
+            "saveTemplate": "Save as template",
+            "templateTitle": "Template “{name}”",
+            "saveTemplateEdit": "Save template"
         },
         "nav": {
             "library": "Components",
@@ -503,7 +506,8 @@
                 "component": "Component",
                 "componentUnavailable": "{name} is unavailable",
                 "componentMissing": "The component is missing from the library. Update bricks or the schema."
-            }
+            },
+            "templateSettingsTitle": "Template styling"
         },
         "media": {
             "galleryTitle": "Media library management",
@@ -1306,7 +1310,8 @@
                 "createPage": "Create page",
                 "preview": "View",
                 "rename": "Edit name and description",
-                "delete": "Delete template"
+                "delete": "Delete template",
+                "edit": "Edit"
             },
             "empty": {
                 "title": "No templates yet",
@@ -1364,6 +1369,14 @@
                 "deleteOutcomeUnknown": "The server did not confirm the deletion in time: the template may be gone. Check the section",
                 "sourceReadFailed": "Failed to read the page content for a template",
                 "contentReadFailed": "Failed to read the template content"
+            },
+            "editor": {
+                "errorTitle": "The template did not load",
+                "errorDescription": "The editor could not open the template, so changes cannot be saved. Try again or go back to the template list.",
+                "errorOpenTemplates": "My templates",
+                "errorTimeout": "The template is not responding — loading was cancelled",
+                "saveBlocked": "The template has not loaded yet — saving is disabled",
+                "saveOutcomeUnknown": "The server did not confirm the save in time: the template may have been saved. Save again — a retry simply overwrites it"
             }
         }
     }

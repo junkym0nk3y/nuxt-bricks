@@ -20,6 +20,7 @@ import { useApiClient } from '../../../common/composables/useApiClient';
 import {
     BRICKS_API_READ_TIMEOUT_MS,
     BRICKS_API_WRITE_TIMEOUT_MS,
+    BRICKS_THUMBNAIL_UPLOAD_TIMEOUT_MS,
 } from '../../../common/constants/apiTimeouts';
 
 /** The endpoint of the list of templates and of creating one */
@@ -72,10 +73,11 @@ export async function createTemplateRequest(
 }
 
 /**
- * Edits the caption of a template (the name and/or the description).
+ * Edits a template: its caption (the rename form) or its content (the editor of the
+ * template).
  *
  * @param id - The identifier of the template.
- * @param payload - The fields of the caption that change.
+ * @param payload - The fields that change.
  * @returns The template after the edit.
  */
 export async function updateTemplateRequest(
@@ -88,6 +90,30 @@ export async function updateTemplateRequest(
         method: 'PATCH',
         body: payload,
         timeout: BRICKS_API_WRITE_TIMEOUT_MS,
+    });
+}
+
+/**
+ * Uploads a fresh frame of the canvas as the preview of a template; the endpoint writes
+ * it into the row itself and removes the previous file.
+ *
+ * @param id - The identifier of the template.
+ * @param frame - The snapshot of the canvas.
+ * @returns The template with its new preview.
+ */
+export async function uploadTemplateThumbnailRequest(
+    id: number,
+    frame: Blob
+): Promise<IBricksTemplateRow> {
+    const { apiFetcher } = useApiClient();
+    const formData = new FormData();
+
+    formData.append('file', frame, `template-${id}.jpg`);
+
+    return await apiFetcher<IBricksTemplateRow>(`${TEMPLATES_ENDPOINT}/${id}/thumbnail`, {
+        method: 'POST',
+        body: formData,
+        timeout: BRICKS_THUMBNAIL_UPLOAD_TIMEOUT_MS,
     });
 }
 

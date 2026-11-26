@@ -71,6 +71,7 @@ const EXPECTED_ACCESS: Record<string, TBricksAccessRequirement> = {
     'POST /api/bricks/templates': 'editor',
     'GET /api/bricks/templates/:id': 'viewer',
     'PATCH /api/bricks/templates/:id': 'editor',
+    'POST /api/bricks/templates/:id/thumbnail': 'editor',
     // Удаление шаблона — администратору, как и удаление страницы: обе операции
     // уничтожают сущность, восстановить которую нечем
     'DELETE /api/bricks/templates/:id': 'admin',

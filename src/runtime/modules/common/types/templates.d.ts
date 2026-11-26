@@ -72,14 +72,28 @@ export interface ICreateTemplatePayload {
 }
 
 /**
- * Partial update of a template: only the caption (the name and the description) is
- * editable.
+ * Partial update of a template: the caption (the name and the description) out of the
+ * rename form, the content (the schema and the styling) out of the editor of the
+ * template.
  *
- * The content of a template is deliberately not updated: a template is an imprint
- * of a moment, and "update it from the current page" would mean a second entity (an
- * inheritance source) with versions and conflict resolution.
+ * The content is written over the template itself, and only from its own editor. A
+ * template still has no link to the page it was made from: "refresh it from the page"
+ * would mean a second entity with versions and conflict resolution, while editing the
+ * template in place needs neither. Two editors saving one template at once keep the
+ * last save.
  */
 export interface IUpdateTemplatePayload {
     name?: string;
     description?: string | null;
+    schema?: IBricksSchema;
+    pageMeta?: IBricksTemplatePageMeta;
+}
+
+/**
+ * Update of a template at the storage level: the payload of the endpoint plus the
+ * preview. `thumbnailUrl` is written by the thumbnail endpoint alone, after it has
+ * stored the file; the body of a PATCH from the client never carries it.
+ */
+export interface IUpdateTemplateStoragePayload extends IUpdateTemplatePayload {
+    thumbnailUrl?: string | null;
 }

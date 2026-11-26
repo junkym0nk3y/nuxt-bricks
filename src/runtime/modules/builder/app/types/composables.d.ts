@@ -30,7 +30,11 @@ import type {
     TRenameBuilderSession,
     TSwitchToSavedPage,
 } from './session';
-import type { TBricksTemplateSummary } from '../../../common/types/templates';
+import type {
+    IBricksTemplatePageMeta,
+    IBricksTemplateRow,
+    TBricksTemplateSummary,
+} from '../../../common/types/templates';
 import type { ITemplateSaveSource } from '../../templates/types/templates';
 
 // #region useComponentLibrary
@@ -86,6 +90,19 @@ export interface IUseComponentLibraryReturn {
     isComponentLibraryLoading: ComputedRef<boolean>;
     /** Retries the load; returns whether it succeeded. */
     refreshComponentLibrary: () => Promise<boolean>;
+}
+// #endregion
+
+// #region useCanvasSnapshot
+/**
+ * Return value of the useCanvasSnapshot composable.
+ */
+export interface IUseCanvasSnapshotReturn {
+    /**
+     * Shoots the canvas for a preview; `null` — nothing to shoot or the session changed
+     * while the shot was being taken (the frame would belong to another canvas).
+     */
+    captureCanvasSnapshot: (startedIn: number) => Promise<Blob | null>;
 }
 // #endregion
 
@@ -169,11 +186,18 @@ export interface IBuilderPageOptions {
 }
 
 /**
- * Return value of the useBuilderPage composable.
+ * Options of the useBuilderWorkspace composable: what the workspace shares with the
+ * composition root — the bridge of the inline editor and the session token.
  */
-export interface IUseBuilderPageReturn {
-    sidebarStore: ReturnType<typeof useSidebarStore>;
-    publishStore: ReturnType<typeof usePublishStore>;
+export type TBuilderWorkspaceOptions = Pick<
+    IBuilderPageOptions,
+    'inlineMediaBridge' | 'sessionToken'
+>;
+
+/**
+ * Return value of the useBuilderComponentLibrary composable.
+ */
+export interface IUseBuilderComponentLibraryReturn {
     componentLibraryList: ComputedRef<IComponentLibraryItem[]>;
     /** The manifest entries that never made it into the library — for the sidebar warning. */
     skippedBricks: ComputedRef<ISkippedBrick[]>;
@@ -186,6 +210,14 @@ export interface IUseBuilderPageReturn {
      * show it to.
      */
     notifyComponentLibraryFailure: () => void;
+}
+
+/**
+ * Return value of the useBuilderWorkspace composable: the editor around the canvas that
+ * a page and a template share.
+ */
+export interface IUseBuilderWorkspaceReturn {
+    sidebarStore: ReturnType<typeof useSidebarStore>;
     isDocumentationModalOpen: Ref<boolean>;
     shouldMountMediaGallery: Ref<boolean>;
     isMediaGalleryModalOpen: Ref<boolean>;
@@ -195,12 +227,10 @@ export interface IUseBuilderPageReturn {
     sidebarRef: Ref<ISidebarExpose | null>;
     propertiesPanelRef: Ref<ISidebarExpose | null>;
     toast: IBuilderToastState;
-    currentPublishPageTitle: ComputedRef<string>;
     handleKeyDown: (event: KeyboardEvent) => void;
     showToast: TShowToast;
     handleToggleLibrary: () => void;
     handleToggleSchema: () => void;
-    handleOpenPublishSettings: () => void;
     handleOpenDocs: () => void;
     handleCloseDocs: () => void;
     handleMediaError: (message: string) => void;
@@ -210,9 +240,79 @@ export interface IUseBuilderPageReturn {
     ) => void;
     handleCloseMediaGallery: () => void;
     handleMediaSelect: (item: IMediaItem) => void;
+}
+
+/**
+ * Return value of the useBuilderPage composable: the workspace, the library and the
+ * page's own part — the publish settings, the writes and the preview.
+ */
+export interface IUseBuilderPageReturn
+    extends IUseBuilderWorkspaceReturn, IUseBuilderComponentLibraryReturn {
+    publishStore: ReturnType<typeof usePublishStore>;
+    currentPublishPageTitle: ComputedRef<string>;
+    handleOpenPublishSettings: () => void;
     handleSaveDraft: () => Promise<void>;
     handleSaveAsCopy: () => Promise<void>;
     handlePreview: () => Promise<void>;
+}
+// #endregion
+
+// #region useBuilderTemplateSession
+/**
+ * Options of the useBuilderTemplateSession composable.
+ */
+export interface IBuilderTemplateSessionOptions {
+    sessionToken: IBuilderSessionToken;
+    showToast: TShowToast;
+}
+
+/**
+ * Return value of the useBuilderTemplateSession composable.
+ */
+export interface IUseBuilderTemplateSessionReturn {
+    isSessionLoading: Ref<boolean>;
+    /** The template is on the canvas and in the form: before that a save would write emptiness */
+    isSessionReady: Ref<boolean>;
+    /** The text of a refused opening; `null` — no refusal */
+    sessionError: Ref<string | null>;
+    /** The open template; `null` until it has been read */
+    template: Ref<IBricksTemplateRow | null>;
+    /** The styling the form was filled with: what the template had at the last read or save */
+    loadedPageMeta: Ref<IBuilderTemplateLoadedMeta | null>;
+    openTemplateSession: (templateId: number) => Promise<void>;
+    retryTemplateSession: () => Promise<void>;
+}
+
+/**
+ * The styling of the open template and the values of the form it turned into. Kept as a
+ * pair: a field the person never touched goes back to the template as it was — `null`
+ * stays "inherit" rather than freezing into the default it was shown as.
+ */
+export interface IBuilderTemplateLoadedMeta {
+    stored: IBricksTemplatePageMeta;
+    shown: IBricksTemplatePageMeta;
+}
+// #endregion
+
+// #region useBuilderTemplateWrite
+/**
+ * Options of the useBuilderTemplateWrite composable.
+ */
+export interface IBuilderTemplateWriteOptions {
+    sessionToken: IBuilderSessionToken;
+    isSessionReady: Ref<boolean>;
+    template: Ref<IBricksTemplateRow | null>;
+    loadedPageMeta: Ref<IBuilderTemplateLoadedMeta | null>;
+    showToast: TShowToast;
+}
+
+/**
+ * Return value of the useBuilderTemplateWrite composable.
+ */
+export interface IUseBuilderTemplateWriteReturn {
+    isSaving: Ref<boolean>;
+    /** Writes the canvas and the styling over the template, then shoots a new preview */
+    handleSaveTemplate: () => Promise<void>;
 }
 // #endregion
 

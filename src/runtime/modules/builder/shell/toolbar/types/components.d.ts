@@ -4,7 +4,16 @@
 
 import type { TPublishedPageSummary } from '../../../../common/types/bricks-api';
 
+/**
+ * What the editor holds: a page (the page selector, the preview and the split save
+ * button) or a template (its name as plain text and the single "Save template").
+ */
+export type TToolbarMode = 'page' | 'template';
+
 export interface IToolbarProps {
+    mode?: TToolbarMode;
+    /** Name of the open template: the title of the bar in the template mode */
+    templateName?: string;
     isSubmittingPublish: boolean;
     /**
      * The session has opened into a consistent state. Until it has, saving, preview
@@ -34,6 +43,8 @@ export interface IToolbarEmits {
     saveAsCopy: [];
     /** Third option of the split button: save the canvas as a template */
     saveAsTemplate: [];
+    /** The template mode: write the canvas over the open template */
+    saveTemplate: [];
     saveDraft: [];
     preview: [];
     openPageSelector: [];

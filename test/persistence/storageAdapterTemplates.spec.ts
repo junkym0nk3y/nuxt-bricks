@@ -156,6 +156,26 @@ describe('postgresTemplateMethods: исход вставки шаблона', ()
         ).rejects.toBeInstanceOf(BricksTemplateNameConflictError);
     });
 
+    it('доказанный отказ правки приходит маркером, обрыв соединения — нет', async () => {
+        // The preview endpoint removes the frame it has just uploaded only on the marker:
+        // after a dropped connection the row may already point at that frame
+        const change = { thumbnailUrl: 'https://bucket.example/template-new.webp' };
+
+        queryOneMock.mockRejectedValueOnce(new BricksStatementTimeoutError());
+
+        await expect(
+            createPostgresTemplateMethods().updateTemplate(3, change)
+        ).rejects.toBeInstanceOf(BricksStorageWriteRejectedError);
+
+        queryOneMock.mockRejectedValueOnce(new Error('socket hang up'));
+
+        const thrown = await createPostgresTemplateMethods()
+            .updateTemplate(3, change)
+            .catch((error: unknown) => error);
+
+        expect(thrown).not.toBeInstanceOf(BricksStorageWriteRejectedError);
+    });
+
     it('удаление отдаёт URL превью — по нему ручка убирает файл', async () => {
         queryOneMock.mockResolvedValueOnce({ thumbnailUrl: 'https://bucket.example/t.webp' });
 

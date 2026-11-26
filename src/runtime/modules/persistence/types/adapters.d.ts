@@ -23,7 +23,7 @@ import type { IMediaCategory, IMediaItem } from '../../common/types/media';
 import type {
     IBricksTemplateRow,
     ICreateTemplatePayload,
-    IUpdateTemplatePayload,
+    IUpdateTemplateStoragePayload,
     TBricksTemplateSummary,
 } from '../../common/types/templates';
 import type { IBricksPageAddress } from '../../common/types/pageAddress';
@@ -206,10 +206,19 @@ export interface IStorageAdapter {
      */
     createTemplate(payload: ICreateTemplatePayload): Promise<IBricksTemplateRow>;
     /**
-     * Edits the template's label (name and/or description); `null` — no such
-     * template. A taken name is `BricksTemplateNameConflictError`.
+     * Edits a template — its caption, its content or its preview, whichever fields the
+     * payload carries; `null` — no such template. A taken name is
+     * `BricksTemplateNameConflictError`.
+     *
+     * Rejection contract, as in createMedia: an update the adapter KNOWS was not applied
+     * throws `BricksStorageWriteRejectedError`. The preview endpoint relies on it — it
+     * uploads the new frame first and removes it only on that marker or on `null`; any
+     * other error is an unknown outcome, and the frame stays.
      */
-    updateTemplate(id: number, payload: IUpdateTemplatePayload): Promise<IBricksTemplateRow | null>;
+    updateTemplate(
+        id: number,
+        payload: IUpdateTemplateStoragePayload
+    ): Promise<IBricksTemplateRow | null>;
     /**
      * Deletes a template; `null` — no such template (the handler answers 404),
      * otherwise — the URL of its preview file, now left with no link to it.

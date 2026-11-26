@@ -189,6 +189,11 @@ export const BRICKS_API_HANDLERS: IBricksApiHandler[] = [
         file: 'server/api/bricks/templates/[id].delete',
     },
     {
+        route: '/api/bricks/templates/:id/thumbnail',
+        method: 'post',
+        file: 'server/api/bricks/templates/[id]/thumbnail.post',
+    },
+    {
         route: '/api/bricks/:id/versions',
         method: 'get',
         file: 'server/api/bricks/[id]/versions/index.get',

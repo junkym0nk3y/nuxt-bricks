@@ -6,8 +6,14 @@ import type {
     TPublishDashboardSection,
 } from '../types/dashboard';
 
+// Constants
+import { BRICKS_DASHBOARD_SECTION_QUERY_KEY } from '../../../common/constants/routes';
+
 // Vue
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+
+// Nuxt
+import { useRoute, useRouter } from '#imports';
 // #endregion
 
 /**
@@ -26,7 +32,15 @@ export function usePublishDashboardSections(
     options: IUsePublishDashboardSectionsOptions
 ): IUsePublishDashboardSectionsReturn {
     // #region Data
-    const activeSection = ref<TPublishDashboardSection>('pages');
+    const route = useRoute();
+    const router = useRouter();
+    // The editor of a template leads back with `?section=templates` to the section it was
+    // opened from. No other section is taken from the URL: the watcher below does not run
+    // for the first value, so the media library opened this way would never send for its
+    // files
+    const activeSection = ref<TPublishDashboardSection>(
+        route.query[BRICKS_DASHBOARD_SECTION_QUERY_KEY] === 'templates' ? 'templates' : 'pages'
+    );
     const usersSearchQuery = ref('');
     const templatesSearchQuery = ref('');
     const mediaSearchQuery = ref('');
@@ -93,6 +107,19 @@ export function usePublishDashboardSections(
     // #endregion
 
     // #region Lifecycle
+    // The query has done its job once the dashboard is open: left in the URL, a reload
+    // after a switch to another section would bring the person back to the templates
+    onMounted(async () => {
+        if (route.query[BRICKS_DASHBOARD_SECTION_QUERY_KEY] === undefined) {
+            return;
+        }
+
+        const query = { ...route.query };
+
+        delete query[BRICKS_DASHBOARD_SECTION_QUERY_KEY];
+        await router.replace({ query });
+    });
+
     // The accounts section may have vanished under one's hands: a 403 or a 404 on
     // its endpoints means it is absent from this installation — left open, it
     // would show an empty screen with no explanation

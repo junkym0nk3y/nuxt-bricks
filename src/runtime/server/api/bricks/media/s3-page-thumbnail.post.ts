@@ -5,19 +5,17 @@ import {
     useBricksPublishAdapter,
     useBricksStorageAdapter,
 } from '../../../../modules/persistence/server/registry';
-import { sniffImageFormat } from '../../../../modules/persistence/server/utils/fileSignatures';
-import {
-    optimizeImage,
-    toBuffer,
-} from '../../../../modules/persistence/server/utils/imageProcessing';
 import {
     buildPageThumbnailKey,
     prunePageThumbnailsAfterUpload,
 } from '../../../../modules/persistence/server/utils/pageThumbnails';
+import { withMultipartFormData } from '../../../../modules/persistence/server/utils/multipartStream';
 import {
-    MULTIPART_ENVELOPE_ALLOWANCE_BYTES,
-    withMultipartFormData,
-} from '../../../../modules/persistence/server/utils/multipartStream';
+    THUMBNAILS_PER_MINUTE,
+    THUMBNAIL_BODY_LIMIT_BYTES,
+    assertUploadedThumbnail,
+    optimizeThumbnail,
+} from '../../../../modules/persistence/server/utils/thumbnailUpload';
 import {
     assertWithinRateLimit,
     createFixedWindowRateLimiter,
@@ -33,20 +31,6 @@ interface IThumbnailUploadResponse {
 // #endregion
 
 // #region Constants
-/** Target width of the page thumbnail (px) */
-const THUMBNAIL_WIDTH = 480;
-
-/** Quality of the thumbnail webp encoding */
-const THUMBNAIL_WEBP_QUALITY = 80;
-
-/**
- * Maximum size of the incoming snapshot (MB) — a canvas snapshot must not weigh
- * more.
- */
-const MAX_THUMBNAIL_UPLOAD_MB = 10;
-
-/** Limit of snapshots from one IP per minute */
-const THUMBNAILS_PER_MINUTE = 30;
 const thumbnailRateLimiter = createFixedWindowRateLimiter({
     limit: THUMBNAILS_PER_MINUTE,
     windowMs: 60_000,
@@ -54,43 +38,6 @@ const thumbnailRateLimiter = createFixedWindowRateLimiter({
 // #endregion
 
 // #region Helpers
-/**
- * Pulls the snapshot file out of the multipart form and validates that it carries
- * data, fits the size limit and has a raster signature (a canvas snapshot is
- * always a raster image).
- *
- * @param formData - Collection of multipart fields.
- * @returns The file that was found.
- */
-function assertUploadedFile(formData: IUploadedFilePart[]): IUploadedFilePart {
-    const file = formData.find((item) => item.name === 'file');
-
-    if (!file || !file.data || file.data.length === 0) {
-        throw createError({
-            statusCode: 400,
-            message: 'Invalid file data',
-        });
-    }
-
-    if (file.data.length > MAX_THUMBNAIL_UPLOAD_MB * 1024 * 1024) {
-        throw createError({
-            statusCode: 413,
-            message: `Thumbnail exceeds ${MAX_THUMBNAIL_UPLOAD_MB}MB limit`,
-        });
-    }
-
-    const sniffed = sniffImageFormat(toBuffer(file.data));
-
-    if (!sniffed || sniffed === 'svg') {
-        throw createError({
-            statusCode: 400,
-            message: 'Thumbnail content is not a supported image',
-        });
-    }
-
-    return file;
-}
-
 /**
  * Pulls the pageId out of the multipart form and validates it.
  *
@@ -154,13 +101,10 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
     try {
         assertWithinRateLimit(event, thumbnailRateLimiter, 'Too many thumbnail uploads');
 
-        const bodyLimitBytes =
-            MAX_THUMBNAIL_UPLOAD_MB * 1024 * 1024 + MULTIPART_ENVELOPE_ALLOWANCE_BYTES;
-
         // Everything happens inside the callback because the ingress slot is held
         // exactly as long as it runs — see `withMultipartParts` for why the form
         // is handed to a callback at all
-        return await withMultipartFormData(event, bodyLimitBytes, async (formData) => {
+        return await withMultipartFormData(event, THUMBNAIL_BODY_LIMIT_BYTES, async (formData) => {
             if (formData.length === 0) {
                 throw createError({
                     statusCode: 400,
@@ -168,7 +112,7 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
                 });
             }
 
-            const file = assertUploadedFile(formData);
+            const file = assertUploadedThumbnail(formData);
             const pageId = assertPageId(formData);
 
             const storage = useBricksStorageAdapter();
@@ -184,10 +128,7 @@ export default defineEventHandler(async (event): Promise<IThumbnailUploadRespons
                 });
             }
 
-            const optimized = await optimizeImage(toBuffer(file.data), {
-                maxWidth: THUMBNAIL_WIDTH,
-                quality: THUMBNAIL_WEBP_QUALITY,
-            });
+            const optimized = await optimizeThumbnail(file);
 
             const publishAdapter = useBricksPublishAdapter();
             const uploaded = await publishAdapter.uploadFile({

@@ -12,7 +12,8 @@
  * What goes outward is exactly what does not belong to the section: the texts of the
  * toasts, the request to open the page list (the empty state) and the creation of a
  * page from a template — the creation form lives in the publishing domain, and the
- * section knows nothing about it.
+ * section knows nothing about it. Opening a template in the editor is a move to its
+ * route and stays here.
  *
  * Decisions held by the markup: a refused read does not hide the cards already read —
  * they are true as of the previous answer, while an empty screen would report that
@@ -30,9 +31,18 @@ import type { ITemplatesSectionProps, ITemplatesSectionEmits } from '../types/te
 // Utils
 import { formatPageDate } from '../../../common/utils/bricks/dates';
 
+// Constants
+import {
+    BRICKS_DASHBOARD_SECTION_QUERY_KEY,
+    BRICKS_ROUTE_NAMES,
+} from '../../../common/constants/routes';
+
 // Vue
 import { computed, onMounted, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+// Nuxt
+import { useRoute, useRouter } from '#imports';
 
 // Composables
 import { useTemplateActions } from '../composables/useTemplateActions';
@@ -56,6 +66,8 @@ const emit = defineEmits<ITemplatesSectionEmits>();
 
 // #region Data
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const { templates, status, lastSavedAt, ensureTemplates, refreshTemplates } = useTemplatesData();
 const { filteredTemplates, isSearchEmpty } = useTemplatesList(
     templates,
@@ -133,6 +145,26 @@ function handleCreatePage(template: TBricksTemplateSummary): void {
 }
 
 /**
+ * Opens the template in the editor. The section does it itself rather than through the
+ * host: it is a move to another route, and nothing of the dashboard takes part in it.
+ *
+ * The entry of the dashboard in the history is marked with the section first: without
+ * the mark the browser's "Back" from the editor opens the dashboard on the pages, not on
+ * the templates the person came from.
+ *
+ * @param template - The template.
+ */
+async function handleEdit(template: TBricksTemplateSummary): Promise<void> {
+    await router.replace({
+        query: { ...route.query, [BRICKS_DASHBOARD_SECTION_QUERY_KEY]: 'templates' },
+    });
+    await router.push({
+        name: BRICKS_ROUTE_NAMES.builderTemplate,
+        params: { templateId: String(template.id) },
+    });
+}
+
+/**
  * Asks the host to open the frame of a template in the lightbox.
  *
  * @param template - The template.
@@ -178,6 +210,7 @@ onMounted(() => {
             :is-search-empty="isSearchEmpty"
             :pending-template-id="actions.pendingTemplateId.value"
             @create-page="handleCreatePage"
+            @edit="handleEdit"
             @preview-thumbnail="handlePreviewThumbnail"
             @rename="handleRename"
             @delete="actions.requestDelete"

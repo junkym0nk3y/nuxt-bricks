@@ -85,7 +85,7 @@ export default defineNuxtConfig({
 | GET        | `{base}/templates`               | Список шаблонов (сводки)              | Массив либо envelope `{ items: [...] }`; с `blocksCount`, новые сверху                   |
 | POST       | `{base}/templates`               | Создать шаблон                        | 409 `TEMPLATE_NAME_CONFLICT`; идемпотентности НЕТ                                        |
 | GET        | `{base}/templates/:id`           | Шаблон по id (полный, со `schema`)    | 404 → «не найдено»                                                                       |
-| PATCH      | `{base}/templates/:id`           | Правка подписи шаблона                | Поля: `name`, `description`; 409 `TEMPLATE_NAME_CONFLICT`; 404 → «не найдено»            |
+| PATCH      | `{base}/templates/:id`           | Правка шаблона                        | Частично: `name`, `description`, `schema`, `pageMeta`, `thumbnailUrl`; 409, 404          |
 | DELETE     | `{base}/templates/:id`           | Удалить шаблон                        | Отвечать `{ thumbnail_url }` удалённой записи; 404 → «не найдено»                        |
 
 ### Ошибки
@@ -386,9 +386,13 @@ thumbnailUrl }`. `thumbnailUrl` здесь — уже собственный ф�
   повторный POST с тем же именем — вторая попытка человека, и молчаливый ответ
   «уже есть» выдал бы чужой шаблон за только что сохранённый; отвечайте
   `409 TEMPLATE_NAME_CONFLICT`.
-- `PATCH {base}/templates/:id` — только `name` и `description`. Содержимое
-  отпечатка не обновляется: «обновить шаблон текущей страницей» потребовало бы
-  версий шаблона и разрешения конфликтов.
+- `PATCH {base}/templates/:id` — частичная правка: приходят только изменённые
+  поля из `name`, `description`, `schema`, `pageMeta`, `thumbnailUrl`. Подпись
+  меняет форма переименования, содержимое (`schema`, `pageMeta`) — редактор
+  шаблона, `thumbnailUrl` — nuxt-bricks после загрузки нового кадра (сам файл
+  остаётся в его бакете, как и при создании). Проверки ревизии нет: при
+  одновременном сохранении остаётся последнее. Отвечайте полной строкой шаблона;
+  занятое имя — `409 TEMPLATE_NAME_CONFLICT`.
 - `DELETE {base}/templates/:id` — отвечайте JSON со `thumbnail_url` удалённой
   записи (или `null`): файлы превью остаются локальными и в external-режиме, и
   без этого поля nuxt-bricks не сможет убрать осиротевший объект из бакета.

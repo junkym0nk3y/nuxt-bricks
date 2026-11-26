@@ -4,14 +4,15 @@
  * caption and the actions.
  *
  * The grid-shaped counterpart of a row of the page list: the same tokens and the same
- * manner of the actions, but a set of its own. There is nothing to open in an editor and
- * nothing to save as a template (a template is one already), and a copy of a template
- * gives nothing — a template is a copy. What is left is the frame, the caption and the
- * deletion, so the main action lives on the preview ("Create a page"), and a click on
- * the card leads to the same place.
+ * manner of the actions, but a set of its own. There is nothing to save as a template (a
+ * template is one already), and a copy of a template gives nothing — a template is a
+ * copy. What is left is the frame, the caption, the editor and the deletion. The main
+ * action lives on the preview ("Create a page"), and a click on the card leads to the
+ * same place; "Edit" stands next to it, because opening the content is the other thing
+ * a template is picked for, while the pencil of the footer edits the caption alone.
  *
- * An observer cannot create pages at all, and in place of the main action gets the view
- * of the frame — the same button the footer carries.
+ * An observer cannot create pages or edit templates at all, and in place of the main
+ * action gets the view of the frame — the same button the footer carries.
  *
  * Decisions held by the markup: the overlay and its button come out on hover and on
  * focus inside the card, because from the keyboard the action has to be visible and not
@@ -22,11 +23,13 @@
  * Decisions held by the style section: the look of the surface comes from the kit
  * (`BricksSurfaceCard`), what is here is the layout of the card and the way the actions
  * come out on hover. The window of the preview is 16:10 — the ratio the snapshot of a
- * page measures its height in (`usePageThumbnail` caps a capture at two such frames), so
+ * page measures its height in (`useCanvasSnapshot` caps a capture at two such frames), so
  * a taller picture is cropped to the window by `object-fit: cover` from the top. The
  * overlay is darkened by a ready token rather than by `backdrop-filter`: the second one
- * kills performance on a grid of cards. The padding of the caption — 1.2 above and
- * below, 1.4 on the sides — is the geometry of the reference card of the layout.
+ * kills performance on a grid of cards. The two actions of the preview stand in a column:
+ * in a row they do not fit the narrowest card of the grid, and "Create a page" wraps onto
+ * two lines. The padding of the caption — 1.2 above and below, 1.4 on the sides — is the
+ * geometry of the reference card of the layout.
  */
 
 // #region Imports
@@ -90,6 +93,15 @@ function handlePrimaryAction(): void {
     emit('create-page', props.template);
 }
 
+/** Asks for the template to be opened in the editor */
+function handleEdit(): void {
+    if (props.isPending) {
+        return;
+    }
+
+    emit('edit', props.template);
+}
+
 /** Asks for the frame of the template to be opened in the lightbox */
 function handlePreviewThumbnail(): void {
     emit('preview-thumbnail', props.template);
@@ -136,6 +148,15 @@ function handleDelete(): void {
                             ? t('bricks.templates.card.createPage')
                             : t('bricks.templates.card.preview')
                     }}
+                </BricksButton>
+                <BricksButton
+                    v-if="canEdit"
+                    size="md"
+                    variant="secondary"
+                    :disabled="props.isPending"
+                    @click.stop="handleEdit"
+                >
+                    {{ t('bricks.templates.card.edit') }}
                 </BricksButton>
             </div>
         </div>
@@ -227,6 +248,8 @@ function handleDelete(): void {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+    gap: 0.8rem;
     inset: 0;
     background: var(--bricks-overlay-dark);
     opacity: 0;

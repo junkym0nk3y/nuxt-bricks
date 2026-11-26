@@ -55,8 +55,12 @@ const CREATE_TEMPLATE_KEYS = new Set([
     'thumbnailSourceUrl',
 ]);
 
-/** The keys of the payload editing a template's label. */
-const UPDATE_TEMPLATE_KEYS = new Set(['name', 'description']);
+/**
+ * The keys of the payload editing a template: the caption and the content. No
+ * `thumbnailUrl` — the preview is written by its own endpoint out of an uploaded frame,
+ * for the same reason the creation payload carries no ready URL.
+ */
+const UPDATE_TEMPLATE_KEYS = new Set(['name', 'description', 'schema', 'pageMeta']);
 
 /** The keys of the page styling object inside the payload. */
 const PAGE_META_KEYS = new Set(['layout', 'backgroundColor', 'viewportConfig']);
@@ -189,12 +193,15 @@ export function validateCreateTemplatePayload(
 }
 
 /**
- * Validates the payload of `PATCH /api/bricks/templates/:id`: both fields are
- * optional, but at least one must be passed — otherwise the request means
- * nothing and the adapter would assemble an `UPDATE ... SET` with no expressions.
+ * Validates the payload of `PATCH /api/bricks/templates/:id`: every field is optional,
+ * but at least one must be passed — otherwise the request means nothing and the
+ * adapter would assemble an `UPDATE ... SET` with no expressions.
+ *
+ * The content goes through the same validators as at creation: a template edited in
+ * the editor must stay a template a page can be created from.
  *
  * @param body - The normalized request body.
- * @returns A clean payload editing the label.
+ * @returns A clean payload editing the caption and/or the content.
  */
 export function validateUpdateTemplatePayload(
     body: Record<string, unknown>
@@ -209,6 +216,14 @@ export function validateUpdateTemplatePayload(
 
     if (body.description !== undefined) {
         payload.description = validateTemplateDescription(body.description);
+    }
+
+    if (body.schema !== undefined) {
+        payload.schema = validatePageSchema(body.schema);
+    }
+
+    if (body.pageMeta !== undefined) {
+        payload.pageMeta = validateTemplatePageMeta(body.pageMeta);
     }
 
     if (Object.keys(payload).length === 0) {

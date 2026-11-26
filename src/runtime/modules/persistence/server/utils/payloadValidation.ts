@@ -43,11 +43,11 @@ import { validateDeviceSet } from '../../../common/utils/bricks/devices';
 import { toPageAddress } from '../../../common/utils/bricks/pageAddress';
 import {
     DEFAULT_BRICKS_ROUTE_PREFIXES,
-    getBricksOwnStaticRoutes,
     getBuilderPagePath,
     getPublishedPagePath,
     isEditorAddressTaken,
     isPageAddressTaken,
+    resolveBricksOwnRouteName,
     type IBricksRoutePrefixes,
 } from '../../../common/utils/bricks/routePaths';
 
@@ -134,9 +134,7 @@ function validateViewportConfig(value: unknown): TBricksPageDeviceSet | null {
 function createOwnRouteResolver(
     prefixes: IBricksRoutePrefixes
 ): (path: string) => string | undefined {
-    const ownRoutes = getBricksOwnStaticRoutes(prefixes);
-
-    return (path: string) => ownRoutes[path];
+    return (path: string) => resolveBricksOwnRouteName(prefixes, path);
 }
 
 /**

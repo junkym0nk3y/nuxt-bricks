@@ -59,6 +59,15 @@ function handleCreatePage(template: TBricksTemplateSummary): void {
 }
 
 /**
+ * Passes the opening of a template in the editor upwards.
+ *
+ * @param template - The template.
+ */
+function handleEdit(template: TBricksTemplateSummary): void {
+    emit('edit', template);
+}
+
+/**
  * Passes the viewing of the frame of a template upwards.
  *
  * @param template - The template.
@@ -135,6 +144,7 @@ function handleGoToPages(): void {
                 :template="template"
                 :is-pending="props.pendingTemplateId === template.id"
                 @create-page="handleCreatePage"
+                @edit="handleEdit"
                 @preview-thumbnail="handlePreviewThumbnail"
                 @rename="handleRename"
                 @delete="handleDelete"

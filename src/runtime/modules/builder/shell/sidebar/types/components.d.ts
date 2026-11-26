@@ -28,6 +28,8 @@ export interface ISidebarProps {
     skippedBricks: ISkippedBrick[];
     isLibraryLoadFailed: boolean;
     isLibraryLoading: boolean;
+    /** The editor holds a template: the settings panel keeps the styling alone */
+    isTemplate?: boolean;
 }
 
 export interface ISidebarEmits {
@@ -97,6 +99,15 @@ export interface ISidebarSchemaTreeItemEmits {
 
 export interface ISidebarSchemaTreeViewEmits {
     close: [];
+}
+
+export interface ISidebarPublishViewProps {
+    /**
+     * The editor holds a template. A template carries the styling of a page — the
+     * layout, the device set, the background and the navigation — and nothing of its
+     * address, SEO text or publication: those are set when a page is created from it.
+     */
+    isTemplate?: boolean;
 }
 
 export interface ISidebarPublishViewEmits {

@@ -11,6 +11,7 @@ import { PAGE_ROUTE_SEGMENT } from './runtime/modules/common/constants/publish';
 import { BRICKS_ROUTE_NAMES } from './runtime/modules/common/constants/routes';
 import {
     BUILDER_LOGIN_SEGMENT,
+    BUILDER_TEMPLATE_SEGMENT,
     DEFAULT_BRICKS_ROUTE_PREFIXES,
     validateBricksRoutePrefixes,
     type IBricksRoutePrefixes,
@@ -244,6 +245,13 @@ export function registerBricksPages(pages: NuxtPage[], context: IBricksRegistrat
                         name: BRICKS_ROUTE_NAMES.builderLogin,
                         path: BUILDER_LOGIN_SEGMENT,
                         file: resolve(runtimeDir, 'modules/builder/auth/pages/login.vue'),
+                    },
+                    {
+                        // Static like the login segment, so it outranks both page
+                        // editors whatever the order
+                        name: BRICKS_ROUTE_NAMES.builderTemplate,
+                        path: `${BUILDER_TEMPLATE_SEGMENT}/:templateId(\\d+)`,
+                        file: resolve(runtimeDir, 'modules/builder/app/pages/template.vue'),
                     },
                     {
                         name: BRICKS_ROUTE_NAMES.builderPage,
