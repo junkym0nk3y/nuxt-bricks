@@ -48,8 +48,8 @@ export const BRICKS_PREVIEW_ROUTE_NAMES: readonly string[] = [
 ];
 
 /**
- * The query key of the dashboard that names the section to open it on. The editor of a
- * template leads back with it to the "Templates" section it was opened from; the
- * sections themselves live in the dashboard state rather than in the URL.
+ * The query key of the dashboard that names its open section. The dashboard keeps it in
+ * line with the rail, so a reload reopens the same section; the editor of a template
+ * leads back with it to the "Templates" section it was opened from.
  */
 export const BRICKS_DASHBOARD_SECTION_QUERY_KEY = 'section';

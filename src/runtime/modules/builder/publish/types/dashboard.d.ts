@@ -36,7 +36,8 @@ export interface IUsePublishDashboardSectionsOptions {
  * The return value of `usePublishDashboardSections`.
  */
 export interface IUsePublishDashboardSectionsReturn {
-    activeSection: Ref<TPublishDashboardSection>;
+    /** The section shown: the pick, unless it is an accounts section that is not visible */
+    activeSection: ComputedRef<TPublishDashboardSection>;
     usersSearchQuery: Ref<string>;
     templatesSearchQuery: Ref<string>;
     mediaSearchQuery: Ref<string>;
