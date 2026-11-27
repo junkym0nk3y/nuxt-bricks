@@ -143,8 +143,12 @@ export interface IUseSidebarResponsiveScopeReturn {
     /** The selected component carries brick properties marked `responsive` */
     hasResponsiveBrickValues: ComputedRef<boolean>;
     isResponsiveComponent: ComputedRef<boolean>;
-    /** Device the overrides are being edited under */
-    layoutDeviceScope: Ref<TBricksDeviceKey>;
+    /**
+     * Device the panel edits under: the picked one for a component with adaptive
+     * properties, the base device for any other. Read-only — the pick goes through
+     * `handleSetLayoutDeviceScope`
+     */
+    layoutDeviceScope: ComputedRef<TBricksDeviceKey>;
     hasResponsiveOverridesForScope: ComputedRef<boolean>;
     /**
      * Whether the active device scope holds properties that cannot be edited on it.
@@ -191,7 +195,8 @@ export interface IUseSidebarPropertiesPanelReturn {
     deviceVisibilityValue: ComputedRef<IDeviceVisibilityConfig>;
     isResponsiveLayout: ComputedRef<boolean>;
     isResponsiveComponent: ComputedRef<boolean>;
-    layoutDeviceScope: Ref<TBricksDeviceKey>;
+    /** Device the panel edits under; the base device for a component that does not adapt */
+    layoutDeviceScope: ComputedRef<TBricksDeviceKey>;
     hasResponsiveOverridesForScope: ComputedRef<boolean>;
     /** Whether the active device scope holds properties that cannot be edited on it */
     hasLockedPropertiesForScope: ComputedRef<boolean>;

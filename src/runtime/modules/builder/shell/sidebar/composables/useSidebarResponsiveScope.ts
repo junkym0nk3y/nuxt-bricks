@@ -57,7 +57,28 @@ export function useSidebarResponsiveScope(): IUseSidebarResponsiveScopeReturn {
         return isResponsiveLayout.value || hasResponsiveBrickValues.value;
     });
 
-    const layoutDeviceScope = ref<TBricksDeviceKey>(BASE_DEVICE_KEY);
+    /**
+     * The device picked for the panel: the canvas viewport, or the device tab picked
+     * last. Written by the watchers and the setter below; the panel reads it only
+     * through the effective scope.
+     */
+    const pickedDeviceScope = ref<TBricksDeviceKey>(BASE_DEVICE_KEY);
+
+    /**
+     * The scope the panel actually edits under: the picked device for a component with
+     * adaptive properties, the base device for any other.
+     *
+     * A component without adaptive properties has nothing to scope and no device tabs to
+     * leave a device by. On the picked device it had every field locked as one the device
+     * does not adapt and every change refused — a brick on a Mobile canvas could not be
+     * edited at all, and a rich text editor, which draws no disabled state, swallowed the
+     * typing without a word. Every reader of the scope (the lock, the write handler, the media
+     * pick, the locked-fields hint, the keys of the editors) goes through this value, so
+     * the rule cannot be honored in one of them and missed in another.
+     */
+    const layoutDeviceScope = computed<TBricksDeviceKey>(() =>
+        isResponsiveComponent.value ? pickedDeviceScope.value : BASE_DEVICE_KEY
+    );
 
     const responsiveOverridesForScope = computed<Record<string, unknown> | null>(() => {
         const selected = store.selectedComponentData;
@@ -170,33 +191,33 @@ export function useSidebarResponsiveScope(): IUseSidebarResponsiveScopeReturn {
     });
 
     /**
-     * When another component is selected, the scope follows the canvas viewport — in
+     * When another component is selected, the pick follows the canvas viewport — in
      * Figma mode, the base device.
      */
     watch(
         () => store.selectedComponentData?.id,
         () => {
-            layoutDeviceScope.value = canvasStore.isFigmaMode
+            pickedDeviceScope.value = canvasStore.isFigmaMode
                 ? BASE_DEVICE_KEY
                 : canvasStore.viewport;
         }
     );
 
     /**
-     * Syncs the sidebar scope with the canvas viewport whenever the viewport switches.
+     * Syncs the picked device with the canvas viewport whenever the viewport switches.
      * In Figma mode the currently picked scope is kept.
      *
-     * The scope follows the viewport for a component without adaptive properties too.
-     * The selection watcher above already sets it from the viewport for any component,
-     * so a sync limited to responsive ones left such a component stuck on the device it
-     * was selected under: back on the base device, the change handler kept refusing
-     * every write as "locked on this device" and the edits were lost without a word.
+     * The pick follows the viewport for a component without adaptive properties too,
+     * although such a component edits the base device regardless. The selection alone
+     * does not settle whether a component adapts — a retried library load hands its
+     * properties in after it was selected — and a pick left on the device it was
+     * selected under would then scope the edits to a device nobody is looking at.
      */
     watch(
         () => canvasStore.viewport,
         (newViewport) => {
             if (!canvasStore.isFigmaMode) {
-                layoutDeviceScope.value = newViewport;
+                pickedDeviceScope.value = newViewport;
             }
         }
     );
@@ -211,8 +232,8 @@ export function useSidebarResponsiveScope(): IUseSidebarResponsiveScopeReturn {
     watch(
         () => canvasStore.devices,
         (devices) => {
-            if (devices.length > 0 && !devices.some((d) => d.key === layoutDeviceScope.value)) {
-                layoutDeviceScope.value = BASE_DEVICE_KEY;
+            if (devices.length > 0 && !devices.some((d) => d.key === pickedDeviceScope.value)) {
+                pickedDeviceScope.value = BASE_DEVICE_KEY;
             }
         },
         { deep: true }
@@ -224,7 +245,7 @@ export function useSidebarResponsiveScope(): IUseSidebarResponsiveScopeReturn {
      * @param scope - Device key, one of the keys of the page set.
      */
     function handleSetLayoutDeviceScope(scope: TBricksDeviceKey): void {
-        layoutDeviceScope.value = scope;
+        pickedDeviceScope.value = scope;
     }
 
     /**

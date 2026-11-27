@@ -1,10 +1,10 @@
 /**
  * The device scope of the properties panel and the editors it locks.
  *
- * A component without adaptive properties kept the device it was selected under: the
- * selection set the scope from the canvas viewport, while a viewport switch moved it only
- * for responsive components. Selected on Mobile and edited back on Desktop, such a
- * component had every change refused as "locked on this device", silently. Separately,
+ * A component without adaptive properties has nothing to scope, and the panel shows it no
+ * device tabs. It still took the canvas viewport for its scope: on any device but the base
+ * one every field of such a brick was locked, every change was refused, and a rich text
+ * editor, which draws no disabled state, swallowed the typing without a word. Separately,
  * the select and the switch lost `disabled` in normalization, so a locked property looked
  * editable there and the pick just vanished.
  */
@@ -22,21 +22,27 @@ import { nextTick } from 'vue';
 // #endregion
 
 // #region Mocks
-const { stores, resetOverridesMock } = vi.hoisted(() => ({
-    // Reactive objects are created inside the mock factories: `reactive()` called in
-    // the hoisted block would reach for an import that has not been initialized yet
-    stores: {} as {
-        components: { selectedComponentData: unknown };
-        canvas: { viewport: string; isFigmaMode: boolean; devices: unknown[] };
-    },
-    resetOverridesMock: vi.fn(),
-}));
+const { stores, resetOverridesMock, updatePropMock, updateResponsivePropMock, openGalleryMock } =
+    vi.hoisted(() => ({
+        // Reactive objects are created inside the mock factories: `reactive()` called in
+        // the hoisted block would reach for an import that has not been initialized yet
+        stores: {} as {
+            components: { selectedComponentData: unknown };
+            canvas: { viewport: string; isFigmaMode: boolean; devices: unknown[] };
+        },
+        resetOverridesMock: vi.fn(),
+        updatePropMock: vi.fn(),
+        updateResponsivePropMock: vi.fn(),
+        openGalleryMock: vi.fn(),
+    }));
 
 vi.mock('../../src/runtime/modules/builder/core/stores/components', async () => {
     const { reactive } = await import('vue');
     stores.components = reactive({
         selectedComponentData: null as unknown,
         resetComponentResponsivePropsForDevice: resetOverridesMock,
+        updateComponentProp: updatePropMock,
+        updateComponentResponsiveProp: updateResponsivePropMock,
     });
 
     return { useComponentsStore: () => stores.components };
@@ -55,9 +61,14 @@ vi.mock('../../src/runtime/modules/builder/core/stores/canvas', async () => {
 
     return { useCanvasStore: () => stores.canvas };
 });
+
+vi.mock('vue-i18n', () => ({
+    useI18n: () => ({ t: (key: string) => key, te: () => false }),
+}));
 // #endregion
 
 import { useSidebarResponsiveScope } from '../../src/runtime/modules/builder/shell/sidebar/composables/useSidebarResponsiveScope';
+import { useSidebarPropertiesPanel } from '../../src/runtime/modules/builder/shell/sidebar/composables/useSidebarPropertiesPanel';
 import { normalizeVariantProps } from '../../src/runtime/modules/builder/shell/sidebar/utils/normalizeVariantProps';
 
 // #region Data
@@ -66,6 +77,13 @@ const FIXED_PROPERTY: IPropertyDefinition = {
     type: 'input',
     label: 'title',
     default: '',
+};
+
+const FIXED_GALLERY_PROPERTY: IPropertyDefinition = {
+    name: 'photos',
+    type: 'image-gallery',
+    label: 'photos',
+    default: [],
 };
 
 const ADAPTIVE_PROPERTY: IPropertyDefinition = {
@@ -84,28 +102,16 @@ const DEVICES = [
 
 // #region Methods
 /**
- * Selects a brick component whose properties have no `responsive` flag.
+ * Selects a brick component with the given properties.
  *
  * @param id - Id of the component on the canvas.
+ * @param properties - Property definitions of the brick.
  */
-function selectFixedBrick(id: string): void {
+function selectBrick(id: string, properties: IPropertyDefinition[]): void {
     stores.components.selectedComponentData = {
         id,
         component: { id, type: 'brick', componentName: 'Hero', props: {} },
-        properties: [FIXED_PROPERTY],
-    };
-}
-
-/**
- * Selects a brick component with an adaptive property.
- *
- * @param id - Id of the component on the canvas.
- */
-function selectAdaptiveBrick(id: string): void {
-    stores.components.selectedComponentData = {
-        id,
-        component: { id, type: 'brick', componentName: 'Hero', props: {} },
-        properties: [ADAPTIVE_PROPERTY],
+        properties,
     };
 }
 
@@ -126,15 +132,70 @@ function lockedVariant(overrides: Partial<IComponentVariant>): IComponentVariant
 }
 // #endregion
 
-describe('device scope of a component without adaptive properties', () => {
+beforeEach(() => {
+    stores.canvas.viewport = 'desktop';
+    stores.canvas.isFigmaMode = false;
+    stores.canvas.devices = [...DEVICES];
+    resetOverridesMock.mockReset();
+    updatePropMock.mockReset();
+    updateResponsivePropMock.mockReset();
+    openGalleryMock.mockReset();
+});
+
+describe('a component without adaptive properties', () => {
+    it('is edited in its base props on any canvas device', async () => {
+        selectBrick('brick-1', [FIXED_PROPERTY, FIXED_GALLERY_PROPERTY]);
+        const panel = useSidebarPropertiesPanel({ onOpenMediaGallery: openGalleryMock });
+
+        stores.canvas.viewport = 'mobile';
+        await nextTick();
+
+        const titleVariant = panel.componentVariants.value.input.find(
+            (variant) => variant.property.name === 'title'
+        );
+        const galleryVariant = panel.componentVariants.value['image-gallery'].find(
+            (variant) => variant.property.name === 'photos'
+        );
+
+        expect(titleVariant?.disabled).toBe(false);
+        expect(galleryVariant?.disabled).toBe(false);
+        expect(panel.hasLockedPropertiesForScope.value).toBe(false);
+
+        panel.handleChangeValues(FIXED_PROPERTY, 'Mobile title');
+        panel.handleOpenMediaGallery(FIXED_GALLERY_PROPERTY, { action: 'append' });
+
+        expect(updatePropMock).toHaveBeenCalledWith('brick-1', 'title', 'Mobile title');
+        expect(updateResponsivePropMock).not.toHaveBeenCalled();
+        expect(openGalleryMock).toHaveBeenCalled();
+    });
+
+    it('takes the device of the canvas once adaptive properties arrive', async () => {
+        // The pick keeps following the viewport while the component does not adapt: a
+        // retried library load hands the properties in for the same selection, and the
+        // scope has to be the device the person is looking at by then
+        const { layoutDeviceScope } = useSidebarResponsiveScope();
+        selectBrick('brick-2', [FIXED_PROPERTY]);
+        await nextTick();
+
+        stores.canvas.viewport = 'mobile';
+        await nextTick();
+        expect(layoutDeviceScope.value).toBe('desktop');
+
+        selectBrick('brick-2', [ADAPTIVE_PROPERTY]);
+        await nextTick();
+        expect(layoutDeviceScope.value).toBe('mobile');
+    });
+});
+
+describe('device scope of a component with adaptive properties', () => {
     it('follows the canvas viewport after the component was selected', async () => {
         stores.canvas.viewport = 'mobile';
         const { isResponsiveComponent, layoutDeviceScope } = useSidebarResponsiveScope();
 
-        selectFixedBrick('brick-1');
+        selectBrick('brick-3', [ADAPTIVE_PROPERTY]);
         await nextTick();
 
-        expect(isResponsiveComponent.value).toBe(false);
+        expect(isResponsiveComponent.value).toBe(true);
         expect(layoutDeviceScope.value).toBe('mobile');
 
         stores.canvas.viewport = 'desktop';
@@ -147,7 +208,7 @@ describe('device scope of a component without adaptive properties', () => {
         stores.canvas.viewport = 'mobile';
         const { hasLockedPropertiesForScope } = useSidebarResponsiveScope();
 
-        selectFixedBrick('brick-6');
+        selectBrick('brick-4', [ADAPTIVE_PROPERTY, FIXED_PROPERTY]);
         await nextTick();
         expect(hasLockedPropertiesForScope.value).toBe(true);
 
@@ -157,11 +218,10 @@ describe('device scope of a component without adaptive properties', () => {
     });
 
     it('keeps the picked scope in Figma mode', async () => {
-        stores.canvas.viewport = 'desktop';
         stores.canvas.isFigmaMode = true;
         const { layoutDeviceScope, handleSetLayoutDeviceScope } = useSidebarResponsiveScope();
 
-        selectFixedBrick('brick-2');
+        selectBrick('brick-5', [ADAPTIVE_PROPERTY]);
         await nextTick();
         handleSetLayoutDeviceScope('mobile');
 
@@ -171,19 +231,14 @@ describe('device scope of a component without adaptive properties', () => {
         await nextTick();
 
         expect(layoutDeviceScope.value).toBe('mobile');
-        stores.canvas.isFigmaMode = false;
     });
 });
 
 describe('device scope against the device set and the overrides', () => {
-    beforeEach(() => {
-        stores.canvas.viewport = 'desktop';
-        stores.canvas.devices = [...DEVICES];
-        resetOverridesMock.mockReset();
-    });
-
     it('falls back to the base device when the active one leaves the set', async () => {
         const { layoutDeviceScope, handleSetLayoutDeviceScope } = useSidebarResponsiveScope();
+        selectBrick('brick-6', [ADAPTIVE_PROPERTY]);
+        await nextTick();
         handleSetLayoutDeviceScope('mobile');
 
         stores.canvas.devices = [DEVICES[1]];
@@ -194,6 +249,8 @@ describe('device scope against the device set and the overrides', () => {
 
     it('keeps the active device while it stays in the set', async () => {
         const { layoutDeviceScope, handleSetLayoutDeviceScope } = useSidebarResponsiveScope();
+        selectBrick('brick-7', [ADAPTIVE_PROPERTY]);
+        await nextTick();
         handleSetLayoutDeviceScope('mobile');
 
         stores.canvas.devices = [...DEVICES, { key: 'tablet', label: 'Tablet', width: 768 }];
@@ -205,25 +262,25 @@ describe('device scope against the device set and the overrides', () => {
     it('drops the overrides of the picked device for an adaptive component', async () => {
         const { handleSetLayoutDeviceScope, handleResetLayoutDeviceScopeOverrides } =
             useSidebarResponsiveScope();
-        selectAdaptiveBrick('brick-3');
+        selectBrick('brick-8', [ADAPTIVE_PROPERTY]);
         await nextTick();
         handleSetLayoutDeviceScope('mobile');
 
         handleResetLayoutDeviceScopeOverrides();
 
-        expect(resetOverridesMock).toHaveBeenCalledWith('brick-3', 'mobile');
+        expect(resetOverridesMock).toHaveBeenCalledWith('brick-8', 'mobile');
     });
 
     it('has nothing to drop on the base device or for a component that does not adapt', async () => {
         const { handleSetLayoutDeviceScope, handleResetLayoutDeviceScopeOverrides } =
             useSidebarResponsiveScope();
 
-        selectAdaptiveBrick('brick-4');
+        selectBrick('brick-9', [ADAPTIVE_PROPERTY]);
         await nextTick();
         handleSetLayoutDeviceScope('desktop');
         handleResetLayoutDeviceScopeOverrides();
 
-        selectFixedBrick('brick-5');
+        selectBrick('brick-10', [FIXED_PROPERTY]);
         await nextTick();
         handleSetLayoutDeviceScope('mobile');
         handleResetLayoutDeviceScopeOverrides();
